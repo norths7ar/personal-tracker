@@ -9,11 +9,15 @@ def _connect():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
 def init_db():
     with closing(_connect()) as conn:
+        # Clean break: remove old single-table diet schema if present
+        conn.execute("DROP TABLE IF EXISTS diet_entries")
+
         conn.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -30,17 +34,25 @@ def init_db():
         """)
 
         conn.execute("""
-        CREATE TABLE IF NOT EXISTS diet_entries (
+        CREATE TABLE IF NOT EXISTS diet_meals (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             date        TEXT NOT NULL,
             time        TEXT,
-            description TEXT NOT NULL,
             meal_type   TEXT,
-            food_name   TEXT,
-            quantity    TEXT,
+            description TEXT NOT NULL,
             notes       TEXT,
             confidence  REAL,
             created_at  TEXT DEFAULT (datetime('now', 'localtime'))
         )
         """)
+
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS diet_foods (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            meal_id     INTEGER NOT NULL REFERENCES diet_meals(id) ON DELETE CASCADE,
+            food_name   TEXT NOT NULL,
+            quantity    TEXT
+        )
+        """)
+
         conn.commit()
