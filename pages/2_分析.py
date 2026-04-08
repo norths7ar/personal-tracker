@@ -49,7 +49,7 @@ def daily_bar(daily: list, all_dates: list):
         legend=dict(orientation="h", y=1.1),
         xaxis=dict(tickangle=-45),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def period_compare_bar(periods: list):
@@ -66,7 +66,7 @@ def period_compare_bar(periods: list):
         margin=dict(t=8, b=8, l=0, r=0),
         legend=dict(orientation="h", y=1.1),
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def breakdown_table(breakdown: list, label: str):
@@ -76,7 +76,7 @@ def breakdown_table(breakdown: list, label: str):
     df = pd.DataFrame(breakdown)
     df.columns = ["主类别", "子类别", "合计（元）", "笔数"]
     df["合计（元）"] = df["合计（元）"].apply(lambda x: f"¥{x:,.2f}")
-    st.dataframe(df, hide_index=True, use_container_width=True)
+    st.dataframe(df, hide_index=True, width="stretch")
 
 
 # ── 页面主体 ────────────────────────────────────────────────────────────────

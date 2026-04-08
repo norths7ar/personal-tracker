@@ -131,7 +131,7 @@ def metrics_row(stats: dict, all_dates: list):
     col4.metric("最高频食物", top_food)
 
 
-def render_tab(start_date: str, end_date: str):
+def render_tab(start_date: str, end_date: str, key_prefix: str):
     all_dates = date_range_days(start_date, end_date)
     stats = get_diet_stats(start_date, end_date)
 
@@ -143,24 +143,24 @@ def render_tab(start_date: str, end_date: str):
 
     st.caption("三餐覆盖情况")
     st.plotly_chart(coverage_heatmap(stats["daily_coverage"], all_dates),
-                    use_container_width=True)
+                    width="stretch", key=f"{key_prefix}_heatmap")
 
     col1, col2 = st.columns(2)
     with col1:
         st.caption("餐顿类型分布")
         fig = meal_type_bar(stats["meal_type_dist"])
         if fig:
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch", key=f"{key_prefix}_meal_type")
 
     with col2:
         st.caption("每日餐次趋势")
         st.plotly_chart(daily_meals_line(stats["daily_meals"], all_dates),
-                        use_container_width=True)
+                        width="stretch", key=f"{key_prefix}_daily")
 
     st.caption("高频食物 Top 15")
     fig = food_freq_bar(stats["food_freq"])
     if fig:
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch", key=f"{key_prefix}_foods")
     else:
         st.info("暂无食物数据")
 
@@ -183,7 +183,7 @@ with tab_week:
     selected_label = st.selectbox("选择周", list(week_options.keys()), key="week_sel")
     w_start = week_options[selected_label]
     w_end   = w_start + timedelta(days=6)
-    render_tab(w_start.isoformat(), min(w_end, today).isoformat())
+    render_tab(w_start.isoformat(), min(w_end, today).isoformat(), key_prefix="week")
 
 with tab_month:
     # Build last 12 months
@@ -204,4 +204,4 @@ with tab_month:
         m_end = date(yy + 1, 1, 1) - timedelta(days=1)
     else:
         m_end = date(yy, mm + 1, 1) - timedelta(days=1)
-    render_tab(m_start.isoformat(), min(m_end, today).isoformat())
+    render_tab(m_start.isoformat(), min(m_end, today).isoformat(), key_prefix="month")
