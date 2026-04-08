@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 
-from core.db import get_transactions, update_transaction, delete_transaction
-from core.classifier import load_config
+from core.config import load_config
+from core.expense.db import get_transactions, update_transaction, delete_transaction
 
 st.title("流水")
 

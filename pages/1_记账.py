@@ -1,8 +1,12 @@
 import streamlit as st
 from datetime import date
 
-from core.classifier import Classifier, load_config
-from core.db import init_db, add_transaction
+import pandas as pd
+
+from core.config import load_config
+from core.db import init_db
+from core.expense.classifier import Classifier
+from core.expense.db import add_transaction, get_transactions
 
 init_db()
 
@@ -27,8 +31,6 @@ if st.session_state.flash:
 # ── 侧边栏：最近记录 ────────────────────────────────────────────────────────
 with st.sidebar:
     st.subheader("最近记录")
-    from core.db import get_transactions
-    import pandas as pd
     try:
         rows = get_transactions(limit=10)
         if rows:

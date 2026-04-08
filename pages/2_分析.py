@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import date, timedelta
 
-from core.db import (
+from core.expense.db import (
     get_period_data,
     get_active_weeks, get_active_months, get_active_years,
 )
