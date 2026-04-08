@@ -36,7 +36,7 @@ with st.sidebar:
         if rows:
             df = pd.DataFrame(rows)[["date", "type", "description", "amount", "category"]]
             df["amount"] = df["amount"].apply(lambda x: f"¥{x:.2f}")
-            st.dataframe(df, hide_index=True, use_container_width=True)
+            st.dataframe(df, hide_index=True, width="stretch")
         else:
             st.caption("暂无记录")
     except Exception as e:
@@ -63,8 +63,8 @@ if st.session_state.pending:
     result = st.session_state.pending["result"]
 
     st.caption(
-        f"**{form['type']}**　{form['description']}　"
-        f"¥{form['amount']:.2f}　{form['date']}"
+        f"**{form['type']}** {form['description']} "
+        f"¥{form['amount']:.2f} {form['date']}"
     )
     st.divider()
 
@@ -86,68 +86,50 @@ if st.session_state.pending:
                 st.caption("（无子类别）")
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("保存", type="primary", use_container_width=True):
+            if st.button("保存", type="primary", width="stretch"):
                 save_and_done(form, category, subcategory)
         with c2:
-            if st.button("取消", use_container_width=True):
+            if st.button("取消", width="stretch"):
                 cancel()
 
-    # 支出低置信度：从候选中选
-    elif result["status"] == "low_confidence":
-        st.warning(f"置信度较低（{result['confidence']:.0%}），请确认分类")
-        st.caption(f"理由：{result['reasoning']}")
-
-        options = [(result["category"], result["subcategory"], result["confidence"])]
-        for c in result["candidates"]:
-            pair = (c["category"], c["subcategory"])
-            if pair not in [(o[0], o[1]) for o in options]:
-                options.append((c["category"], c["subcategory"], c["confidence"]))
-
-        selected = st.radio(
-            "选择分类",
-            options,
-            format_func=lambda o: f"{o[0]} / {o[1]}（{o[2]:.0%}）",
-        )
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("确认保存", type="primary", use_container_width=True):
-                save_and_done(form, selected[0], selected[1], confidence=selected[2])
-        with c2:
-            if st.button("取消", use_container_width=True):
-                cancel()
-
-    # 支出新类别：确认或修改
-    elif result["status"] == "new_category":
-        st.info(f"识别到新类别：**{result['category']} / {result['subcategory']}**（不在 config.yaml 中）")
-        st.caption(f"理由：{result['reasoning']}")
-        col1, col2 = st.columns(2)
-        with col1:
-            category = st.text_input("主类别", value=result["category"])
-        with col2:
-            subcategory = st.text_input("子类别", value=result["subcategory"])
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("确认保存", type="primary", use_container_width=True):
-                save_and_done(form, category, subcategory, confidence=result["confidence"])
-        with c2:
-            if st.button("取消", use_container_width=True):
-                cancel()
-
-    # LLM 出错：手动选
-    elif result["status"] == "error":
-        st.error(f"自动分类失败：{result['reasoning']}")
+    # 支出需确认：低置信度 / LLM返回未知类别 / 出错，统一用 selectbox 预选
+    elif result["status"] in ("low_confidence", "new_category", "error"):
         cats = load_config().get("支出", {})
+        cat_keys = list(cats.keys())
+
+        if result["status"] == "low_confidence":
+            st.warning(f"置信度较低（{result['confidence']:.0%}），请确认分类")
+        elif result["status"] == "new_category":
+            st.warning(f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择")
+        else:
+            st.error(f"自动分类失败：{result['reasoning']}")
+
+        if result.get("reasoning") and result["status"] != "error":
+            st.caption(f"理由：{result['reasoning']}")
+
+        # 预选 LLM 建议，不在列表内则默认第一项
+        suggested_cat = result.get("category", "")
+        cat_idx = cat_keys.index(suggested_cat) if suggested_cat in cat_keys else 0
+
         col1, col2 = st.columns(2)
         with col1:
-            category = st.selectbox("主类别", list(cats.keys()))
+            category = st.selectbox("主类别", cat_keys, index=cat_idx)
         with col2:
-            subcategory = st.selectbox("子类别", cats.get(category, []))
+            subs = cats.get(category) or []
+            suggested_sub = result.get("subcategory", "")
+            sub_idx = subs.index(suggested_sub) if suggested_sub in subs else 0
+            if subs:
+                subcategory = st.selectbox("子类别", subs, index=sub_idx)
+            else:
+                subcategory = category  # 无子类别时与主类别一致
+                st.caption("（无子类别）")
+
         c1, c2 = st.columns(2)
         with c1:
-            if st.button("保存", type="primary", use_container_width=True):
-                save_and_done(form, category, subcategory)
+            if st.button("确认保存", type="primary", width="stretch"):
+                save_and_done(form, category, subcategory, confidence=result.get("confidence"))
         with c2:
-            if st.button("取消", use_container_width=True):
+            if st.button("取消", width="stretch"):
                 cancel()
 
     st.stop()
@@ -159,11 +141,11 @@ with st.form("entry_form", clear_on_submit=True):
     description = st.text_input("描述", placeholder="例：中午麦当劳")
     col1, col2 = st.columns(2)
     with col1:
-        amount = st.number_input("金额（元）", min_value=0.0, value=0.0, step=1.0, format="%.2f")
+        amount = st.number_input("金额（元）", min_value=0.0, value=0.0, step=0.1, format="%.2f")
     with col2:
         entry_date = st.date_input("日期", value=date.today())
     notes = st.text_area("备注（可选）", height=68)
-    submitted = st.form_submit_button("提交", type="primary", use_container_width=True)
+    submitted = st.form_submit_button("提交", type="primary", width="stretch")
 
 if submitted:
     if not description.strip():

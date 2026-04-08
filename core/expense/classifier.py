@@ -12,13 +12,14 @@ class Classifier:
         """
         调用 LLM 分类，返回：
         {
-            "status": "confirmed" | "low_confidence" | "new_category" | "error",
+            "status": "confirmed" | "low_confidence" | "error",
             "category": str,
             "subcategory": str,
             "confidence": float,
             "reasoning": str,
             "candidates": [{"category", "subcategory", "confidence"}, ...]
         }
+        未知类别视为 low_confidence，由用户从 selectbox 中确认。
         """
         try:
             raw = self._llm.invoke(self._build_prompt(), f"消费描述：{description}")
@@ -26,12 +27,10 @@ class Classifier:
         except Exception as e:
             return self._fallback(str(e))
 
-        category   = result["category"]
-        subcategory = result["subcategory"]
-        confidence  = result["confidence"]
+        confidence = result["confidence"]
 
-        if not self._is_known(category, subcategory):
-            status = "new_category"
+        if not self._is_known(result["category"], result["subcategory"]):
+            status = "new_category"  # page 1 handles this identically to low_confidence
         elif confidence < self.threshold:
             status = "low_confidence"
         else:
