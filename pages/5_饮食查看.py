@@ -133,7 +133,7 @@ with st.sidebar:
         data=csv,
         file_name=f"饮食记录_{today.strftime('%Y%m%d')}.csv",
         mime="text/csv",
-        use_container_width=True,
+        width="stretch",
     )
 
 # ── 主表格（行选择） ─────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ st.subheader(f"饮食记录（共 {len(meals)} 餐）")
 event = st.dataframe(
     display_df,
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
     selection_mode="single-row",
     on_select="rerun",
     column_config={
@@ -192,14 +192,14 @@ with tab_edit:
                 "quantity":  st.column_config.TextColumn("份量"),
             },
             hide_index=True,
-            use_container_width=True,
+            width="stretch",
         )
 
         c1, c2 = st.columns(2)
         with c1:
-            save = st.form_submit_button("保存修改", type="primary", use_container_width=True)
+            save = st.form_submit_button("保存修改", type="primary", width="stretch")
         with c2:
-            cancel_edit = st.form_submit_button("取消", use_container_width=True)
+            cancel_edit = st.form_submit_button("取消", width="stretch")
 
     if save:
         new_foods = [
@@ -239,10 +239,10 @@ with tab_delete:
 
     c1, c2 = st.columns(2)
     with c1:
-        if st.button("确认删除", type="primary", use_container_width=True):
+        if st.button("确认删除", type="primary", width="stretch"):
             delete_meal(meal_id)
             st.session_state.flash = f"✅ 记录 ID {meal_id} 已删除"
             st.rerun()
     with c2:
-        if st.button("取消", use_container_width=True):
+        if st.button("取消", width="stretch"):
             st.rerun()

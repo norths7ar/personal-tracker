@@ -32,7 +32,7 @@ display_df["amount"] = display_df["amount"].apply(lambda x: f"¥{x:.2f}")
 event = st.dataframe(
     display_df,
     hide_index=True,
-    use_container_width=True,
+    width="stretch",
     selection_mode="single-row",
     on_select="rerun",
     column_config={
@@ -94,11 +94,11 @@ with st.form("edit_form"):
 
     c1, c2, c3 = st.columns([2, 2, 1])
     with c1:
-        save = st.form_submit_button("保存修改", type="primary", use_container_width=True)
+        save = st.form_submit_button("保存修改", type="primary", width="stretch")
     with c2:
-        cancel = st.form_submit_button("取消", use_container_width=True)
+        cancel = st.form_submit_button("取消", width="stretch")
     with c3:
-        delete = st.form_submit_button("删除", use_container_width=True)
+        delete = st.form_submit_button("删除", width="stretch")
 
 if save:
     update_transaction(

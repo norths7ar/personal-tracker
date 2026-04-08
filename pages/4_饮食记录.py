@@ -97,7 +97,7 @@ def render_confirm_form(form, result, meal_types):
             "quantity":  st.column_config.TextColumn("份量"),
         },
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )
 
     notes = st.text_area("备注（可选）", value=form.get("notes") or "", height=60)
@@ -105,7 +105,7 @@ def render_confirm_form(form, result, meal_types):
     save_label = "保存" if status in ("confirmed", "error") else "确认保存"
     c1, c2 = st.columns(2)
     with c1:
-        if st.button(save_label, type="primary", use_container_width=True):
+        if st.button(save_label, type="primary", width="stretch"):
             foods = [
                 {"food_name": str(row["food_name"]), "quantity": str(row.get("quantity") or "")}
                 for _, row in edited_df.iterrows()
@@ -117,7 +117,7 @@ def render_confirm_form(form, result, meal_types):
             form["notes"] = notes
             save_and_done(form, meal_type, foods, result.get("confidence"))
     with c2:
-        if st.button("取消", use_container_width=True):
+        if st.button("取消", width="stretch"):
             cancel()
 
 
@@ -153,7 +153,7 @@ with st.form("diet_form", clear_on_submit=True):
         help="用自然语言描述你吃了什么，AI会自动提取餐顿和每种食物",
     )
     notes    = st.text_area("备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等")
-    submitted = st.form_submit_button("提交", type="primary", use_container_width=True)
+    submitted = st.form_submit_button("提交", type="primary", width="stretch")
 
 if submitted:
     if not description.strip():
