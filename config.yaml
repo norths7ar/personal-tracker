@@ -92,3 +92,10 @@ llm:
 # 分类器配置
 classifier:
   confidence_threshold: 0.75
+
+# 饮食追踪配置
+diet:
+  # 餐顿类型
+  meal_types: ["早餐", "午餐", "晚餐", "零食", "其他"]
+  # LLM提取置信度阈值
+  confidence_threshold: 0.7
