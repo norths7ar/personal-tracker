@@ -10,7 +10,7 @@ from core.expense.db import add_transaction, get_transactions
 
 init_db()
 
-st.title("记一笔")
+st.title("开销记录")
 
 
 @st.cache_resource
@@ -191,7 +191,7 @@ if submitted:
             )
             st.session_state.flash = (
                 f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
-                f"（{result['confidence']:.0%}）"
+                f"（{result['confidence']:.0%}｜{result['reasoning']}）"
             )
             st.rerun()
         else:

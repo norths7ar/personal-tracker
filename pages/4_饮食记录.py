@@ -179,5 +179,22 @@ if submitted:
     with st.spinner("AI正在分析饮食描述..."):
         result = get_extractor().extract(description.strip())
 
-    st.session_state.pending = {"form": form_data, "result": result}
-    st.rerun()
+    if result["status"] == "confirmed":
+        foods_str = "、".join(f["food_name"] for f in result["foods"])
+        meal_id = add_meal(
+            date=form_data["date"],
+            time=form_data["time"],
+            meal_type=result["meal_type"],
+            description=form_data["description"],
+            notes=form_data["notes"],
+            confidence=result["confidence"],
+            foods=result["foods"],
+        )
+        st.session_state.flash = (
+            f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
+            f"（{result['confidence']:.0%}｜{result['reasoning']}）"
+        )
+        st.rerun()
+    else:
+        st.session_state.pending = {"form": form_data, "result": result}
+        st.rerun()

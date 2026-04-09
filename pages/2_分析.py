@@ -8,7 +8,7 @@ from core.expense.db import (
     get_active_weeks, get_active_months, get_active_years,
 )
 
-st.title("报表")
+st.title("开销分析")
 
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 

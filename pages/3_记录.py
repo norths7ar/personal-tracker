@@ -5,7 +5,7 @@ from datetime import date
 from core.config import load_config
 from core.expense.db import get_transactions, update_transaction, delete_transaction
 
-st.title("流水")
+st.title("开销流水")
 
 # ── 筛选 ────────────────────────────────────────────────────────────────────
 col1, col2 = st.columns(2)
