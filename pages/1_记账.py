@@ -28,17 +28,21 @@ if st.session_state.flash:
     st.success(st.session_state.flash)
     st.session_state.flash = None
 
-# ── 侧边栏：最近记录 ────────────────────────────────────────────────────────
+# ── 侧边栏：今日支出 ────────────────────────────────────────────────────────
 with st.sidebar:
-    st.subheader("最近记录")
+    st.subheader("今日支出")
+    today_str = date.today().strftime("%Y-%m-%d")
     try:
-        rows = get_transactions(limit=10)
-        if rows:
-            df = pd.DataFrame(rows)[["date", "type", "description", "amount", "category"]]
-            df["amount"] = df["amount"].apply(lambda x: f"¥{x:.2f}")
-            st.dataframe(df, hide_index=True, width="stretch")
+        today_rows = get_transactions(start_date=today_str, end_date=today_str, limit=50)
+        if today_rows:
+            df_today = pd.DataFrame(today_rows)[["type", "description", "amount", "category"]]
+            df_today["amount"] = df_today["amount"].apply(lambda x: f"¥{x:.2f}")
+            st.dataframe(df_today, hide_index=True, width="stretch")
+            expense_total = sum(r["amount"] for r in today_rows if r["type"] == "支出")
+            if expense_total:
+                st.caption(f"今日支出合计：¥{expense_total:.2f}")
         else:
-            st.caption("暂无记录")
+            st.caption("今日暂无记录")
     except Exception as e:
         st.caption(f"加载失败：{e}")
 

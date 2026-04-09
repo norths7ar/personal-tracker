@@ -23,8 +23,22 @@ if not rows:
     st.info("没有符合条件的记录。")
     st.stop()
 
-# ── 表格（支持行选择）───────────────────────────────────────────────────────
+# ── 导出 + 表格 ─────────────────────────────────────────────────────────────
 df = pd.DataFrame(rows)
+
+col_export, col_count = st.columns([1, 3])
+with col_export:
+    csv = df.to_csv(index=False, encoding="utf-8-sig")
+    st.download_button(
+        "导出为CSV",
+        data=csv,
+        file_name=f"流水_{date.today().strftime('%Y%m%d')}.csv",
+        mime="text/csv",
+        help="包含置信度、创建时间等所有字段",
+    )
+with col_count:
+    st.caption(f"共 {len(rows)} 条记录")
+
 display_cols = ["id", "date", "type", "description", "amount", "category", "subcategory", "notes"]
 display_df = df[display_cols].copy()
 display_df["amount"] = display_df["amount"].apply(lambda x: f"¥{x:.2f}")

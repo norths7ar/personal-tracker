@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from core.config import load_config
 from core.db import init_db
 from core.diet.db import (
-    get_meals, update_meal, update_meal_foods, delete_meal, get_diet_summary,
+    get_meals, update_meal, update_meal_foods, delete_meal,
 )
 
 init_db()
@@ -101,44 +101,44 @@ def _meals_to_df(meals_list):
     return pd.DataFrame(rows)
 
 
-with st.sidebar:
-    st.subheader("📊 统计摘要")
-    if start_date and end_date:
-        try:
-            summary = get_diet_summary(start_date, end_date)
-            if summary["meal_stats"]:
-                st.caption(f"{start_date} 至 {end_date}")
-                st.write("**餐顿类型分布**")
-                total = sum(s["count"] for s in summary["meal_stats"])
-                for stat in summary["meal_stats"]:
-                    st.progress(
-                        stat["count"] / max(1, total),
-                        text=f"{stat['meal_type']}: {stat['count']} 次",
-                    )
-                st.write("**最近记录**")
-                for i, rec in enumerate(summary["recent"][:5], 1):
-                    time_tag = f" {rec['time']}" if rec.get("time") else ""
-                    st.caption(
-                        f"{i}. {rec['date']}{time_tag} {rec['meal_type']}: {rec.get('foods', '')}"
-                    )
-        except Exception as e:
-            st.caption(f"统计加载失败：{e}")
+# ── 导出 + 表格 ─────────────────────────────────────────────────────────────
+def _meals_to_export_df(meals_list):
+    """完整导出：含 confidence、created_at，foods 展开为独立列。"""
+    rows = []
+    for m in meals_list:
+        foods_str = "、".join(
+            f"{f['food_name']}{'×'+f['quantity'] if f.get('quantity') else ''}"
+            for f in m["foods"]
+        )
+        rows.append({
+            "id":          m["id"],
+            "date":        m["date"],
+            "time":        m.get("time") or "",
+            "meal_type":   m.get("meal_type") or "",
+            "foods":       foods_str,
+            "description": m.get("description") or "",
+            "notes":       m.get("notes") or "",
+            "confidence":  m.get("confidence"),
+            "created_at":  m.get("created_at") or "",
+        })
+    return pd.DataFrame(rows)
 
-    st.divider()
-    st.subheader("导出数据")
-    export_df = _meals_to_df(meals)
-    csv = export_df.to_csv(index=False, encoding="utf-8-sig")
+
+col_export, col_count = st.columns([1, 3])
+with col_export:
+    csv = _meals_to_export_df(meals).to_csv(index=False, encoding="utf-8-sig")
     st.download_button(
-        label="导出为CSV",
+        "导出为CSV",
         data=csv,
         file_name=f"饮食记录_{today.strftime('%Y%m%d')}.csv",
         mime="text/csv",
-        width="stretch",
+        help="包含置信度、创建时间、原始描述等所有字段",
     )
+with col_count:
+    st.caption(f"共 {len(meals)} 餐")
 
-# ── 主表格（行选择） ─────────────────────────────────────────────────────────
 display_df = _meals_to_df(meals)
-st.subheader(f"饮食记录（共 {len(meals)} 餐）")
+st.subheader("饮食记录")
 event = st.dataframe(
     display_df,
     hide_index=True,
