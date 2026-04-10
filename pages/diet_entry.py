@@ -12,7 +12,8 @@ init_db()
 st.title("🍽️ 饮食记录")
 
 # ── session state ───────────────────────────────────────────────────────────
-for key, default in [("pending", None), ("flash", None)]:
+for key, default in [("pending", None), ("flash", None),
+                      ("processing", False), ("processing_form", None)]:
     if key not in st.session_state:
         st.session_state[key] = default
 
@@ -121,6 +122,29 @@ def render_confirm_form(form, result, meal_types):
             cancel()
 
 
+# ── LLM 处理 ────────────────────────────────────────────────────────────────
+if st.session_state.processing:
+    form = st.session_state.processing_form
+    with st.spinner("AI正在分析饮食描述..."):
+        result = get_extractor().extract(form["description"])
+    if result["status"] == "confirmed":
+        foods_str = "、".join(f["food_name"] for f in result["foods"])
+        meal_id = add_meal(
+            date=form["date"], time=form["time"],
+            meal_type=result["meal_type"], description=form["description"],
+            notes=form["notes"], confidence=result["confidence"],
+            foods=result["foods"],
+        )
+        st.session_state.flash = (
+            f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
+            f"（{result['confidence']:.0%}｜{result['reasoning']}）"
+        )
+        st.session_state.processing = False
+    else:
+        st.session_state.pending = {"form": form, "result": result}
+        st.session_state.processing = False
+    st.rerun()
+
 # ── 确认界面 ────────────────────────────────────────────────────────────────
 if st.session_state.pending:
     form   = st.session_state.pending["form"]
@@ -176,25 +200,6 @@ if submitted:
         "notes":       notes.strip() or None,
     }
 
-    with st.spinner("AI正在分析饮食描述..."):
-        result = get_extractor().extract(description.strip())
-
-    if result["status"] == "confirmed":
-        foods_str = "、".join(f["food_name"] for f in result["foods"])
-        meal_id = add_meal(
-            date=form_data["date"],
-            time=form_data["time"],
-            meal_type=result["meal_type"],
-            description=form_data["description"],
-            notes=form_data["notes"],
-            confidence=result["confidence"],
-            foods=result["foods"],
-        )
-        st.session_state.flash = (
-            f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
-            f"（{result['confidence']:.0%}｜{result['reasoning']}）"
-        )
-        st.rerun()
-    else:
-        st.session_state.pending = {"form": form_data, "result": result}
-        st.rerun()
+    st.session_state.processing_form = form_data
+    st.session_state.processing = True
+    st.rerun()

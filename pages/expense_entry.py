@@ -19,7 +19,8 @@ def get_classifier():
 
 
 # ── session state 初始化 ────────────────────────────────────────────────────
-for key, default in [("pending", None), ("flash", None)]:
+for key, default in [("pending", None), ("flash", None),
+                      ("processing", False), ("processing_form", None)]:
     if key not in st.session_state:
         st.session_state[key] = default
 
@@ -60,6 +61,27 @@ def save_and_done(form, category, subcategory, confidence=None):
     )
     st.rerun()
 
+
+# ── LLM 处理（有 processing 时替代主表单）──────────────────────────────────
+if st.session_state.processing:
+    form = st.session_state.processing_form
+    with st.spinner("分类中…"):
+        result = get_classifier().classify(form["description"])
+    if result["status"] == "confirmed":
+        record_id = add_transaction(
+            form["type"], form["description"], form["amount"], form["date"],
+            category=result["category"], subcategory=result["subcategory"],
+            confidence=result["confidence"], notes=form["notes"],
+        )
+        st.session_state.flash = (
+            f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
+            f"（{result['confidence']:.0%}｜{result['reasoning']}）"
+        )
+        st.session_state.processing = False
+    else:
+        st.session_state.pending = {"form": form, "result": result}
+        st.session_state.processing = False
+    st.rerun()
 
 # ── 确认界面（有 pending 时替代主表单）──────────────────────────────────────
 if st.session_state.pending:
@@ -180,20 +202,6 @@ if submitted:
         st.rerun()
 
     else:  # 支出
-        with st.spinner("分类中…"):
-            result = get_classifier().classify(description.strip())
-
-        if result["status"] == "confirmed":
-            record_id = add_transaction(
-                entry_type, description.strip(), amount, entry_date.strftime("%Y-%m-%d"),
-                category=result["category"], subcategory=result["subcategory"],
-                confidence=result["confidence"], notes=notes.strip() or None,
-            )
-            st.session_state.flash = (
-                f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
-                f"（{result['confidence']:.0%}｜{result['reasoning']}）"
-            )
-            st.rerun()
-        else:
-            st.session_state.pending = {"form": form_data, "result": result}
-            st.rerun()
+        st.session_state.processing_form = form_data
+        st.session_state.processing = True
+        st.rerun()
