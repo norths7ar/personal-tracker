@@ -66,57 +66,71 @@ if not selected_rows:
     st.caption("点击一行可编辑或删除。")
     st.stop()
 
-# ── 编辑表单 ────────────────────────────────────────────────────────────────
+# ── 编辑面板 ────────────────────────────────────────────────────────────────
 record = df.iloc[selected_rows[0]].to_dict()
+# pandas 将空值读为 float NaN；统一转为 None 避免 "nan" 字符串
+record = {k: (None if isinstance(v, float) and pd.isna(v) else v) for k, v in record.items()}
+record_id   = int(str(record["id"]))
+record_type = str(record["type"])
+record_desc = str(record["description"])
+record_amt  = float(str(record["amount"]))
+record_date = str(record["date"])
 st.divider()
-st.subheader(f"编辑记录 #{int(record['id'])}")
+st.subheader(f"编辑记录 #{record_id}")
 
 config = load_config()
 
-with st.form("edit_form"):
-    entry_type = st.selectbox("类型", ["支出", "收入", "迁移"],
-                              index=["支出", "收入", "迁移"].index(record["type"]))
-    description = st.text_input("描述", value=record["description"])
+entry_type = st.selectbox(
+    "类型", ["支出", "收入", "迁移"],
+    index=["支出", "收入", "迁移"].index(record_type),
+    key=f"edit_type_{record_id}",
+)
+description = st.text_input("描述", value=record_desc)
 
-    col1, col2 = st.columns(2)
-    with col1:
-        amount = st.number_input("金额（元）", min_value=0.0,
-                                 value=float(record["amount"]), format="%.2f")
-    with col2:
-        entry_date = st.date_input("日期", value=date.fromisoformat(record["date"]))
+col1, col2 = st.columns(2)
+with col1:
+    amount = st.number_input("金额（元）", min_value=0.0,
+                             value=record_amt, format="%.2f")
+with col2:
+    entry_date = st.date_input("日期", value=date.fromisoformat(record_date))
 
-    # 分类选择：根据类型读对应的 config 分类
-    cats = config.get(entry_type, {})
-    cat_keys = list(cats.keys())
+cats = config.get(entry_type, {})
+cat_keys = list(cats.keys())
 
-    col3, col4 = st.columns(2)
-    with col3:
-        cur_cat = record.get("category") or ""
-        cat_idx = cat_keys.index(cur_cat) if cur_cat in cat_keys else 0
-        category = st.selectbox("主类别", cat_keys, index=cat_idx) if cat_keys else \
-                   st.text_input("主类别", value=cur_cat)
-    with col4:
-        subs = (cats.get(category) or []) if cat_keys else []
-        cur_sub = record.get("subcategory") or ""
-        if subs:
-            sub_idx = subs.index(cur_sub) if cur_sub in subs else 0
-            subcategory = st.selectbox("子类别", subs, index=sub_idx)
-        else:
-            subcategory = st.text_input("子类别（可选）", value=cur_sub)
+col3, col4 = st.columns(2)
+with col3:
+    cur_cat = record.get("category") or ""
+    cat_idx = cat_keys.index(cur_cat) if cur_cat in cat_keys else 0
+    if cat_keys:
+        category = st.selectbox("主类别", cat_keys, index=cat_idx,
+                                key=f"edit_cat_{record_id}")
+    else:
+        category = st.text_input("主类别", value=cur_cat,
+                                 key=f"edit_cat_{record_id}")
+with col4:
+    subs = (cats.get(category) or []) if cat_keys else []
+    cur_sub = record.get("subcategory") or ""
+    if subs:
+        sub_idx = subs.index(cur_sub) if cur_sub in subs else 0
+        subcategory = st.selectbox("子类别", subs, index=sub_idx,
+                                   key=f"edit_sub_{record_id}_{category}")
+    else:
+        subcategory = st.text_input("子类别（可选）", value=cur_sub,
+                                    key=f"edit_sub_{record_id}_{category}")
 
-    notes = st.text_area("备注", value=record.get("notes") or "", height=68)
+notes = st.text_area("备注", value=record.get("notes") or "", height=68)
 
-    c1, c2, c3 = st.columns([2, 2, 1])
-    with c1:
-        save = st.form_submit_button("保存修改", type="primary", width="stretch")
-    with c2:
-        cancel = st.form_submit_button("取消", width="stretch")
-    with c3:
-        delete = st.form_submit_button("删除", width="stretch")
+c1, c2, c3 = st.columns([2, 2, 1])
+with c1:
+    save = st.button("保存修改", type="primary", width="stretch")
+with c2:
+    cancel = st.button("取消", width="stretch")
+with c3:
+    delete = st.button("删除", width="stretch")
 
 if save:
     update_transaction(
-        int(record["id"]),
+        record_id,
         type=entry_type,
         description=description.strip(),
         amount=amount,
@@ -132,6 +146,6 @@ if cancel:
     st.rerun()
 
 if delete:
-    delete_transaction(int(record["id"]))
-    st.success(f"记录 #{int(record['id'])} 已删除。")
+    delete_transaction(record_id)
+    st.success(f"记录 #{record_id} 已删除。")
     st.rerun()
