@@ -79,9 +79,11 @@
 
 # LLM 配置
 llm:
-  model: "deepseek-chat"
+  base_url: "https://api.xiaomimimo.com/v1"
+  model: "mimo-v2-flash"
   temperature: 0.3
   max_tokens: 500
+  timeout: 30
 
 # 分类器配置
 classifier:

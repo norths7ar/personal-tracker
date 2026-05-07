@@ -11,17 +11,17 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 
 class LLMClient:
     def __init__(self, llm_config: dict):
-        api_key = os.getenv("DEEPSEEK_API_KEY")
+        api_key = os.getenv("LLM_API_KEY")
         if not api_key:
-            raise ValueError("DEEPSEEK_API_KEY not set in .env")
+            raise ValueError("LLM_API_KEY not set in .env")
 
         self._llm = ChatOpenAI(
             model=llm_config.get("model", "deepseek-chat"),
             temperature=llm_config.get("temperature", 0.3),
             max_tokens=llm_config.get("max_tokens", 500),
             api_key=api_key,
-            base_url=os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
-            timeout=30,
+            base_url=llm_config.get("base_url", "https://api.deepseek.com"),
+            timeout=llm_config.get("timeout", 30),
         )
 
     def invoke(self, system_prompt: str, user_msg: str) -> dict:

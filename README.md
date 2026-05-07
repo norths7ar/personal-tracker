@@ -44,7 +44,7 @@ pip install -r requirements.txt
 
 # 3. 配置 API 密钥
 cp .env.example .env
-# 编辑 .env，填入 DEEPSEEK_API_KEY
+# 编辑 .env，填入 LLM_API_KEY
 
 # 4. 启动
 streamlit run app.py
