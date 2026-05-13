@@ -1,69 +1,89 @@
-# expense-tracker
+# personal-tracker
 
-基于 Streamlit + LLM 的个人记账工具，供本地 Windows 使用。
+本地运行的个人记录工具，基于 Streamlit、SQLite 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。
 
 ## 功能
 
-- **记一笔**：记录支出、收入、迁移三类账目
-  - 支出自动调用 LLM（DeepSeek）分类；置信度低时弹出候选项确认；识别到未知类别时提示手动确认
-  - 收入从配置文件选择分类
-  - 迁移（理财转账、信用卡还款等）直接存入，不参与收支计算
-- **报表**：按周 / 月 / 年查看收支结余、日均、与上期对比、分类明细
-- **流水**：查看全部记录，支持按类型筛选和关键词搜索，可编辑或删除任意记录
+- **开销记录**：记录支出、收入、迁移三类账目
+  - 支出描述自动调用 LLM 分类；低置信度或未知类别时进入手动确认
+  - 收入和迁移从 `config.yaml` 选择分类
+  - 迁移记录保存到流水，但不参与收支结余计算
+- **开销流水**：支持按类型、主类别、子类别筛选，支持搜索描述、分类和备注，可导出 CSV、编辑和二次确认删除
+- **开销分析**：按周 / 月 / 年查看收支、日均、与上期对比和分类明细；明细支持一级/二级分类聚合切换
+- **饮食记录**：用自然语言记录一餐，LLM 提取餐顿类型和食物清单，低置信度时可手动确认
+- **饮食查看与分析**：查看、编辑、删除、导出饮食记录，并按周/月查看覆盖率、餐顿分布和高频食物
 
 ## 项目结构
 
-```
-expense-tracker/
-├── app.py              # 入口，定义导航页面
-├── config.yaml         # 分类配置（支出 / 收入 / 迁移）和 LLM 参数
-├── .env                # API 密钥（不进版本控制）
-├── .env.example        # 密钥配置示例
-├── requirements.txt    # Python 依赖
+```text
+personal-tracker/
+├── app.py                  # Streamlit 入口和页面导航
+├── config.yaml             # 开销分类、饮食配置和默认 LLM 参数
+├── .env.example            # LLM 环境变量示例
+├── requirements.txt        # Python 依赖
 ├── core/
-│   ├── db.py           # SQLite 操作（纯 stdlib）
-│   ├── llm.py          # LLM 调用封装（LangChain + DeepSeek）
-│   └── classifier.py   # 分类逻辑，输出 status 驱动页面流程
+│   ├── config.py           # 配置加载
+│   ├── db.py               # SQLite 连接和表初始化
+│   ├── llm.py              # OpenAI-compatible LLM 调用封装
+│   ├── expense/
+│   │   ├── classifier.py   # 开销分类逻辑
+│   │   └── db.py           # 开销记录查询与统计
+│   └── diet/
+│       ├── extractor.py    # 饮食结构化提取逻辑
+│       └── db.py           # 饮食记录查询与统计
 ├── pages/
-│   ├── 1_记账.py       # 记一笔
-│   ├── 2_分析.py       # 报表
-│   └── 3_记录.py       # 流水
+│   ├── expense_entry.py
+│   ├── expense_ledger.py
+│   ├── expense_analysis.py
+│   ├── diet_entry.py
+│   ├── diet_ledger.py
+│   └── diet_analysis.py
 └── data/
-    └── expenses.db     # SQLite 数据库（不进版本控制）
+    └── expenses.db         # 本地 SQLite 数据库，不进版本控制
 ```
 
 ## 快速开始
 
-```bash
-# 1. 创建并激活 conda 环境
+```powershell
 conda create -n expense-tracker python=3.12
 conda activate expense-tracker
-
-# 2. 安装依赖
 pip install -r requirements.txt
 
-# 3. 配置 API 密钥
-cp .env.example .env
+Copy-Item .env.example .env
 # 编辑 .env，填入 LLM_API_KEY
 
-# 4. 启动
 streamlit run app.py
 ```
 
-## 配置说明
+如果 Python 不在 PATH 中，可以使用完整解释器路径启动：
 
-`config.yaml` 分三段：
+```powershell
+C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.py
+```
 
-- `支出`：LLM 分类用的类别树，格式为 `主类别: [子类别列表]`；子类别为空列表 `[]` 时代表无子类
-- `收入`：收入分类，记账时手动选择
-- `迁移`：迁移分类，不参与收支结余计算
+## 配置
 
-修改分类后重启 Streamlit 生效（`@st.cache_resource` 不会热重载）。
+`config.yaml` 包含：
+
+- `支出`：支出主类别和子类别，供 LLM 分类和手动确认使用
+- `收入`：收入分类
+- `迁移`：还款、投资、提现、充值等不参与收支结余的流水分类
+- `llm`：默认 `base_url`、`model`、`temperature`、`max_tokens` 和 `timeout`
+- `classifier`：开销分类置信度阈值
+- `diet`：餐顿类型和饮食抽取置信度阈值
+
+`.env` 包含：
+
+- `LLM_API_KEY`：必填
+- `LLM_API_BASE_URL`：可选，覆盖 `config.yaml` 的 `llm.base_url`
+- `LLM_MODEL`：可选，覆盖 `config.yaml` 的 `llm.model`
+
+分类配置会按 `config.yaml` 修改时间刷新，通常不需要重启 Streamlit。
 
 ## 技术栈
 
 - UI：Streamlit
-- LLM：LangChain + DeepSeek API（兼容 OpenAI 格式）
+- LLM：LangChain + OpenAI-compatible API
 - 数据库：SQLite（stdlib，无 ORM）
 - 数据处理：Pandas
 - 可视化：Plotly
