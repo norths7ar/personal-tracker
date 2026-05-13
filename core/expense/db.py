@@ -3,14 +3,30 @@ from contextlib import closing
 from core.db import _connect
 
 
+def _to_cents(amount) -> int:
+    return int(round(float(amount) * 100))
+
+
+def _amount_expr() -> str:
+    return "COALESCE(amount_cents / 100.0, amount)"
+
+
+def _normalize_transaction(row) -> dict:
+    item = dict(row)
+    if item.get("amount_cents") is not None:
+        item["amount"] = item["amount_cents"] / 100
+    return item
+
+
 def add_transaction(type_, description, amount, date_,
                     category=None, subcategory=None, notes=None, confidence=None):
+    amount_cents = _to_cents(amount)
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO transactions
-               (type, description, amount, date, category, subcategory, notes, confidence)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (type_, description, amount, date_, category, subcategory, notes, confidence)
+               (type, description, amount, amount_cents, date, category, subcategory, notes, confidence)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (type_, description, amount_cents / 100, amount_cents, date_, category, subcategory, notes, confidence)
         )
         conn.commit()
         return cur.lastrowid
@@ -33,7 +49,7 @@ def get_transactions(start_date=None, end_date=None, type_=None, limit=500):
 
     with closing(_connect()) as conn:
         rows = conn.execute(query, params).fetchall()
-    return [dict(r) for r in rows]
+    return [_normalize_transaction(r) for r in rows]
 
 
 def get_monthly_summary(year, month):
@@ -43,7 +59,7 @@ def get_monthly_summary(year, month):
 
     def breakdown_by_type(conn, type_):
         return conn.execute(
-            """SELECT category, subcategory, SUM(amount) as total, COUNT(*) as count
+            f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date < ? AND type = ?
                GROUP BY category, subcategory
@@ -53,7 +69,7 @@ def get_monthly_summary(year, month):
 
     with closing(_connect()) as conn:
         totals_rows = conn.execute(
-            """SELECT type, SUM(amount) as total
+            f"""SELECT type, SUM({_amount_expr()}) as total
                FROM transactions
                WHERE date >= ? AND date < ? AND type IN ('收入', '支出')
                GROUP BY type""",
@@ -82,6 +98,10 @@ def update_transaction(id_: int, **fields):
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
         return
+    if "amount" in updates:
+        amount_cents = _to_cents(updates["amount"])
+        updates["amount"] = amount_cents / 100
+        updates["amount_cents"] = amount_cents
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     with closing(_connect()) as conn:
         conn.execute(
@@ -101,7 +121,7 @@ def get_period_data(start_date: str, end_date: str) -> dict:
     """通用期间查询，返回 income/expense/balance/daily/expense_breakdown/income_breakdown。"""
     def bd(conn, type_):
         return conn.execute(
-            """SELECT category, subcategory, SUM(amount) as total, COUNT(*) as count
+            f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date <= ? AND type = ?
                GROUP BY category, subcategory ORDER BY total DESC""",
@@ -110,7 +130,7 @@ def get_period_data(start_date: str, end_date: str) -> dict:
 
     with closing(_connect()) as conn:
         totals_rows = conn.execute(
-            """SELECT type, SUM(amount) as total FROM transactions
+            f"""SELECT type, SUM({_amount_expr()}) as total FROM transactions
                WHERE date >= ? AND date <= ? AND type IN ('收入','支出')
                GROUP BY type""",
             (start_date, end_date)
@@ -118,7 +138,7 @@ def get_period_data(start_date: str, end_date: str) -> dict:
         totals = {r["type"]: r["total"] or 0 for r in totals_rows}
 
         daily_rows = conn.execute(
-            """SELECT date, type, SUM(amount) as total FROM transactions
+            f"""SELECT date, type, SUM({_amount_expr()}) as total FROM transactions
                WHERE date >= ? AND date <= ? AND type IN ('收入','支出')
                GROUP BY date, type ORDER BY date""",
             (start_date, end_date)

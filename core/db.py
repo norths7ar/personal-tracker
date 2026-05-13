@@ -15,15 +15,13 @@ def _connect():
 
 def init_db():
     with closing(_connect()) as conn:
-        # Clean break: remove old single-table diet schema if present
-        conn.execute("DROP TABLE IF EXISTS diet_entries")
-
         conn.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             type        TEXT NOT NULL CHECK(type IN ('收入', '支出', '迁移')),
             description TEXT NOT NULL,
             amount      REAL NOT NULL,
+            amount_cents INTEGER,
             date        TEXT NOT NULL,
             category    TEXT,
             subcategory TEXT,
@@ -55,4 +53,19 @@ def init_db():
         )
         """)
 
+        _ensure_transaction_amount_cents(conn)
         conn.commit()
+
+
+def _ensure_transaction_amount_cents(conn):
+    columns = {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(transactions)").fetchall()
+    }
+    if "amount_cents" not in columns:
+        conn.execute("ALTER TABLE transactions ADD COLUMN amount_cents INTEGER")
+    conn.execute(
+        """UPDATE transactions
+           SET amount_cents = CAST(ROUND(amount * 100) AS INTEGER)
+           WHERE amount_cents IS NULL AND amount IS NOT NULL"""
+    )
