@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 from datetime import date, datetime
 
-from core.config import load_config
+from core.config import config_version, load_config
 from core.db import init_db
 from core.diet.db import add_meal, get_meals
 from core.diet.extractor import DietExtractor
@@ -11,15 +11,27 @@ init_db()
 
 st.title("🍽️ 饮食记录")
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stForm"] {
+        border: 0;
+        padding: 0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ── session state ───────────────────────────────────────────────────────────
-for key, default in [("pending", None), ("flash", None),
-                      ("processing", False), ("processing_form", None)]:
+for key, default in [("diet_pending", None), ("diet_flash", None),
+                      ("diet_processing", False), ("diet_processing_form", None)]:
     if key not in st.session_state:
         st.session_state[key] = default
 
-if st.session_state.flash:
-    st.success(st.session_state.flash)
-    st.session_state.flash = None
+if st.session_state.diet_flash:
+    st.success(st.session_state.diet_flash)
+    st.session_state.diet_flash = None
 
 # ── 侧边栏：今日饮食摘要 ────────────────────────────────────────────────────
 with st.sidebar:
@@ -45,7 +57,7 @@ with st.sidebar:
 
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 @st.cache_resource
-def get_extractor():
+def get_extractor(_version: int):
     return DietExtractor(load_config())
 
 
@@ -60,13 +72,13 @@ def save_and_done(form, meal_type, foods, confidence=None):
         foods=foods,
     )
     foods_str = "、".join(f["food_name"] for f in foods)
-    st.session_state.pending = None
-    st.session_state.flash = f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+    st.session_state.diet_pending = None
+    st.session_state.diet_flash = f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
     st.rerun()
 
 
 def cancel():
-    st.session_state.pending = None
+    st.session_state.diet_pending = None
     st.rerun()
 
 
@@ -123,10 +135,10 @@ def render_confirm_form(form, result, meal_types):
 
 
 # ── LLM 处理 ────────────────────────────────────────────────────────────────
-if st.session_state.processing:
-    form = st.session_state.processing_form
+if st.session_state.diet_processing:
+    form = st.session_state.diet_processing_form
     with st.spinner("AI正在分析饮食描述..."):
-        result = get_extractor().extract(form["description"])
+        result = get_extractor(config_version()).extract(form["description"])
     if result["status"] == "confirmed":
         foods_str = "、".join(f["food_name"] for f in result["foods"])
         meal_id = add_meal(
@@ -135,23 +147,23 @@ if st.session_state.processing:
             notes=form["notes"], confidence=result["confidence"],
             foods=result["foods"],
         )
-        st.session_state.flash = (
+        st.session_state.diet_flash = (
             f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
             f"（{result['confidence']:.0%}｜{result['reasoning']}）"
         )
-        st.session_state.processing = False
+        st.session_state.diet_processing = False
     else:
-        st.session_state.pending = {"form": form, "result": result}
-        st.session_state.processing = False
+        st.session_state.diet_pending = {"form": form, "result": result}
+        st.session_state.diet_processing = False
     st.rerun()
 
 # ── 确认界面 ────────────────────────────────────────────────────────────────
-if st.session_state.pending:
-    form   = st.session_state.pending["form"]
-    result = st.session_state.pending["result"]
+if st.session_state.diet_pending:
+    form   = st.session_state.diet_pending["form"]
+    result = st.session_state.diet_pending["result"]
     st.caption(f"**{form['date']}** {form['time'] or ''}　描述：{form['description']}")
     st.divider()
-    render_confirm_form(form, result, get_extractor().meal_types)
+    render_confirm_form(form, result, get_extractor(config_version()).meal_types)
     st.stop()
 
 
@@ -200,6 +212,6 @@ if submitted:
         "notes":       notes.strip() or None,
     }
 
-    st.session_state.processing_form = form_data
-    st.session_state.processing = True
+    st.session_state.diet_processing_form = form_data
+    st.session_state.diet_processing = True
     st.rerun()

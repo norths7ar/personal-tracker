@@ -1,4 +1,3 @@
-from core.config import load_config
 from core.llm import LLMClient
 
 

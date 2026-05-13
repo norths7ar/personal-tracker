@@ -15,12 +15,12 @@ st.title("📋 饮食查看")
 MEAL_TYPES = load_config().get("diet", {}).get("meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"])
 
 # ── session state ───────────────────────────────────────────────────────────
-if "flash" not in st.session_state:
-    st.session_state.flash = None
+if "diet_ledger_flash" not in st.session_state:
+    st.session_state.diet_ledger_flash = None
 
-if st.session_state.flash:
-    st.success(st.session_state.flash)
-    st.session_state.flash = None
+if st.session_state.diet_ledger_flash:
+    st.success(st.session_state.diet_ledger_flash)
+    st.session_state.diet_ledger_flash = None
 
 # ── 筛选条件 ────────────────────────────────────────────────────────────────
 col1, col2, col3 = st.columns(3)
@@ -28,6 +28,7 @@ with col1:
     date_range = st.selectbox(
         "时间范围",
         ["今日", "最近7天", "最近30天", "本月", "上月", "全部", "自定义"],
+        index=1,
     )
 with col2:
     meal_type_filter = st.selectbox("餐顿类型", ["全部"] + MEAL_TYPES)
@@ -219,7 +220,7 @@ with tab_edit:
                 notes=edit_notes or None,
             )
             update_meal_foods(meal_id, new_foods)
-            st.session_state.flash = f"✅ 记录 ID {meal_id} 已更新"
+            st.session_state.diet_ledger_flash = f"✅ 记录 ID {meal_id} 已更新"
             st.rerun()
 
     if cancel_edit:
@@ -241,7 +242,7 @@ with tab_delete:
     with c1:
         if st.button("确认删除", type="primary", width="stretch"):
             delete_meal(meal_id)
-            st.session_state.flash = f"✅ 记录 ID {meal_id} 已删除"
+            st.session_state.diet_ledger_flash = f"✅ 记录 ID {meal_id} 已删除"
             st.rerun()
     with c2:
         if st.button("取消", width="stretch"):

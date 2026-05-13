@@ -7,17 +7,69 @@ from core.expense.db import get_transactions, update_transaction, delete_transac
 
 st.title("开销流水")
 
+if "expense_delete_candidate" not in st.session_state:
+    st.session_state.expense_delete_candidate = None
+
+
+def _unique(values):
+    seen = set()
+    result = []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            result.append(value)
+    return result
+
+
+def _category_options(config: dict, selected_type: str) -> list[str]:
+    type_names = ["支出", "收入", "迁移"] if selected_type == "全部" else [selected_type]
+    categories = []
+    for type_name in type_names:
+        categories.extend(config.get(type_name, {}).keys())
+    return ["全部"] + _unique(categories)
+
+
+def _subcategory_options(config: dict, selected_type: str, selected_category: str) -> list[str]:
+    type_names = ["支出", "收入", "迁移"] if selected_type == "全部" else [selected_type]
+    subcategories = []
+    for type_name in type_names:
+        categories = config.get(type_name, {})
+        if selected_category == "全部":
+            for subs in categories.values():
+                subcategories.extend(subs or [])
+        else:
+            subcategories.extend(categories.get(selected_category) or [])
+    return ["全部"] + _unique(subcategories)
+
+
 # ── 筛选 ────────────────────────────────────────────────────────────────────
-col1, col2 = st.columns(2)
+config = load_config()
+
+col1, col2, col3, col4 = st.columns(4)
 with col1:
     type_filter = st.selectbox("类型", ["全部", "支出", "收入", "迁移"])
 with col2:
+    category_filter = st.selectbox("主类别", _category_options(config, type_filter))
+with col3:
+    subcategory_filter = st.selectbox("子类别", _subcategory_options(config, type_filter, category_filter))
+with col4:
     keyword = st.text_input("搜索描述", placeholder="关键词")
 
 rows = get_transactions(type_=None if type_filter == "全部" else type_filter, limit=500)
 
-if keyword:
-    rows = [r for r in rows if keyword.lower() in r["description"].lower()]
+if category_filter != "全部":
+    rows = [r for r in rows if r.get("category") == category_filter]
+
+if subcategory_filter != "全部":
+    rows = [r for r in rows if r.get("subcategory") == subcategory_filter]
+
+needle = keyword.strip().lower()
+if needle:
+    search_fields = ("description", "category", "subcategory", "notes")
+    rows = [
+        r for r in rows
+        if any(needle in str(r.get(field) or "").lower() for field in search_fields)
+    ]
 
 if not rows:
     st.info("没有符合条件的记录。")
@@ -139,6 +191,7 @@ if save:
         subcategory=subcategory or None,
         notes=notes.strip() or None,
     )
+    st.session_state.expense_delete_candidate = None
     st.success("已保存。")
     st.rerun()
 
@@ -146,6 +199,23 @@ if cancel:
     st.rerun()
 
 if delete:
-    delete_transaction(record_id)
-    st.success(f"记录 #{record_id} 已删除。")
+    st.session_state.expense_delete_candidate = record_id
     st.rerun()
+
+if st.session_state.expense_delete_candidate == record_id:
+    st.warning(f"确认删除记录 #{record_id}？此操作不可撤销。")
+    confirm_col, cancel_col = st.columns(2)
+    with confirm_col:
+        confirm_delete = st.button("确认删除", type="primary", width="stretch", key=f"confirm_delete_{record_id}")
+    with cancel_col:
+        cancel_delete = st.button("取消删除", width="stretch", key=f"cancel_delete_{record_id}")
+
+    if confirm_delete:
+        st.session_state.expense_delete_candidate = None
+        delete_transaction(record_id)
+        st.success(f"记录 #{record_id} 已删除。")
+        st.rerun()
+
+    if cancel_delete:
+        st.session_state.expense_delete_candidate = None
+        st.rerun()

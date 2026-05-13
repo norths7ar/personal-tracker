@@ -69,14 +69,33 @@ def period_compare_bar(periods: list):
     st.plotly_chart(fig, width="stretch")
 
 
-def breakdown_table(breakdown: list, label: str):
+def breakdown_table(breakdown: list, label: str, level: str):
     if not breakdown:
         st.caption(f"本期无{label}记录")
         return
     df = pd.DataFrame(breakdown)
-    df.columns = ["主类别", "子类别", "合计（元）", "笔数"]
+    if level == "一级分类":
+        df = df[["category", "total", "count"]]
+        df.columns = ["主类别", "合计（元）", "笔数"]
+    else:
+        df.columns = ["主类别", "子类别", "合计（元）", "笔数"]
     df["合计（元）"] = df["合计（元）"].apply(lambda x: f"¥{x:,.2f}")
     st.dataframe(df, hide_index=True, width="stretch")
+
+
+def aggregate_breakdown(breakdown: list, level: str) -> list:
+    if level == "二级分类" or not breakdown:
+        return breakdown
+    grouped = {}
+    for row in breakdown:
+        category = row.get("category") or "未分类"
+        current = grouped.setdefault(
+            category,
+            {"category": category, "subcategory": "全部", "total": 0, "count": 0},
+        )
+        current["total"] += row.get("total") or 0
+        current["count"] += row.get("count") or 0
+    return sorted(grouped.values(), key=lambda row: row["total"], reverse=True)
 
 
 # ── 页面主体 ────────────────────────────────────────────────────────────────
@@ -134,10 +153,11 @@ with tab_week:
             period_bars.append({"label": week_label(w), "income": d["income"], "expense": d["expense"]})
         period_compare_bar(period_bars)
 
+        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="week_breakdown_level")
         st.subheader("支出明细")
-        breakdown_table(cur["expense_breakdown"], "支出")
+        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
         st.subheader("收入明细")
-        breakdown_table(cur["income_breakdown"], "收入")
+        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -195,10 +215,11 @@ with tab_month:
             period_bars.append({"label": ym, "income": d["income"], "expense": d["expense"]})
         period_compare_bar(period_bars)
 
+        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="month_breakdown_level")
         st.subheader("支出明细")
-        breakdown_table(cur["expense_breakdown"], "支出")
+        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
         st.subheader("收入明细")
-        breakdown_table(cur["income_breakdown"], "收入")
+        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -247,7 +268,8 @@ with tab_year:
             year_bars.append({"label": yr, "income": d["income"], "expense": d["expense"]})
         period_compare_bar(year_bars)
 
+        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="year_breakdown_level")
         st.subheader("支出明细")
-        breakdown_table(cur["expense_breakdown"], "支出")
+        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
         st.subheader("收入明细")
-        breakdown_table(cur["income_breakdown"], "收入")
+        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)

@@ -3,7 +3,7 @@ from datetime import date
 
 import pandas as pd
 
-from core.config import load_config
+from core.config import config_version, load_config
 from core.db import init_db
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
@@ -12,22 +12,34 @@ init_db()
 
 st.title("开销记录")
 
+st.markdown(
+    """
+    <style>
+    div[data-testid="stForm"] {
+        border: 0;
+        padding: 0;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 
 @st.cache_resource
-def get_classifier():
+def get_classifier(_version: int):
     return Classifier(load_config())
 
 
 # ── session state 初始化 ────────────────────────────────────────────────────
-for key, default in [("pending", None), ("flash", None),
-                      ("processing", False), ("processing_form", None)]:
+for key, default in [("expense_pending", None), ("expense_flash", None),
+                      ("expense_processing", False), ("expense_processing_form", None)]:
     if key not in st.session_state:
         st.session_state[key] = default
 
 # ── flash 消息（跨 rerun 的成功提示）──────────────────────────────────────
-if st.session_state.flash:
-    st.success(st.session_state.flash)
-    st.session_state.flash = None
+if st.session_state.expense_flash:
+    st.success(st.session_state.expense_flash)
+    st.session_state.expense_flash = None
 
 # ── 侧边栏：今日支出 ────────────────────────────────────────────────────────
 with st.sidebar:
@@ -55,38 +67,38 @@ def save_and_done(form, category, subcategory, confidence=None):
         category=category, subcategory=subcategory,
         notes=form["notes"], confidence=confidence,
     )
-    st.session_state.pending = None
-    st.session_state.flash = (
+    st.session_state.expense_pending = None
+    st.session_state.expense_flash = (
         f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
     )
     st.rerun()
 
 
 # ── LLM 处理（有 processing 时替代主表单）──────────────────────────────────
-if st.session_state.processing:
-    form = st.session_state.processing_form
+if st.session_state.expense_processing:
+    form = st.session_state.expense_processing_form
     with st.spinner("分类中…"):
-        result = get_classifier().classify(form["description"])
+        result = get_classifier(config_version()).classify(form["description"])
     if result["status"] == "confirmed":
         record_id = add_transaction(
             form["type"], form["description"], form["amount"], form["date"],
             category=result["category"], subcategory=result["subcategory"],
             confidence=result["confidence"], notes=form["notes"],
         )
-        st.session_state.flash = (
+        st.session_state.expense_flash = (
             f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
             f"（{result['confidence']:.0%}｜{result['reasoning']}）"
         )
-        st.session_state.processing = False
+        st.session_state.expense_processing = False
     else:
-        st.session_state.pending = {"form": form, "result": result}
-        st.session_state.processing = False
+        st.session_state.expense_pending = {"form": form, "result": result}
+        st.session_state.expense_processing = False
     st.rerun()
 
 # ── 确认界面（有 pending 时替代主表单）──────────────────────────────────────
-if st.session_state.pending:
-    form = st.session_state.pending["form"]
-    result = st.session_state.pending["result"]
+if st.session_state.expense_pending:
+    form = st.session_state.expense_pending["form"]
+    result = st.session_state.expense_pending["result"]
 
     st.caption(
         f"**{form['type']}** {form['description']} "
@@ -95,7 +107,7 @@ if st.session_state.pending:
     st.divider()
 
     def cancel():
-        st.session_state.pending = None
+        st.session_state.expense_pending = None
         st.rerun()
 
     # 收入：从 config 选择分类
@@ -194,14 +206,14 @@ if submitted:
             entry_type, description.strip(), amount, entry_date.strftime("%Y-%m-%d"),
             notes=notes.strip() or None,
         )
-        st.session_state.flash = f"迁移记录已保存（ID {record_id}）"
+        st.session_state.expense_flash = f"迁移记录已保存（ID {record_id}）"
         st.rerun()
 
     elif entry_type == "收入":
-        st.session_state.pending = {"form": form_data, "result": None}
+        st.session_state.expense_pending = {"form": form_data, "result": None}
         st.rerun()
 
     else:  # 支出
-        st.session_state.processing_form = form_data
-        st.session_state.processing = True
+        st.session_state.expense_processing_form = form_data
+        st.session_state.expense_processing = True
         st.rerun()
