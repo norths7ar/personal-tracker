@@ -80,7 +80,7 @@
 # LLM 配置
 llm:
   base_url: "https://api.xiaomimimo.com/v1"
-  model: "mimo-v2-flash"
+  model: "mimo-v2.5"
   temperature: 0.3
   max_tokens: 500
   timeout: 30

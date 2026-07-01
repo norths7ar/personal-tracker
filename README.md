@@ -18,7 +18,7 @@
 ```text
 personal-tracker/
 ├── app.py                  # Streamlit 入口和页面导航
-├── config.yaml             # 开销分类、饮食配置和默认 LLM 参数
+├── config.yaml             # 开销分类、饮食配置和公开 LLM 参数
 ├── .env.example            # LLM 环境变量示例
 ├── requirements.txt        # Python 依赖
 ├── core/
@@ -68,15 +68,15 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.p
 - `支出`：支出主类别和子类别，供 LLM 分类和手动确认使用
 - `收入`：收入分类
 - `迁移`：还款、投资、提现、充值等不参与收支结余的流水分类
-- `llm`：默认 `base_url`、`model`、`temperature`、`max_tokens` 和 `timeout`
+- `llm`：公开的 LLM 参数，包括 `base_url`、`model`、`temperature`、`max_tokens` 和 `timeout`
 - `classifier`：开销分类置信度阈值
 - `diet`：餐顿类型和饮食抽取置信度阈值
 
 `.env` 包含：
 
-- `LLM_API_KEY`：必填
-- `LLM_API_BASE_URL`：可选，覆盖 `config.yaml` 的 `llm.base_url`
-- `LLM_MODEL`：可选，覆盖 `config.yaml` 的 `llm.model`
+- `LLM_API_KEY`：必填，不能提交到版本控制的密钥
+
+模型名、服务地址和推理参数统一在 `config.yaml` 的 `llm` 段配置；`.env` 只保存密钥。
 
 分类配置会按 `config.yaml` 修改时间刷新，通常不需要重启 Streamlit。
 

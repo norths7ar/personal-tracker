@@ -16,11 +16,11 @@ class LLMClient:
             raise ValueError("LLM_API_KEY not set in .env")
 
         self._llm = ChatOpenAI(
-            model=os.getenv("LLM_MODEL") or llm_config.get("model", "deepseek-chat"),
+            model=llm_config.get("model", "deepseek-chat"),
             temperature=llm_config.get("temperature", 0.3),
             max_tokens=llm_config.get("max_tokens", 500),
             api_key=api_key,
-            base_url=os.getenv("LLM_API_BASE_URL") or llm_config.get("base_url", "https://api.deepseek.com"),
+            base_url=llm_config.get("base_url", "https://api.deepseek.com"),
             timeout=llm_config.get("timeout", 30),
         )
 
