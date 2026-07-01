@@ -77,6 +77,7 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.p
 - `LLM_API_KEY`：必填，不能提交到版本控制的密钥
 
 模型名、服务地址和推理参数统一在 `config.yaml` 的 `llm` 段配置；`.env` 只保存密钥。
+部分 reasoning 模型可能忽略 `temperature` / `top_p` 等采样参数；例如 `mimo-v2.5` 思考模式会使用模型侧推荐默认值，因此这类模型主要通过 `max_tokens` 预留足够的推理和 JSON 输出预算。
 
 分类配置会按 `config.yaml` 修改时间刷新，通常不需要重启 Streamlit。
 
