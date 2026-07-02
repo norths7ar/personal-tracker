@@ -3,7 +3,15 @@ from contextlib import closing
 from core.db import _connect, inserted_id, is_postgres, placeholders, returning_id_clause
 
 
-def add_meal(date, time, meal_type, description, notes, confidence, foods):
+def add_meal(
+    date: str,
+    time: str | None,
+    meal_type: str,
+    description: str,
+    notes: str | None,
+    confidence: float | None,
+    foods: list[dict],
+) -> int:
     """
     Insert one meal + its food items atomically.
     foods: [{"food_name": str, "quantity": str}, ...]
@@ -24,7 +32,12 @@ def add_meal(date, time, meal_type, description, notes, confidence, foods):
     return meal_id
 
 
-def get_meals(start_date=None, end_date=None, meal_type=None, limit=200):
+def get_meals(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    meal_type: str | None = None,
+    limit: int = 200,
+) -> list[dict]:
     """
     Return list of meal dicts, each with a 'foods' key:
     [{"id", "date", "time", "meal_type", "description", "notes", "confidence",
@@ -83,38 +96,13 @@ def update_meal_with_foods(meal_id: int, foods: list, **fields):
         conn.commit()
 
 
-def update_meal(meal_id: int, **fields):
-    allowed = {"date", "time", "meal_type", "description", "notes", "confidence"}
-    updates = {k: v for k, v in fields.items() if k in allowed}
-    if not updates:
-        return
-    set_clause = ", ".join(f"{k} = ?" for k in updates)
-    with closing(_connect()) as conn:
-        conn.execute(
-            f"UPDATE diet_meals SET {set_clause} WHERE id = ?",
-            [*updates.values(), meal_id],
-        )
-        conn.commit()
-
-
-def update_meal_foods(meal_id: int, foods: list):
-    """Replace all food items for a meal (delete + reinsert)."""
-    with closing(_connect()) as conn:
-        conn.execute("DELETE FROM diet_foods WHERE meal_id = ?", (meal_id,))
-        conn.executemany(
-            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
-            [(meal_id, f["food_name"], f.get("quantity") or "") for f in foods],
-        )
-        conn.commit()
-
-
 def delete_meal(meal_id: int):
     with closing(_connect()) as conn:
         conn.execute("DELETE FROM diet_meals WHERE id = ?", (meal_id,))
         conn.commit()
 
 
-def get_diet_summary(start_date, end_date):
+def get_diet_summary(start_date: str, end_date: str) -> dict:
     """Sidebar/quick stats: meal_type counts + recent meals with food list."""
     with closing(_connect()) as conn:
         meal_stats = conn.execute(

@@ -18,8 +18,16 @@ def _normalize_transaction(row) -> dict:
     return item
 
 
-def add_transaction(type_, description, amount, date_,
-                    category=None, subcategory=None, notes=None, confidence=None):
+def add_transaction(
+    type_: str,
+    description: str,
+    amount: float,
+    date_: str,
+    category: str | None = None,
+    subcategory: str | None = None,
+    notes: str | None = None,
+    confidence: float | None = None,
+) -> int:
     amount_cents = _to_cents(amount)
     with closing(_connect()) as conn:
         cur = conn.execute(
@@ -33,7 +41,12 @@ def add_transaction(type_, description, amount, date_,
         return record_id
 
 
-def get_transactions(start_date=None, end_date=None, type_=None, limit=500):
+def get_transactions(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    type_: str | None = None,
+    limit: int = 500,
+) -> list[dict]:
     query = "SELECT * FROM transactions WHERE 1=1"
     params = []
     if start_date:
@@ -53,7 +66,7 @@ def get_transactions(start_date=None, end_date=None, type_=None, limit=500):
     return [_normalize_transaction(r) for r in rows]
 
 
-def get_monthly_summary(year, month):
+def get_monthly_summary(year: int, month: int) -> dict:
     """返回指定月份的收支结余及三类明细。迁移不参与收支计算。"""
     start = f"{year:04d}-{month:02d}-01"
     end = f"{year+1:04d}-01-01" if month == 12 else f"{year:04d}-{month+1:02d}-01"
@@ -94,7 +107,7 @@ def get_monthly_summary(year, month):
     }
 
 
-def update_transaction(id_: int, **fields):
+def update_transaction(id_: int, **fields) -> None:
     allowed = {"type", "description", "amount", "date", "category", "subcategory", "notes"}
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
@@ -112,7 +125,7 @@ def update_transaction(id_: int, **fields):
         conn.commit()
 
 
-def delete_transaction(id_: int):
+def delete_transaction(id_: int) -> None:
     with closing(_connect()) as conn:
         conn.execute("DELETE FROM transactions WHERE id = ?", (id_,))
         conn.commit()

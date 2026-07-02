@@ -3,11 +3,8 @@ import streamlit as st
 from datetime import date, datetime
 
 from core.config import config_version, load_config
-from core.db import init_db
 from core.diet.db import add_meal, get_meals
 from core.diet.extractor import DietExtractor
-
-init_db()
 
 st.title("🍽️ 饮食记录")
 

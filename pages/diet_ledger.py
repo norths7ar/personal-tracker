@@ -3,12 +3,9 @@ import streamlit as st
 from datetime import date, timedelta
 
 from core.config import load_config
-from core.db import init_db
 from core.diet.db import (
     get_meals, update_meal_with_foods, delete_meal,
 )
-
-init_db()
 
 st.title("📋 饮食查看")
 

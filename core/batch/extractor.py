@@ -1,8 +1,10 @@
 from datetime import date
 
+from core.constants import DEFAULT_CATEGORY, DEFAULT_MEAL_TYPE
 from core.diet.extractor import DietExtractor
 from core.expense.classifier import Classifier
 from core.llm import LLMClient
+from core.prompts import load_prompt
 
 
 class BatchExtractor:
@@ -17,7 +19,7 @@ class BatchExtractor:
         self.income_categories: dict = config.get("收入", {})
         self.transfer_categories: dict = config.get("迁移", {})
         self.meal_types: list = config.get("diet", {}).get(
-            "meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"]
+            "meal_types", ["早餐", "午餐", "晚餐", "零食", DEFAULT_MEAL_TYPE]
         )
         self._llm = LLMClient(config.get("llm", {}))
         self._classifier = Classifier(config)
@@ -43,61 +45,8 @@ class BatchExtractor:
         }
 
     def _build_event_prompt(self, default_date: str) -> str:
-        return f"""你是 personal-tracker 的事件拆分助手。你的任务只做第一步：把用户输入拆成语义事件，不做最终分类细节抽取。
-
-默认日期：{default_date}
-
-事件类型：
-- 支出：用户花钱、付款、购买、消费
-- 收入：工资、退款、红包、理财收益、收款
-- 迁移：还款、投资、提现、充值、账户间转移
-- 饮食：用户吃了或喝了什么
-
-只输出纯 JSON 对象，不要有任何其他内容，格式如下：
-{{
-  "events": [
-    {{
-      "event_type": "支出",
-      "text": "中午去老乡鸡花了45元",
-      "date": "YYYY-MM-DD",
-      "time": "",
-      "amount": 45.0,
-      "category_hint": "",
-      "subcategory_hint": "",
-      "meal_type_hint": "午餐",
-      "linked_group": "lunch_laoxiangji",
-      "reasoning": "一句话说明"
-    }},
-    {{
-      "event_type": "饮食",
-      "text": "中午吃了杂粮饭、一根卤鸡腿、黄瓜火腿炒蛋、西蓝花炒肉和蒜蓉粉丝虾",
-      "date": "YYYY-MM-DD",
-      "time": "",
-      "amount": null,
-      "category_hint": "",
-      "subcategory_hint": "",
-      "meal_type_hint": "午餐",
-      "linked_group": "lunch_laoxiangji",
-      "reasoning": "一句话说明"
-    }}
-  ],
-  "reasoning": "整体拆分说明"
-}}
-
-拆分原则：
-- 按语义事件拆分，不要只按早中晚拆分。
-- “买桌子花了30块”是一个支出事件。
-- “早餐吃了鸡蛋和黄瓜”是一个饮食事件。
-- “中午去老乡鸡花了45元，吃了杂粮饭和鸡腿”应拆成两个事件：支出事件 + 饮食事件，并使用相同 linked_group。
-- “晚上花了27元买了3根烤鸡腿，全吃了”应拆成支出事件 + 饮食事件。
-- 出现明确金额的财务事件，amount 必须是数字，单位元。
-- 饮食事件 amount 填 null。
-- 日期不明确时使用默认日期。
-- time 不明确时填空字符串。
-- meal_type_hint 只能是这些值之一或空字符串：{'、'.join(self.meal_types)}
-- category_hint/subcategory_hint 只是提示，可以为空；后续 pipeline 会继续处理。
-- 保留所有语义事件，不要因为不确定分类就丢弃事件。
-"""
+        meal_types_str = "、".join(self.meal_types)
+        return load_prompt("batch_events.txt", default_date=default_date, meal_types=meal_types_str)
 
     def _events_to_records(self, events: list[dict]) -> tuple[list[dict], list[dict]]:
         records = []
@@ -124,7 +73,7 @@ class BatchExtractor:
 
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
-        category = result.get("category") or event.get("category_hint") or "其他"
+        category = result.get("category") or event.get("category_hint") or DEFAULT_CATEGORY
         subcategory = (
             result.get("subcategory")
             or event.get("subcategory_hint")
@@ -134,7 +83,7 @@ class BatchExtractor:
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
-            category = event.get("category_hint") or "其他"
+            category = event.get("category_hint") or DEFAULT_CATEGORY
             subcategory = (
                 event.get("subcategory_hint")
                 or self._expense_subcategory_fallback(category)
@@ -155,13 +104,13 @@ class BatchExtractor:
 
     def _meal_event_to_record(self, event: dict) -> dict:
         result = self._diet_extractor.extract(event["text"])
-        meal_type = result.get("meal_type") or event.get("meal_type_hint") or "其他"
+        meal_type = result.get("meal_type") or event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
         foods = result.get("foods") or []
         confidence = result.get("confidence", 0.0)
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
-            meal_type = event.get("meal_type_hint") or "其他"
+            meal_type = event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
             foods = [{"food_name": event["text"], "quantity": ""}]
 
         return self._record(
@@ -232,13 +181,13 @@ class BatchExtractor:
             if subcategory_hint in subs:
                 return category_hint, subcategory_hint
             return category_hint, subs[0]
-        if "其他" in categories:
-            return "其他", ""
+        if DEFAULT_CATEGORY in categories:
+            return DEFAULT_CATEGORY, ""
         if categories:
             first = next(iter(categories))
             subs = categories.get(first) or []
             return first, subs[0] if subs else ""
-        return "其他", ""
+        return DEFAULT_CATEGORY, ""
 
     def _normalize_events(self, raw: dict, default_date: str) -> tuple[list[dict], list[dict]]:
         if not isinstance(raw, dict):

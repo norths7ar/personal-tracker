@@ -3,10 +3,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import date, timedelta
 
-from core.db import init_db
 from core.diet.db import get_diet_stats
-
-init_db()
 
 st.title("📊 饮食分析")
 

@@ -4,11 +4,8 @@ from datetime import date
 import pandas as pd
 
 from core.config import config_version, load_config
-from core.db import init_db
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
-
-init_db()
 
 st.title("开销记录")
 

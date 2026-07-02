@@ -1,4 +1,6 @@
+from core.constants import DEFAULT_CATEGORY
 from core.llm import LLMClient
+from core.prompts import load_prompt
 
 
 class Classifier:
@@ -44,27 +46,7 @@ class Classifier:
         for main, subs in self.categories.items():
             lines.append(f"- {main}：{'、'.join(subs)}" if subs else f"- {main}")
         cats = "\n".join(lines)
-        return f"""你是一个消费分类助手。根据消费描述，从以下类别中选出最合适的分类：
-
-{cats}
-
-只输出纯 JSON 对象，不要有任何其他内容，格式如下：
-{{
-    "category": "主类别",
-    "subcategory": "子类别",
-    "confidence": 0.92,
-    "reasoning": "一句话说明理由",
-    "candidates": [
-        {{"category": "次选主类别", "subcategory": "次选子类别", "confidence": 0.05}},
-        {{"category": "三选主类别", "subcategory": "三选子类别", "confidence": 0.03}}
-    ]
-}}
-
-说明：
-- category 和 subcategory 必须来自上面的类别列表；确实不匹配时用"其他"/"其他支出"
-- 如果主类别没有子类别，subcategory 填与 category 相同的值
-- candidates 填另外两个可能的分类，按置信度降序；没有合理备选就填空列表 []
-"""
+        return load_prompt("expense_classifier.txt", categories=cats)
 
     @staticmethod
     def _normalize(data: dict) -> dict:
@@ -77,29 +59,29 @@ class Classifier:
         for c in data.get("candidates", []):
             try:
                 candidates.append({
-                    "category":    c.get("category", "其他"),
-                    "subcategory": c.get("subcategory", "其他支出"),
+                    "category":    c.get("category", DEFAULT_CATEGORY),
+                    "subcategory": c.get("subcategory", c.get("category", DEFAULT_CATEGORY)),
                     "confidence":  max(0.0, min(1.0, float(c.get("confidence", 0.0)))),
                 })
             except (TypeError, ValueError):
                 pass
         data["candidates"] = candidates
 
-        data.setdefault("category", "其他")
-        data.setdefault("subcategory", "其他支出")
+        data.setdefault("category", DEFAULT_CATEGORY)
+        data.setdefault("subcategory", data.get("category", DEFAULT_CATEGORY))
         data.setdefault("reasoning", "")
         return data
 
     @staticmethod
     def _fallback(reason: str) -> dict:
         return {
-            "status":     "error",
-            "category":   "其他",
-            "subcategory": "其他支出",
-            "confidence": 0.0,
-            "reasoning":  reason,
-            "candidates": [],
-            "error":      True,
+            "status":      "error",
+            "category":    DEFAULT_CATEGORY,
+            "subcategory": DEFAULT_CATEGORY,
+            "confidence":  0.0,
+            "reasoning":   reason,
+            "candidates":  [],
+            "error":       True,
         }
 
     def _is_known(self, category: str, subcategory: str) -> bool:

@@ -5,11 +5,8 @@ import streamlit as st
 
 from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
-from core.db import init_db
 from core.diet.db import add_meal
 from core.expense.db import add_transaction
-
-init_db()
 
 st.title("批量记录")
 
