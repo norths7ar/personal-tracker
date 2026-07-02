@@ -1,6 +1,6 @@
 from contextlib import closing
 
-from core.db import _connect
+from core.db import _connect, inserted_id, is_postgres, returning_id_clause
 
 
 def _to_cents(amount) -> int:
@@ -25,11 +25,11 @@ def add_transaction(type_, description, amount, date_,
         cur = conn.execute(
             """INSERT INTO transactions
                (type, description, amount, amount_cents, date, category, subcategory, notes, confidence)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""" + returning_id_clause(),
             (type_, description, amount_cents / 100, amount_cents, date_, category, subcategory, notes, confidence)
         )
         conn.commit()
-        return cur.lastrowid
+        return inserted_id(cur)
 
 
 def get_transactions(start_date=None, end_date=None, type_=None, limit=500):
@@ -168,27 +168,34 @@ def get_period_data(start_date: str, end_date: str) -> dict:
 
 def get_active_weeks() -> list:
     """返回有记录的自然周起始日（周一）列表。"""
+    if is_postgres():
+        sql = """SELECT DISTINCT
+                    ((date::date - ((EXTRACT(ISODOW FROM date::date)::int - 1) * INTERVAL '1 day'))::date)::text
+                    as week_start
+                 FROM transactions ORDER BY week_start DESC"""
+    else:
+        sql = """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
+                 FROM transactions ORDER BY week_start DESC"""
     with closing(_connect()) as conn:
-        rows = conn.execute(
-            """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
-               FROM transactions ORDER BY week_start DESC"""
-        ).fetchall()
+        rows = conn.execute(sql).fetchall()
     return [r["week_start"] for r in rows]
 
 
 def get_active_years() -> list:
+    if is_postgres():
+        sql = "SELECT DISTINCT to_char(date::date, 'YYYY') as year FROM transactions ORDER BY year DESC"
+    else:
+        sql = "SELECT DISTINCT strftime('%Y', date) as year FROM transactions ORDER BY year DESC"
     with closing(_connect()) as conn:
-        rows = conn.execute(
-            """SELECT DISTINCT strftime('%Y', date) as year
-               FROM transactions ORDER BY year DESC"""
-        ).fetchall()
+        rows = conn.execute(sql).fetchall()
     return [r["year"] for r in rows]
 
 
 def get_active_months() -> list:
+    if is_postgres():
+        sql = "SELECT DISTINCT to_char(date::date, 'YYYY-MM') as month FROM transactions ORDER BY month DESC"
+    else:
+        sql = "SELECT DISTINCT strftime('%Y-%m', date) as month FROM transactions ORDER BY month DESC"
     with closing(_connect()) as conn:
-        rows = conn.execute(
-            """SELECT DISTINCT strftime('%Y-%m', date) as month
-               FROM transactions ORDER BY month DESC"""
-        ).fetchall()
+        rows = conn.execute(sql).fetchall()
     return [r["month"] for r in rows]

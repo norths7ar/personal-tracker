@@ -1,11 +1,72 @@
 import sqlite3
 from contextlib import closing
 from pathlib import Path
+from urllib.parse import quote
+
+from core.secrets import get_secret
 
 DB_PATH = Path(__file__).parent.parent / "data" / "expenses.db"
 
 
-def _connect():
+class DatabaseConfigError(RuntimeError):
+    pass
+
+
+class Connection:
+    def __init__(self, conn, backend: str):
+        self._conn = conn
+        self.backend = backend
+
+    def execute(self, sql: str, params=None):
+        params = [] if params is None else params
+        return self._conn.execute(self._prepare(sql), params)
+
+    def executemany(self, sql: str, params):
+        prepared = self._prepare(sql)
+        if self.backend == "postgres":
+            with self._conn.cursor() as cursor:
+                cursor.executemany(prepared, params)
+                return cursor
+        return self._conn.executemany(prepared, params)
+
+    def commit(self):
+        return self._conn.commit()
+
+    def rollback(self):
+        return self._conn.rollback()
+
+    def close(self):
+        return self._conn.close()
+
+    def _prepare(self, sql: str) -> str:
+        if self.backend == "postgres":
+            return sql.replace("?", "%s")
+        return sql
+
+
+def get_backend() -> str:
+    return (get_secret("DB_BACKEND", "sqlite") or "sqlite").strip().lower()
+
+
+def get_database_url() -> str:
+    database_url = get_secret("DATABASE_URL")
+    if database_url:
+        return database_url
+
+    project_ref = get_secret("SUPABASE_PROJECT_REF")
+    project_password = get_secret("SUPABASE_PROJECT_PASSWORD")
+    pooler_host = get_secret("SUPABASE_POOLER_HOST")
+    if project_ref and project_password and pooler_host:
+        password = quote(project_password, safe="")
+        return f"postgresql://postgres.{project_ref}:{password}@{pooler_host}:6543/postgres"
+
+    raise DatabaseConfigError(
+        "PostgreSQL backend requires DATABASE_URL, or SUPABASE_PROJECT_REF, "
+        "SUPABASE_PROJECT_PASSWORD, and SUPABASE_POOLER_HOST."
+    )
+
+
+def _connect_sqlite():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -13,55 +74,150 @@ def _connect():
     return conn
 
 
+def _connect_postgres():
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+    except ImportError as exc:
+        raise DatabaseConfigError(
+            "PostgreSQL backend requires psycopg. Install requirements.txt first."
+        ) from exc
+
+    conn = psycopg.connect(get_database_url(), row_factory=dict_row)
+    return conn
+
+
+def _connect():
+    backend = get_backend()
+    if backend == "sqlite":
+        return Connection(_connect_sqlite(), backend)
+    if backend in {"postgres", "postgresql"}:
+        return Connection(_connect_postgres(), "postgres")
+    raise DatabaseConfigError(f"Unsupported DB_BACKEND: {backend}")
+
+
+def is_postgres() -> bool:
+    return get_backend() in {"postgres", "postgresql"}
+
+
+def returning_id_clause() -> str:
+    return " RETURNING id" if is_postgres() else ""
+
+
+def inserted_id(cursor) -> int:
+    if is_postgres():
+        row = cursor.fetchone()
+        return int(row["id"])
+    return cursor.lastrowid
+
+
+def placeholders(count: int) -> str:
+    return ",".join("?" * count)
+
+
 def init_db():
     with closing(_connect()) as conn:
-        conn.execute("""
-        CREATE TABLE IF NOT EXISTS transactions (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            type        TEXT NOT NULL CHECK(type IN ('收入', '支出', '迁移')),
-            description TEXT NOT NULL,
-            amount      REAL NOT NULL,
-            amount_cents INTEGER,
-            date        TEXT NOT NULL,
-            category    TEXT,
-            subcategory TEXT,
-            notes       TEXT,
-            confidence  REAL,
-            created_at  TEXT DEFAULT (datetime('now', 'localtime'))
-        )
-        """)
-
-        conn.execute("""
-        CREATE TABLE IF NOT EXISTS diet_meals (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            date        TEXT NOT NULL,
-            time        TEXT,
-            meal_type   TEXT,
-            description TEXT NOT NULL,
-            notes       TEXT,
-            confidence  REAL,
-            created_at  TEXT DEFAULT (datetime('now', 'localtime'))
-        )
-        """)
-
-        conn.execute("""
-        CREATE TABLE IF NOT EXISTS diet_foods (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            meal_id     INTEGER NOT NULL REFERENCES diet_meals(id) ON DELETE CASCADE,
-            food_name   TEXT NOT NULL,
-            quantity    TEXT
-        )
-        """)
+        if conn.backend == "postgres":
+            _init_postgres(conn)
+        else:
+            _init_sqlite(conn)
 
         _ensure_transaction_amount_cents(conn)
         conn.commit()
 
 
+def _init_sqlite(conn):
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        type        TEXT NOT NULL CHECK(type IN ('收入', '支出', '迁移')),
+        description TEXT NOT NULL,
+        amount      REAL NOT NULL,
+        amount_cents INTEGER,
+        date        TEXT NOT NULL,
+        category    TEXT,
+        subcategory TEXT,
+        notes       TEXT,
+        confidence  REAL,
+        created_at  TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+    """)
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS diet_meals (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        date        TEXT NOT NULL,
+        time        TEXT,
+        meal_type   TEXT,
+        description TEXT NOT NULL,
+        notes       TEXT,
+        confidence  REAL,
+        created_at  TEXT DEFAULT (datetime('now', 'localtime'))
+    )
+    """)
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS diet_foods (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        meal_id     INTEGER NOT NULL REFERENCES diet_meals(id) ON DELETE CASCADE,
+        food_name   TEXT NOT NULL,
+        quantity    TEXT
+    )
+    """)
+
+
+def _init_postgres(conn):
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id          INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+        type        TEXT NOT NULL CHECK(type IN ('收入', '支出', '迁移')),
+        description TEXT NOT NULL,
+        amount      DOUBLE PRECISION NOT NULL,
+        amount_cents INTEGER,
+        date        TEXT NOT NULL,
+        category    TEXT,
+        subcategory TEXT,
+        notes       TEXT,
+        confidence  DOUBLE PRECISION,
+        created_at  TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+    """)
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS diet_meals (
+        id          INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+        date        TEXT NOT NULL,
+        time        TEXT,
+        meal_type   TEXT,
+        description TEXT NOT NULL,
+        notes       TEXT,
+        confidence  DOUBLE PRECISION,
+        created_at  TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
+    )
+    """)
+
+    conn.execute("""
+    CREATE TABLE IF NOT EXISTS diet_foods (
+        id          INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
+        meal_id     INTEGER NOT NULL REFERENCES diet_meals(id) ON DELETE CASCADE,
+        food_name   TEXT NOT NULL,
+        quantity    TEXT
+    )
+    """)
+
+
 def _ensure_transaction_amount_cents(conn):
-    columns = {
-        row["name"]
-        for row in conn.execute("PRAGMA table_info(transactions)").fetchall()
-    }
+    if conn.backend == "postgres":
+        rows = conn.execute(
+            """SELECT column_name FROM information_schema.columns
+               WHERE table_name = 'transactions'"""
+        ).fetchall()
+        columns = {row["column_name"] for row in rows}
+    else:
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(transactions)").fetchall()
+        }
     if "amount_cents" not in columns:
         conn.execute("ALTER TABLE transactions ADD COLUMN amount_cents INTEGER")
     conn.execute(

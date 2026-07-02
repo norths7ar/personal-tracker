@@ -1,6 +1,8 @@
 import streamlit as st
+from core.auth import require_login
 from core.db import init_db
 
+require_login()
 init_db()
 
 pages = [

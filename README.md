@@ -1,6 +1,6 @@
 # personal-tracker
 
-本地运行的个人记录工具，基于 Streamlit、SQLite 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。
+个人记录工具，基于 Streamlit、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。
 
 ## 功能
 
@@ -19,11 +19,11 @@
 personal-tracker/
 ├── app.py                  # Streamlit 入口和页面导航
 ├── config.yaml             # 开销分类、饮食配置和公开 LLM 参数
-├── .env.example            # LLM 环境变量示例
+├── .env.example            # 环境变量示例
 ├── requirements.txt        # Python 依赖
 ├── core/
 │   ├── config.py           # 配置加载
-│   ├── db.py               # SQLite 连接和表初始化
+│   ├── db.py               # SQLite/PostgreSQL 连接和表初始化
 │   ├── llm.py              # OpenAI-compatible LLM 调用封装
 │   ├── expense/
 │   │   ├── classifier.py   # 开销分类逻辑
@@ -44,6 +44,8 @@ personal-tracker/
 
 ## 快速开始
 
+### 本地 SQLite
+
 ```powershell
 conda create -n expense-tracker python=3.12
 conda activate expense-tracker
@@ -51,6 +53,7 @@ pip install -r requirements.txt
 
 Copy-Item .env.example .env
 # 编辑 .env，填入 LLM_API_KEY
+# DB_BACKEND 保持 sqlite
 
 streamlit run app.py
 ```
@@ -60,6 +63,40 @@ streamlit run app.py
 ```powershell
 C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.py
 ```
+
+### Supabase PostgreSQL / Streamlit Cloud
+
+云端部署推荐使用 Supabase PostgreSQL pooler connection string。Streamlit Cloud 的 secrets 可以配置为：
+
+```toml
+DB_BACKEND = "postgres"
+DATABASE_URL = "postgresql://postgres.<project-ref>:<password>@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres"
+APP_PASSWORD = "your_app_password"
+LLM_API_KEY = "your_llm_api_key"
+```
+
+本地 `.env` 也可以使用完整 `DATABASE_URL`，或者用 Supabase 变量拼接 pooler URL：
+
+```dotenv
+DB_BACKEND=postgres
+SUPABASE_PROJECT_REF=your_project_ref
+SUPABASE_PROJECT_PASSWORD=your_supabase_database_password
+SUPABASE_POOLER_HOST=aws-0-ap-northeast-1.pooler.supabase.com
+APP_PASSWORD=your_app_password
+LLM_API_KEY=your_llm_api_key
+```
+
+`APP_PASSWORD` 为空时不启用登录保护；云端部署必须设置。
+
+### SQLite 数据迁移到 PostgreSQL
+
+先备份 `data/expenses.db`，然后在 `.env` 中配置 PostgreSQL 连接，再运行：
+
+```powershell
+C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/migrate_sqlite_to_postgres.py
+```
+
+迁移脚本会初始化 PostgreSQL 表结构，并在目标表非空时默认拒绝导入。确认需要导入到非空库时可加 `--allow-nonempty`，但要先确认不会产生重复 ID 冲突。
 
 ## 配置
 
@@ -72,9 +109,13 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.p
 - `classifier`：开销分类置信度阈值
 - `diet`：餐顿类型和饮食抽取置信度阈值
 
-`.env` 包含：
+`.env` 或 Streamlit secrets 包含：
 
 - `LLM_API_KEY`：必填，不能提交到版本控制的密钥
+- `APP_PASSWORD`：可选；设置后启用单用户访问密码
+- `DB_BACKEND`：`sqlite` 或 `postgres`，默认 `sqlite`
+- `DATABASE_URL`：PostgreSQL 连接 URL；云端部署推荐使用 Supabase pooler URL
+- `SUPABASE_PROJECT_REF` / `SUPABASE_PROJECT_PASSWORD` / `SUPABASE_POOLER_HOST`：未设置 `DATABASE_URL` 时用于拼接 Supabase pooler URL
 
 模型名、服务地址和推理参数统一在 `config.yaml` 的 `llm` 段配置；`.env` 只保存密钥。
 部分 reasoning 模型可能忽略 `temperature` / `top_p` 等采样参数；例如 `mimo-v2.5` 思考模式会使用模型侧推荐默认值，因此这类模型主要通过 `max_tokens` 预留足够的推理和 JSON 输出预算。
@@ -85,6 +126,6 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.p
 
 - UI：Streamlit
 - LLM：LangChain + OpenAI-compatible API
-- 数据库：SQLite（stdlib，无 ORM）
+- 数据库：SQLite（本地默认）/ PostgreSQL（云端部署）
 - 数据处理：Pandas
 - 可视化：Plotly

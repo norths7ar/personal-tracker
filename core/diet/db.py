@@ -1,6 +1,6 @@
 from contextlib import closing
 
-from core.db import _connect
+from core.db import _connect, inserted_id, is_postgres, placeholders, returning_id_clause
 
 
 def add_meal(date, time, meal_type, description, notes, confidence, foods):
@@ -12,10 +12,10 @@ def add_meal(date, time, meal_type, description, notes, confidence, foods):
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO diet_meals (date, time, meal_type, description, notes, confidence)
-               VALUES (?, ?, ?, ?, ?, ?)""",
+               VALUES (?, ?, ?, ?, ?, ?)""" + returning_id_clause(),
             (date, time, meal_type, description, notes, confidence),
         )
-        meal_id = cur.lastrowid
+        meal_id = inserted_id(cur)
         conn.executemany(
             "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
             [(meal_id, f["food_name"], f.get("quantity") or "") for f in foods],
@@ -49,9 +49,8 @@ def get_meals(start_date=None, end_date=None, meal_type=None, limit=200):
         if not meals:
             return []
         meal_ids = [m["id"] for m in meals]
-        placeholders = ",".join("?" * len(meal_ids))
         food_rows = conn.execute(
-            f"SELECT * FROM diet_foods WHERE meal_id IN ({placeholders}) ORDER BY id",
+            f"SELECT * FROM diet_foods WHERE meal_id IN ({placeholders(len(meal_ids))}) ORDER BY id",
             meal_ids,
         ).fetchall()
 
@@ -107,17 +106,25 @@ def get_diet_summary(start_date, end_date):
             (start_date, end_date),
         ).fetchall()
 
-        recent = conn.execute(
-            """SELECT m.date, m.meal_type, m.time,
-                      GROUP_CONCAT(f.food_name, '、') as foods
-               FROM diet_meals m
-               LEFT JOIN diet_foods f ON f.meal_id = m.id
-               WHERE m.date >= ? AND m.date <= ?
-               GROUP BY m.id
-               ORDER BY m.date DESC, m.time DESC
-               LIMIT 10""",
-            (start_date, end_date),
-        ).fetchall()
+        if is_postgres():
+            recent_sql = """SELECT m.date, m.meal_type, m.time,
+                                   STRING_AGG(f.food_name, '、' ORDER BY f.id) as foods
+                            FROM diet_meals m
+                            LEFT JOIN diet_foods f ON f.meal_id = m.id
+                            WHERE m.date >= ? AND m.date <= ?
+                            GROUP BY m.id
+                            ORDER BY m.date DESC, m.time DESC
+                            LIMIT 10"""
+        else:
+            recent_sql = """SELECT m.date, m.meal_type, m.time,
+                                   GROUP_CONCAT(f.food_name, '、') as foods
+                            FROM diet_meals m
+                            LEFT JOIN diet_foods f ON f.meal_id = m.id
+                            WHERE m.date >= ? AND m.date <= ?
+                            GROUP BY m.id
+                            ORDER BY m.date DESC, m.time DESC
+                            LIMIT 10"""
+        recent = conn.execute(recent_sql, (start_date, end_date)).fetchall()
 
     return {
         "meal_stats": [dict(r) for r in meal_stats],

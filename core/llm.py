@@ -1,17 +1,13 @@
-import os
-from pathlib import Path
-
-from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-load_dotenv(Path(__file__).parent.parent / ".env")
+from core.secrets import get_secret
 
 
 class LLMClient:
     def __init__(self, llm_config: dict):
-        api_key = os.getenv("LLM_API_KEY")
+        api_key = get_secret("LLM_API_KEY")
         if not api_key:
             raise ValueError("LLM_API_KEY not set in .env")
 
