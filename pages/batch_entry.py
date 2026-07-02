@@ -147,7 +147,7 @@ def _render_diagnostics(diagnostics: dict):
         return
     with st.expander("解析诊断"):
         st.caption(
-            f"模型返回 {diagnostics.get('raw_count', 0)} 条；"
+            f"事件拆分返回 {diagnostics.get('raw_count', 0)} 条；"
             f"保留 {diagnostics.get('kept_count', 0)} 条；"
             f"过滤 {len(diagnostics.get('rejected_records', []))} 条。"
         )
