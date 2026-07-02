@@ -20,13 +20,15 @@ class BatchExtractor:
         default_date = default_date or date.today().isoformat()
         try:
             raw = self._llm.invoke(self._build_prompt(default_date), text)
-            records = self._normalize_records(raw)
+            records, rejected = self._normalize_records(raw)
         except Exception as e:
             return {"status": "error", "records": [], "reasoning": str(e)}
 
         return {
             "status": "confirmed" if records else "empty",
             "records": records,
+            "raw_records": raw.get("records", []) if isinstance(raw, dict) else [],
+            "rejected_records": rejected,
             "reasoning": raw.get("reasoning", "") if isinstance(raw, dict) else "",
         }
 
@@ -89,6 +91,24 @@ class BatchExtractor:
   "reasoning": "整体拆分说明"
 }}
 
+必须完整保留的信息：
+- 输入中出现“早上/早餐”“中午/午餐”“晚上/晚餐”等多个餐段时，每个餐段都必须至少输出一条饮食记录。
+- 输入中出现“花了/买了/支付/消费/元”等金额事件时，必须输出对应的支出记录。
+- 如果一个餐段既有金额又有食物，必须输出两条：一条支出，一条饮食。
+
+示例：
+用户输入：
+今天早上在家里吃了3个煮鸡蛋，1根黄瓜，适量坚果
+中午去老乡鸡，花了45元，吃了杂粮饭、一根卤鸡腿、黄瓜火腿炒蛋、西蓝花炒肉和蒜蓉粉丝虾
+晚上花了27元买了3根烤鸡腿，全吃了，然后又吃了200g蓝莓和1个橙子
+
+应该输出 5 条记录：
+- 饮食：早餐，煮鸡蛋/黄瓜/坚果
+- 支出：午餐老乡鸡 45 元
+- 饮食：午餐，杂粮饭/卤鸡腿/黄瓜火腿炒蛋/西蓝花炒肉/蒜蓉粉丝虾
+- 支出：晚餐烤鸡腿 27 元
+- 饮食：晚餐，烤鸡腿/蓝莓/橙子
+
 规则：
 - record_type 必须是 支出、收入、迁移、饮食 之一。
 - 用户一句话中有多个事件时，拆成多条 records。
@@ -113,19 +133,22 @@ class BatchExtractor:
         return "\n".join(lines)
 
     @staticmethod
-    def _normalize_records(raw: dict) -> list[dict]:
+    def _normalize_records(raw: dict) -> tuple[list[dict], list[dict]]:
         if not isinstance(raw, dict):
-            return []
+            return [], [{"reason": "LLM 输出不是 JSON 对象", "record": raw}]
         raw_records = raw.get("records", [])
         if not isinstance(raw_records, list):
-            return []
+            return [], [{"reason": "records 不是列表", "record": raw_records}]
 
         records = []
+        rejected = []
         for item in raw_records:
             if not isinstance(item, dict):
+                rejected.append({"reason": "记录不是 JSON 对象", "record": item})
                 continue
             record_type = str(item.get("record_type") or "").strip()
             if record_type not in {"支出", "收入", "迁移", "饮食"}:
+                rejected.append({"reason": f"未知记录类型：{record_type}", "record": item})
                 continue
 
             amount = item.get("amount")
@@ -133,8 +156,10 @@ class BatchExtractor:
                 try:
                     amount = round(float(amount), 2)
                 except (TypeError, ValueError):
+                    rejected.append({"reason": "财务记录缺少有效金额", "record": item})
                     continue
                 if amount <= 0:
+                    rejected.append({"reason": "财务记录金额必须大于 0", "record": item})
                     continue
             else:
                 amount = None
@@ -170,4 +195,4 @@ class BatchExtractor:
                 "confidence": confidence,
                 "reasoning": str(item.get("reasoning") or "").strip(),
             })
-        return records
+        return records, rejected

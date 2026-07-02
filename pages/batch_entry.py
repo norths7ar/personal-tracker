@@ -142,8 +142,24 @@ def _save_rows(df: pd.DataFrame) -> tuple[int, list[str]]:
     return saved, errors
 
 
+def _render_diagnostics(diagnostics: dict):
+    if not diagnostics:
+        return
+    with st.expander("解析诊断"):
+        st.caption(
+            f"模型返回 {diagnostics.get('raw_count', 0)} 条；"
+            f"保留 {diagnostics.get('kept_count', 0)} 条；"
+            f"过滤 {len(diagnostics.get('rejected_records', []))} 条。"
+        )
+        if diagnostics.get("reasoning"):
+            st.caption(f"整体说明：{diagnostics['reasoning']}")
+        if diagnostics.get("rejected_records"):
+            st.json(diagnostics["rejected_records"])
+
+
 for key, default in [
     ("batch_records", None),
+    ("batch_diagnostics", None),
     ("batch_source_text", ""),
     ("batch_flash", None),
 ]:
@@ -179,10 +195,23 @@ if submitted:
         st.error(f"解析失败：{result['reasoning']}")
         st.stop()
     if not result["records"]:
+        diagnostics = {
+            "raw_count": len(result.get("raw_records", [])),
+            "kept_count": 0,
+            "rejected_records": result.get("rejected_records", []),
+            "reasoning": result.get("reasoning", ""),
+        }
         st.warning("没有解析出可保存的记录。")
+        _render_diagnostics(diagnostics)
         st.stop()
     st.session_state.batch_source_text = text.strip()
     st.session_state.batch_records = result["records"]
+    st.session_state.batch_diagnostics = {
+        "raw_count": len(result.get("raw_records", [])),
+        "kept_count": len(result["records"]),
+        "rejected_records": result.get("rejected_records", []),
+        "reasoning": result.get("reasoning", ""),
+    }
     st.rerun()
 
 if not st.session_state.batch_records:
@@ -191,6 +220,9 @@ if not st.session_state.batch_records:
 
 st.subheader("确认记录")
 st.caption("取消勾选可跳过该行。食物清单格式：食物:份量；食物。")
+
+diagnostics = st.session_state.get("batch_diagnostics") or {}
+_render_diagnostics(diagnostics)
 
 df = _records_to_df(st.session_state.batch_records)
 edited_df = st.data_editor(
@@ -240,11 +272,13 @@ with c1:
             st.error("；".join(errors))
         if saved:
             st.session_state.batch_records = None
+            st.session_state.batch_diagnostics = None
             st.session_state.batch_source_text = ""
             st.session_state.batch_flash = f"已保存 {saved} 条记录。"
             st.rerun()
 with c2:
     if st.button("清空", width="stretch"):
         st.session_state.batch_records = None
+        st.session_state.batch_diagnostics = None
         st.session_state.batch_source_text = ""
         st.rerun()
