@@ -5,7 +5,7 @@ from datetime import date, timedelta
 from core.config import load_config
 from core.db import init_db
 from core.diet.db import (
-    get_meals, update_meal, update_meal_foods, delete_meal,
+    get_meals, update_meal_with_foods, delete_meal,
 )
 
 init_db()
@@ -211,15 +211,15 @@ with tab_edit:
         if not new_foods:
             st.error("请至少填写一种食物")
         else:
-            update_meal(
+            update_meal_with_foods(
                 meal_id,
+                new_foods,
                 date=edit_date.strftime("%Y-%m-%d"),
                 time=edit_time or None,
                 meal_type=edit_meal_type,
                 description=edit_description,
                 notes=edit_notes or None,
             )
-            update_meal_foods(meal_id, new_foods)
             st.session_state.diet_ledger_flash = f"✅ 记录 ID {meal_id} 已更新"
             st.rerun()
 

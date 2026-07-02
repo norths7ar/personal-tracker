@@ -1,6 +1,6 @@
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_core.prompts import ChatPromptTemplate
 
 from core.secrets import get_secret
 
@@ -25,11 +25,6 @@ class LLMClient:
 
         Raises an exception on failure — callers are responsible for error handling.
         """
-        # Escape braces so LangChain doesn't treat JSON examples as template variables.
-        escaped = system_prompt.replace("{", "{{").replace("}", "}}")
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", escaped),
-            ("human", "{user_msg}"),
-        ])
-        chain = (prompt | self._llm | JsonOutputParser()).with_retry(stop_after_attempt=2)
-        return chain.invoke({"user_msg": user_msg})
+        messages = [SystemMessage(content=system_prompt), HumanMessage(content=user_msg)]
+        chain = (self._llm | JsonOutputParser()).with_retry(stop_after_attempt=2)
+        return chain.invoke(messages)

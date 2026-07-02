@@ -64,6 +64,25 @@ def get_meals(start_date=None, end_date=None, meal_type=None, limit=200):
     return meals
 
 
+def update_meal_with_foods(meal_id: int, foods: list, **fields):
+    """Update meal metadata and replace food items atomically in one transaction."""
+    allowed = {"date", "time", "meal_type", "description", "notes", "confidence"}
+    updates = {k: v for k, v in fields.items() if k in allowed}
+    with closing(_connect()) as conn:
+        if updates:
+            set_clause = ", ".join(f"{k} = ?" for k in updates)
+            conn.execute(
+                f"UPDATE diet_meals SET {set_clause} WHERE id = ?",
+                [*updates.values(), meal_id],
+            )
+        conn.execute("DELETE FROM diet_foods WHERE meal_id = ?", (meal_id,))
+        conn.executemany(
+            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
+            [(meal_id, f["food_name"], f.get("quantity") or "") for f in foods],
+        )
+        conn.commit()
+
+
 def update_meal(meal_id: int, **fields):
     allowed = {"date", "time", "meal_type", "description", "notes", "confidence"}
     updates = {k: v for k, v in fields.items() if k in allowed}

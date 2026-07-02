@@ -26,7 +26,7 @@ st.markdown(
 
 
 @st.cache_resource
-def get_classifier(_version: int):
+def get_classifier(version: int):
     return Classifier(load_config())
 
 

@@ -57,7 +57,7 @@ with st.sidebar:
 
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 @st.cache_resource
-def get_extractor(_version: int):
+def get_extractor(version: int):
     return DietExtractor(load_config())
 
 

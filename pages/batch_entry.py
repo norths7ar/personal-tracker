@@ -15,7 +15,7 @@ st.title("批量记录")
 
 
 @st.cache_resource
-def get_batch_extractor(_version: int):
+def get_batch_extractor(version: int):
     return BatchExtractor(load_config())
 
 
@@ -267,15 +267,26 @@ edited_df = st.data_editor(
 c1, c2 = st.columns(2)
 with c1:
     if st.button("全部保存", type="primary", width="stretch"):
-        saved, errors = _save_rows(edited_df)
-        if errors:
-            st.error("；".join(errors))
-        if saved:
-            st.session_state.batch_records = None
-            st.session_state.batch_diagnostics = None
-            st.session_state.batch_source_text = ""
-            st.session_state.batch_flash = f"已保存 {saved} 条记录。"
-            st.rerun()
+        # Validate all included rows first so no rows are lost on error.
+        val_errors = []
+        for idx, row in edited_df.iterrows():
+            if not bool(row.get("include")):
+                continue
+            err = _validate_row(row, idx)
+            if err:
+                val_errors.append(err)
+        if val_errors:
+            st.error("；".join(val_errors))
+        else:
+            saved, db_errors = _save_rows(edited_df)
+            if db_errors:
+                st.error("；".join(db_errors))
+            if saved:
+                st.session_state.batch_records = None
+                st.session_state.batch_diagnostics = None
+                st.session_state.batch_source_text = ""
+                st.session_state.batch_flash = f"已保存 {saved} 条记录。"
+                st.rerun()
 with c2:
     if st.button("清空", width="stretch"):
         st.session_state.batch_records = None

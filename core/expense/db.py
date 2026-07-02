@@ -28,8 +28,9 @@ def add_transaction(type_, description, amount, date_,
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""" + returning_id_clause(),
             (type_, description, amount_cents / 100, amount_cents, date_, category, subcategory, notes, confidence)
         )
+        record_id = inserted_id(cur)
         conn.commit()
-        return inserted_id(cur)
+        return record_id
 
 
 def get_transactions(start_date=None, end_date=None, type_=None, limit=500):

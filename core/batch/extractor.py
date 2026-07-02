@@ -118,16 +118,27 @@ class BatchExtractor:
                 })
         return records, rejected
 
+    def _expense_subcategory_fallback(self, category: str) -> str:
+        subs = self.expense_categories.get(category) or []
+        return subs[0] if subs else ""
+
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
         category = result.get("category") or event.get("category_hint") or "其他"
-        subcategory = result.get("subcategory") or event.get("subcategory_hint") or "其他支出"
+        subcategory = (
+            result.get("subcategory")
+            or event.get("subcategory_hint")
+            or self._expense_subcategory_fallback(category)
+        )
         confidence = result.get("confidence", event.get("confidence", 0.0))
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
             category = event.get("category_hint") or "其他"
-            subcategory = event.get("subcategory_hint") or "其他支出"
+            subcategory = (
+                event.get("subcategory_hint")
+                or self._expense_subcategory_fallback(category)
+            )
             reasoning = result.get("reasoning") or event.get("reasoning", "")
 
         return self._record(

@@ -26,7 +26,7 @@ class Connection:
         if self.backend == "postgres":
             with self._conn.cursor() as cursor:
                 cursor.executemany(prepared, params)
-                return cursor
+            return
         return self._conn.executemany(prepared, params)
 
     def commit(self):
@@ -83,7 +83,7 @@ def _connect_postgres():
             "PostgreSQL backend requires psycopg. Install requirements.txt first."
         ) from exc
 
-    conn = psycopg.connect(get_database_url(), row_factory=dict_row)
+    conn = psycopg.connect(get_database_url(), row_factory=dict_row, prepare_threshold=None)
     return conn
 
 
@@ -210,7 +210,7 @@ def _ensure_transaction_amount_cents(conn):
     if conn.backend == "postgres":
         rows = conn.execute(
             """SELECT column_name FROM information_schema.columns
-               WHERE table_name = 'transactions'"""
+               WHERE table_name = 'transactions' AND table_schema = 'public'"""
         ).fetchall()
         columns = {row["column_name"] for row in rows}
     else:
