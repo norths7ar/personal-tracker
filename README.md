@@ -8,6 +8,7 @@
   - 支出描述自动调用 LLM 分类；低置信度或未知类别时进入手动确认
   - 收入和迁移从 `config.yaml` 选择分类
   - 迁移记录保存到流水，但不参与收支结余计算
+- **批量记录**：用一段自然语言一次解析多条开销、收入、迁移和饮食记录，确认后批量保存
 - **开销流水**：支持按类型、主类别、子类别筛选，支持搜索描述、分类和备注，可导出 CSV、编辑和二次确认删除
 - **开销分析**：按周 / 月 / 年查看收支、日均、与上期对比和分类明细；明细支持一级/二级分类聚合切换
 - **饮食记录**：用自然语言记录一餐，LLM 提取餐顿类型和食物清单，低置信度时可手动确认
@@ -25,6 +26,8 @@ personal-tracker/
 │   ├── config.py           # 配置加载
 │   ├── db.py               # SQLite/PostgreSQL 连接和表初始化
 │   ├── llm.py              # OpenAI-compatible LLM 调用封装
+│   ├── batch/
+│   │   └── extractor.py    # 批量自然语言记录解析
 │   ├── expense/
 │   │   ├── classifier.py   # 开销分类逻辑
 │   │   └── db.py           # 开销记录查询与统计
@@ -32,6 +35,7 @@ personal-tracker/
 │       ├── extractor.py    # 饮食结构化提取逻辑
 │       └── db.py           # 饮食记录查询与统计
 ├── pages/
+│   ├── batch_entry.py
 │   ├── expense_entry.py
 │   ├── expense_ledger.py
 │   ├── expense_analysis.py
