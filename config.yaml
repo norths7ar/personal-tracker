@@ -82,8 +82,8 @@ llm:
   base_url: "https://api.xiaomimimo.com/v1"
   model: "mimo-v2.5"
   temperature: 0.3
-  max_tokens: 2500
-  timeout: 30
+  max_tokens: 8000
+  timeout: 60
 
 # 分类器配置
 classifier:
