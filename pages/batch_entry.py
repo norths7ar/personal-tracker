@@ -21,7 +21,31 @@ def _all_categories(config: dict) -> list[str]:
     values = []
     for section in ("支出", "收入", "迁移"):
         values.extend(config.get(section, {}).keys())
+    values.append(PENDING_CATEGORY)
     return [""] + sorted(set(values))
+
+
+def _validate_category_pair(
+    config: dict,
+    record_type: str,
+    category: str,
+    subcategory: str,
+) -> str | None:
+    if record_type == "支出" and category == PENDING_CATEGORY:
+        return None if subcategory in {"", PENDING_CATEGORY} else f"{PENDING_CATEGORY} 必须搭配 {PENDING_CATEGORY}"
+
+    categories = config.get(record_type, {})
+    if not category:
+        return None
+    if category not in categories:
+        return f"{record_type}分类不存在：{category}"
+
+    subs = categories.get(category) or []
+    if not subs:
+        return None
+    if subcategory not in subs:
+        return f"{category} 的子类别不存在：{subcategory or '空'}"
+    return None
 
 
 def _food_list_to_text(foods: list[dict]) -> str:
@@ -74,7 +98,7 @@ def _records_to_df(records: list[dict]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _validate_row(row: pd.Series, idx: int) -> str | None:
+def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
     record_type = str(row.get("record_type") or "").strip()
     if record_type not in {"支出", "收入", "迁移", "饮食"}:
         return f"第 {idx + 1} 行类型无效"
@@ -100,16 +124,21 @@ def _validate_row(row: pd.Series, idx: int) -> str | None:
             return f"第 {idx + 1} 行金额无效"
         if amount <= 0:
             return f"第 {idx + 1} 行金额必须大于 0"
+        category = str(row.get("category") or "").strip()
+        subcategory = str(row.get("subcategory") or "").strip()
+        category_error = _validate_category_pair(config, record_type, category, subcategory)
+        if category_error:
+            return f"第 {idx + 1} 行{category_error}"
     return None
 
 
-def _save_rows(df: pd.DataFrame) -> tuple[int, list[str]]:
+def _save_rows(df: pd.DataFrame, config: dict) -> tuple[int, list[str]]:
     saved = 0
     errors = []
     for idx, row in df.iterrows():
         if not bool(row.get("include")):
             continue
-        error = _validate_row(row, idx)
+        error = _validate_row(row, idx, config)
         if error:
             errors.append(error)
             continue
@@ -127,13 +156,17 @@ def _save_rows(df: pd.DataFrame) -> tuple[int, list[str]]:
                     foods=_food_text_to_list(row.get("foods")),
                 )
             else:
+                category = str(row.get("category") or "").strip() or None
+                subcategory = str(row.get("subcategory") or "").strip() or None
+                if record_type == "支出" and category == PENDING_CATEGORY:
+                    subcategory = PENDING_CATEGORY
                 add_transaction(
                     record_type,
                     str(row["description"]).strip(),
                     float(row["amount"]),
                     str(row["date"]).strip(),
-                    category=str(row.get("category") or "").strip() or None,
-                    subcategory=str(row.get("subcategory") or "").strip() or None,
+                    category=category,
+                    subcategory=subcategory,
                     notes=str(row.get("notes") or "").strip() or None,
                     confidence=float(row.get("confidence") or 0),
                 )
@@ -255,7 +288,7 @@ edited_df = st.data_editor(
         "time": st.column_config.TextColumn("时间"),
         "description": st.column_config.TextColumn("描述", required=True),
         "amount": st.column_config.NumberColumn("金额", format="%.2f"),
-        "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config) + [PENDING_CATEGORY]),
+        "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config)),
         "subcategory": st.column_config.TextColumn("子类别"),
         "meal_type": st.column_config.SelectboxColumn("餐顿", options=[""] + meal_types),
         "foods": st.column_config.TextColumn("食物"),
@@ -273,13 +306,13 @@ with c1:
         for idx, row in edited_df.iterrows():
             if not bool(row.get("include")):
                 continue
-            err = _validate_row(row, idx)
+            err = _validate_row(row, idx, config)
             if err:
                 val_errors.append(err)
         if val_errors:
             st.error("；".join(val_errors))
         else:
-            saved, db_errors = _save_rows(edited_df)
+            saved, db_errors = _save_rows(edited_df, config)
             if db_errors:
                 st.error("；".join(db_errors))
                 if saved:

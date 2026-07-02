@@ -15,6 +15,7 @@ ${categories}
 }
 
 说明：
-- category 和 subcategory 必须来自上面的类别列表；确实不匹配时 category 填"其他"，subcategory 填与 category 相同的值
+- category 和 subcategory 必须来自上面的类别列表；只有确实属于杂项时才填"其他"/"其他"
+- 如果无法判断合适分类，选择最接近的分类但把 confidence 降到 0.5 以下，并在 reasoning 说明不确定
 - 如果主类别没有子类别，subcategory 填与 category 相同的值
 - candidates 填另外两个可能的分类，按置信度降序；没有合理备选就填空列表 []

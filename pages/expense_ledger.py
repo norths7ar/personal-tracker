@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import date
 
 from core.config import load_config
+from core.constants import PENDING_CATEGORY
 from core.expense.db import get_transactions, update_transaction, delete_transaction
 
 st.title("开销流水")
@@ -26,10 +27,14 @@ def _category_options(config: dict, selected_type: str) -> list[str]:
     categories = []
     for type_name in type_names:
         categories.extend(config.get(type_name, {}).keys())
+    if "支出" in type_names:
+        categories.append(PENDING_CATEGORY)
     return ["全部"] + _unique(categories)
 
 
 def _subcategory_options(config: dict, selected_type: str, selected_category: str) -> list[str]:
+    if selected_category == PENDING_CATEGORY:
+        return ["全部", PENDING_CATEGORY]
     type_names = ["支出", "收入", "迁移"] if selected_type == "全部" else [selected_type]
     subcategories = []
     for type_name in type_names:
@@ -37,6 +42,8 @@ def _subcategory_options(config: dict, selected_type: str, selected_category: st
         if selected_category == "全部":
             for subs in categories.values():
                 subcategories.extend(subs or [])
+            if type_name == "支出":
+                subcategories.append(PENDING_CATEGORY)
         else:
             subcategories.extend(categories.get(selected_category) or [])
     return ["全部"] + _unique(subcategories)
@@ -148,6 +155,9 @@ with col2:
 
 cats = config.get(entry_type, {})
 cat_keys = list(cats.keys())
+if entry_type == "支出":
+    cat_keys.append(PENDING_CATEGORY)
+cat_keys = _unique(cat_keys)
 
 col3, col4 = st.columns(2)
 with col3:
@@ -160,7 +170,10 @@ with col3:
         category = st.text_input("主类别", value=cur_cat,
                                  key=f"edit_cat_{record_id}")
 with col4:
-    subs = (cats.get(category) or []) if cat_keys else []
+    if category == PENDING_CATEGORY:
+        subs = [PENDING_CATEGORY]
+    else:
+        subs = (cats.get(category) or []) if cat_keys else []
     cur_sub = record.get("subcategory") or ""
     if subs:
         sub_idx = subs.index(cur_sub) if cur_sub in subs else 0
