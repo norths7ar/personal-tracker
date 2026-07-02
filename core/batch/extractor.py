@@ -1,6 +1,6 @@
 from datetime import date
 
-from core.constants import DEFAULT_CATEGORY, DEFAULT_MEAL_TYPE
+from core.constants import DEFAULT_CATEGORY, DEFAULT_MEAL_TYPE, PENDING_CATEGORY
 from core.diet.extractor import DietExtractor
 from core.expense.classifier import Classifier
 from core.llm import LLMClient
@@ -67,26 +67,16 @@ class BatchExtractor:
                 })
         return records, rejected
 
-    def _valid_expense_subcategory(self, category: str, preferred: str) -> str:
-        """Return preferred if it is valid for category, else fall back to DEFAULT_CATEGORY."""
-        subs = self.expense_categories.get(category) or []
-        if not subs:
-            return preferred
-        return preferred if preferred in subs else DEFAULT_CATEGORY
-
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
-        category = result.get("category") or event.get("category_hint") or DEFAULT_CATEGORY
-        raw_sub = result.get("subcategory") or event.get("subcategory_hint") or ""
-        subcategory = self._valid_expense_subcategory(category, raw_sub)
+        if result.get("status") == "confirmed":
+            category    = result["category"]
+            subcategory = result["subcategory"]
+        else:
+            category    = PENDING_CATEGORY
+            subcategory = PENDING_CATEGORY
         confidence = result.get("confidence", event.get("confidence", 0.0))
-        reasoning = result.get("reasoning", event.get("reasoning", ""))
-
-        if result.get("status") == "error":
-            category = event.get("category_hint") or DEFAULT_CATEGORY
-            raw_sub = event.get("subcategory_hint") or ""
-            subcategory = self._valid_expense_subcategory(category, raw_sub)
-            reasoning = result.get("reasoning") or event.get("reasoning", "")
+        reasoning  = result.get("reasoning", event.get("reasoning", ""))
 
         return self._record(
             record_type="支出",

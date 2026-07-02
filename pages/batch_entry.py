@@ -5,6 +5,7 @@ import streamlit as st
 
 from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
+from core.constants import PENDING_CATEGORY
 from core.diet.db import add_meal
 from core.expense.db import add_transaction
 
@@ -254,7 +255,7 @@ edited_df = st.data_editor(
         "time": st.column_config.TextColumn("时间"),
         "description": st.column_config.TextColumn("描述", required=True),
         "amount": st.column_config.NumberColumn("金额", format="%.2f"),
-        "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config)),
+        "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config) + [PENDING_CATEGORY]),
         "subcategory": st.column_config.TextColumn("子类别"),
         "meal_type": st.column_config.SelectboxColumn("餐顿", options=[""] + meal_types),
         "foods": st.column_config.TextColumn("食物"),
