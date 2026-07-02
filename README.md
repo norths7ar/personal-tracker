@@ -73,6 +73,7 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.p
 云端部署推荐使用 Supabase PostgreSQL pooler connection string。Streamlit Cloud 的 secrets 可以配置为：
 
 ```toml
+AUTH_ENABLED = "true"
 DB_BACKEND = "postgres"
 DATABASE_URL = "postgresql://postgres.<project-ref>:<password>@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres"
 APP_PASSWORD = "your_app_password"
@@ -82,6 +83,7 @@ LLM_API_KEY = "your_llm_api_key"
 本地 `.env` 也可以使用完整 `DATABASE_URL`，或者用 Supabase 变量拼接 pooler URL：
 
 ```dotenv
+AUTH_ENABLED=true
 DB_BACKEND=postgres
 SUPABASE_PROJECT_REF=your_project_ref
 SUPABASE_PROJECT_PASSWORD=your_supabase_database_password
@@ -90,7 +92,7 @@ APP_PASSWORD=your_app_password
 LLM_API_KEY=your_llm_api_key
 ```
 
-`APP_PASSWORD` 为空时不启用登录保护；云端部署必须设置。
+`AUTH_ENABLED=false` 时不启用登录保护，适合本地开发。云端部署应设置 `AUTH_ENABLED=true` 和 `APP_PASSWORD`。
 
 ### SQLite 数据迁移到 PostgreSQL
 
@@ -116,7 +118,8 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/migrate_sqlite
 `.env` 或 Streamlit secrets 包含：
 
 - `LLM_API_KEY`：必填，不能提交到版本控制的密钥
-- `APP_PASSWORD`：可选；设置后启用单用户访问密码
+- `AUTH_ENABLED`：是否启用单用户登录保护，默认 `false`
+- `APP_PASSWORD`：`AUTH_ENABLED=true` 时必填
 - `DB_BACKEND`：`sqlite` 或 `postgres`，默认 `sqlite`
 - `DATABASE_URL`：PostgreSQL 连接 URL；云端部署推荐使用 Supabase pooler URL
 - `SUPABASE_PROJECT_REF` / `SUPABASE_PROJECT_PASSWORD` / `SUPABASE_POOLER_HOST`：未设置 `DATABASE_URL` 时用于拼接 Supabase pooler URL
