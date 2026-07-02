@@ -67,27 +67,25 @@ class BatchExtractor:
                 })
         return records, rejected
 
-    def _expense_subcategory_fallback(self, category: str) -> str:
+    def _valid_expense_subcategory(self, category: str, preferred: str) -> str:
+        """Return preferred if it is valid for category, else fall back to first valid sub."""
         subs = self.expense_categories.get(category) or []
-        return subs[0] if subs else ""
+        if not subs:
+            return preferred
+        return preferred if preferred in subs else subs[0]
 
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
         category = result.get("category") or event.get("category_hint") or DEFAULT_CATEGORY
-        subcategory = (
-            result.get("subcategory")
-            or event.get("subcategory_hint")
-            or self._expense_subcategory_fallback(category)
-        )
+        raw_sub = result.get("subcategory") or event.get("subcategory_hint") or ""
+        subcategory = self._valid_expense_subcategory(category, raw_sub)
         confidence = result.get("confidence", event.get("confidence", 0.0))
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
             category = event.get("category_hint") or DEFAULT_CATEGORY
-            subcategory = (
-                event.get("subcategory_hint")
-                or self._expense_subcategory_fallback(category)
-            )
+            raw_sub = event.get("subcategory_hint") or ""
+            subcategory = self._valid_expense_subcategory(category, raw_sub)
             reasoning = result.get("reasoning") or event.get("reasoning", "")
 
         return self._record(

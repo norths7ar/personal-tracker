@@ -114,28 +114,31 @@ def _save_rows(df: pd.DataFrame) -> tuple[int, list[str]]:
             continue
 
         record_type = str(row["record_type"]).strip()
-        if record_type == "饮食":
-            add_meal(
-                date=str(row["date"]).strip(),
-                time=str(row.get("time") or "").strip() or None,
-                meal_type=str(row["meal_type"]).strip(),
-                description=str(row["description"]).strip(),
-                notes=str(row.get("notes") or "").strip() or None,
-                confidence=float(row.get("confidence") or 0),
-                foods=_food_text_to_list(row.get("foods")),
-            )
-        else:
-            add_transaction(
-                record_type,
-                str(row["description"]).strip(),
-                float(row["amount"]),
-                str(row["date"]).strip(),
-                category=str(row.get("category") or "").strip() or None,
-                subcategory=str(row.get("subcategory") or "").strip() or None,
-                notes=str(row.get("notes") or "").strip() or None,
-                confidence=float(row.get("confidence") or 0),
-            )
-        saved += 1
+        try:
+            if record_type == "饮食":
+                add_meal(
+                    date=str(row["date"]).strip(),
+                    time=str(row.get("time") or "").strip() or None,
+                    meal_type=str(row["meal_type"]).strip(),
+                    description=str(row["description"]).strip(),
+                    notes=str(row.get("notes") or "").strip() or None,
+                    confidence=float(row.get("confidence") or 0),
+                    foods=_food_text_to_list(row.get("foods")),
+                )
+            else:
+                add_transaction(
+                    record_type,
+                    str(row["description"]).strip(),
+                    float(row["amount"]),
+                    str(row["date"]).strip(),
+                    category=str(row.get("category") or "").strip() or None,
+                    subcategory=str(row.get("subcategory") or "").strip() or None,
+                    notes=str(row.get("notes") or "").strip() or None,
+                    confidence=float(row.get("confidence") or 0),
+                )
+            saved += 1
+        except Exception as e:
+            errors.append(f"第 {idx + 1} 行写入失败：{e}")
     return saved, errors
 
 
@@ -278,7 +281,9 @@ with c1:
             saved, db_errors = _save_rows(edited_df)
             if db_errors:
                 st.error("；".join(db_errors))
-            if saved:
+                if saved:
+                    st.warning(f"已部分写入 {saved} 条，失败行请修改后重试（注意勾选情况避免重复提交）")
+            elif saved:
                 st.session_state.batch_records = None
                 st.session_state.batch_diagnostics = None
                 st.session_state.batch_source_text = ""

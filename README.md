@@ -94,16 +94,6 @@ LLM_API_KEY=your_llm_api_key
 
 `AUTH_ENABLED=false` 时不启用登录保护，适合本地开发。云端部署应设置 `AUTH_ENABLED=true` 和 `APP_PASSWORD`。
 
-### SQLite 数据迁移到 PostgreSQL
-
-先备份 `data/expenses.db`，然后在 `.env` 中配置 PostgreSQL 连接，再运行：
-
-```powershell
-C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/migrate_sqlite_to_postgres.py
-```
-
-迁移脚本会初始化 PostgreSQL 表结构，并在目标表非空时默认拒绝导入。确认需要导入到非空库时可加 `--allow-nonempty`，但要先确认不会产生重复 ID 冲突。
-
 ## 配置
 
 `config.yaml` 包含：
