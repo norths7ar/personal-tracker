@@ -68,11 +68,11 @@ class BatchExtractor:
         return records, rejected
 
     def _valid_expense_subcategory(self, category: str, preferred: str) -> str:
-        """Return preferred if it is valid for category, else fall back to first valid sub."""
+        """Return preferred if it is valid for category, else fall back to DEFAULT_CATEGORY."""
         subs = self.expense_categories.get(category) or []
         if not subs:
             return preferred
-        return preferred if preferred in subs else subs[0]
+        return preferred if preferred in subs else DEFAULT_CATEGORY
 
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
