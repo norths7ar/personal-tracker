@@ -38,12 +38,22 @@ def add_transaction(
             """INSERT INTO transactions
                (type, description, amount, amount_cents, date, category, subcategory, notes, confidence,
                 status, refund_for_id, amortization_months, amortization_start)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)""" + returning_id_clause(),
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ?)"""
+            + returning_id_clause(),
             (
-                type_, description, amount_cents / 100, amount_cents, date_,
-                category, subcategory, notes, confidence, refund_for_id,
-                amortization_months, amortization_start,
-            )
+                type_,
+                description,
+                amount_cents / 100,
+                amount_cents,
+                date_,
+                category,
+                subcategory,
+                notes,
+                confidence,
+                refund_for_id,
+                amortization_months,
+                amortization_start,
+            ),
         )
         record_id = inserted_id(cur)
         conn.commit()
@@ -85,7 +95,7 @@ def get_transactions(
 def get_monthly_summary(year: int, month: int) -> dict:
     """返回指定月份的收支结余及三类明细。迁移不参与收支计算。"""
     start = f"{year:04d}-{month:02d}-01"
-    end = f"{year+1:04d}-01-01" if month == 12 else f"{year:04d}-{month+1:02d}-01"
+    end = f"{year + 1:04d}-01-01" if month == 12 else f"{year:04d}-{month + 1:02d}-01"
 
     def breakdown_by_type(conn, type_):
         return conn.execute(
@@ -95,7 +105,7 @@ def get_monthly_summary(year: int, month: int) -> dict:
                  AND COALESCE(status, 'active') = 'active'
                GROUP BY category, subcategory
                ORDER BY total DESC""",
-            (start, end, type_)
+            (start, end, type_),
         ).fetchall()
 
     with closing(_connect()) as conn:
@@ -105,30 +115,40 @@ def get_monthly_summary(year: int, month: int) -> dict:
                WHERE date >= ? AND date < ? AND type IN ('收入', '支出')
                  AND COALESCE(status, 'active') = 'active'
                GROUP BY type""",
-            (start, end)
+            (start, end),
         ).fetchall()
         totals = {r["type"]: r["total"] for r in totals_rows}
 
-        expense_bd  = breakdown_by_type(conn, "支出")
-        income_bd   = breakdown_by_type(conn, "收入")
+        expense_bd = breakdown_by_type(conn, "支出")
+        income_bd = breakdown_by_type(conn, "收入")
         transfer_bd = breakdown_by_type(conn, "迁移")
 
-    income  = totals.get("收入", 0) or 0
+    income = totals.get("收入", 0) or 0
     expense = totals.get("支出", 0) or 0
     return {
         "income": income,
         "expense": expense,
         "balance": income - expense,
-        "expense_breakdown":  [dict(r) for r in expense_bd],
-        "income_breakdown":   [dict(r) for r in income_bd],
+        "expense_breakdown": [dict(r) for r in expense_bd],
+        "income_breakdown": [dict(r) for r in income_bd],
         "transfer_breakdown": [dict(r) for r in transfer_bd],
     }
 
 
 def update_transaction(id_: int, **fields) -> None:
     allowed = {
-        "type", "description", "amount", "date", "category", "subcategory", "notes",
-        "confidence", "status", "void_reason", "refund_for_id", "amortization_months",
+        "type",
+        "description",
+        "amount",
+        "date",
+        "category",
+        "subcategory",
+        "notes",
+        "confidence",
+        "status",
+        "void_reason",
+        "refund_for_id",
+        "amortization_months",
         "amortization_start",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}
@@ -142,7 +162,7 @@ def update_transaction(id_: int, **fields) -> None:
     with closing(_connect()) as conn:
         conn.execute(
             f"UPDATE transactions SET {set_clause} WHERE id = ?",
-            [*updates.values(), id_]
+            [*updates.values(), id_],
         )
         conn.commit()
 
@@ -227,7 +247,12 @@ def _amortization_allocation_dates() -> list[str]:
     dates = []
     for raw in rows:
         row = dict(raw)
-        dates.extend(_month_starts(row.get("amortization_start") or row.get("date"), row.get("amortization_months") or 1))
+        dates.extend(
+            _month_starts(
+                row.get("amortization_start") or row.get("date"),
+                row.get("amortization_months") or 1,
+            )
+        )
     return dates
 
 
@@ -238,6 +263,7 @@ def _week_start(value: str) -> str:
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
     """通用期间查询，返回 income/expense/balance/daily/expense_breakdown/income_breakdown。"""
+
     def bd(conn, type_):
         return conn.execute(
             f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
@@ -245,7 +271,7 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                WHERE date >= ? AND date <= ? AND type = ?
                  AND COALESCE(status, 'active') = 'active'
                GROUP BY category, subcategory ORDER BY total DESC""",
-            (start_date, end_date, type_)
+            (start_date, end_date, type_),
         ).fetchall()
 
     with closing(_connect()) as conn:
@@ -254,7 +280,7 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                WHERE date >= ? AND date <= ? AND type IN ('收入','支出')
                  AND COALESCE(status, 'active') = 'active'
                GROUP BY type, category""",
-            (start_date, end_date)
+            (start_date, end_date),
         ).fetchall()
 
         daily_rows = conn.execute(
@@ -262,11 +288,11 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                WHERE date >= ? AND date <= ? AND type IN ('收入','支出')
                  AND COALESCE(status, 'active') = 'active'
                GROUP BY date, type, category ORDER BY date""",
-            (start_date, end_date)
+            (start_date, end_date),
         ).fetchall()
 
         expense_bd = bd(conn, "支出")
-        income_bd  = bd(conn, "收入")
+        income_bd = bd(conn, "收入")
 
     income = 0.0
     expense = 0.0
@@ -292,12 +318,12 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
             daily[d][r["type"]] += r["total"] or 0
 
     return {
-        "income":  income,
+        "income": income,
         "expense": expense,
         "balance": income - expense,
-        "daily":   list(daily.values()),
+        "daily": list(daily.values()),
         "expense_breakdown": [dict(r) for r in expense_bd],
-        "income_breakdown":  [dict(r) for r in income_bd],
+        "income_breakdown": [dict(r) for r in income_bd],
     }
 
 
@@ -328,7 +354,9 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
         if type_ == "支出" and int(row.get("amortization_months") or 0) > 1:
             months = int(row.get("amortization_months") or 1)
             allocation = amount / months
-            starts = _month_starts(row.get("amortization_start") or row.get("date"), months)
+            starts = _month_starts(
+                row.get("amortization_start") or row.get("date"), months
+            )
             entries = [(month, allocation) for month in starts]
         else:
             entries = [(row.get("date"), amount)]
@@ -336,7 +364,9 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
         for entry_date, entry_amount in entries:
             if not entry_date or entry_date < start_date or entry_date > end_date:
                 continue
-            day = daily.setdefault(entry_date, {"date": entry_date, "收入": 0.0, "支出": 0.0})
+            day = daily.setdefault(
+                entry_date, {"date": entry_date, "收入": 0.0, "支出": 0.0}
+            )
             if type_ == "收入" and row.get("category") == "退款":
                 day["支出"] -= entry_amount
                 expense -= entry_amount
@@ -365,7 +395,9 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
         "expense": expense,
         "balance": income - expense,
         "daily": sorted(daily.values(), key=lambda r: r["date"]),
-        "expense_breakdown": sorted(breakdown.values(), key=lambda r: r["total"], reverse=True),
+        "expense_breakdown": sorted(
+            breakdown.values(), key=lambda r: r["total"], reverse=True
+        ),
         "income_breakdown": income_breakdown,
     }
 

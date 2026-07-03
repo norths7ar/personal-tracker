@@ -1,6 +1,12 @@
 from contextlib import closing
 
-from core.db import _connect, inserted_id, is_postgres, placeholders, returning_id_clause
+from core.db import (
+    _connect,
+    inserted_id,
+    is_postgres,
+    placeholders,
+    returning_id_clause,
+)
 
 
 def add_meal(
@@ -20,7 +26,8 @@ def add_meal(
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO diet_meals (date, time, meal_type, description, notes, confidence)
-               VALUES (?, ?, ?, ?, ?, ?)""" + returning_id_clause(),
+               VALUES (?, ?, ?, ?, ?, ?)"""
+            + returning_id_clause(),
             (date, time, meal_type, description, notes, confidence),
         )
         meal_id = inserted_id(cur)
@@ -135,7 +142,7 @@ def get_diet_summary(start_date: str, end_date: str) -> dict:
 
     return {
         "meal_stats": [dict(r) for r in meal_stats],
-        "recent":     [dict(r) for r in recent],
+        "recent": [dict(r) for r in recent],
     }
 
 
@@ -190,7 +197,7 @@ def get_diet_stats(start_date, end_date) -> dict:
 
     return {
         "daily_coverage": [dict(r) for r in daily_coverage],
-        "food_freq":      [dict(r) for r in food_freq],
-        "daily_meals":    [dict(r) for r in daily_meals],
+        "food_freq": [dict(r) for r in food_freq],
+        "daily_meals": [dict(r) for r in daily_meals],
         "meal_type_dist": [dict(r) for r in meal_type_dist],
     }

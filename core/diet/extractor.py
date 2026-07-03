@@ -25,12 +25,14 @@ class DietExtractor:
         }
         """
         try:
-            raw    = self._llm.invoke(self._build_prompt(), f"饮食描述：{description}")
+            raw = self._llm.invoke(self._build_prompt(), f"饮食描述：{description}")
             result = self._normalize(raw)
         except Exception as e:
             return self._fallback(str(e))
 
-        status = "confirmed" if result["confidence"] >= self.threshold else "low_confidence"
+        status = (
+            "confirmed" if result["confidence"] >= self.threshold else "low_confidence"
+        )
         return {**result, "status": status}
 
     # ------------------------------------------------------------------
@@ -63,9 +65,9 @@ class DietExtractor:
     @staticmethod
     def _fallback(reason: str) -> dict:
         return {
-            "status":     "error",
-            "meal_type":  DEFAULT_MEAL_TYPE,
-            "foods":      [{"food_name": "", "quantity": ""}],
+            "status": "error",
+            "meal_type": DEFAULT_MEAL_TYPE,
+            "foods": [{"food_name": "", "quantity": ""}],
             "confidence": 0.0,
-            "reasoning":  f"提取失败: {reason}",
+            "reasoning": f"提取失败: {reason}",
         }

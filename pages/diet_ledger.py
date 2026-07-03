@@ -4,12 +4,18 @@ from datetime import date, timedelta
 
 from core.config import load_config
 from core.diet.db import (
-    get_meals, update_meal_with_foods, delete_meal,
+    get_meals,
+    update_meal_with_foods,
+    delete_meal,
 )
 
 st.title("📋 饮食查看")
 
-MEAL_TYPES = load_config().get("diet", {}).get("meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"])
+MEAL_TYPES = (
+    load_config()
+    .get("diet", {})
+    .get("meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"])
+)
 
 # ── session state ───────────────────────────────────────────────────────────
 if "diet_ledger_flash" not in st.session_state:
@@ -45,21 +51,21 @@ if date_range == "今日":
     start_date = end_date = today.strftime("%Y-%m-%d")
 elif date_range == "最近7天":
     start_date = (today - timedelta(days=6)).strftime("%Y-%m-%d")
-    end_date   = today.strftime("%Y-%m-%d")
+    end_date = today.strftime("%Y-%m-%d")
 elif date_range == "最近30天":
     start_date = (today - timedelta(days=29)).strftime("%Y-%m-%d")
-    end_date   = today.strftime("%Y-%m-%d")
+    end_date = today.strftime("%Y-%m-%d")
 elif date_range == "本月":
     start_date = today.replace(day=1).strftime("%Y-%m-%d")
-    end_date   = today.strftime("%Y-%m-%d")
+    end_date = today.strftime("%Y-%m-%d")
 elif date_range == "上月":
     first_this = today.replace(day=1)
-    last_prev  = first_this - timedelta(days=1)
+    last_prev = first_this - timedelta(days=1)
     start_date = last_prev.replace(day=1).strftime("%Y-%m-%d")
-    end_date   = last_prev.strftime("%Y-%m-%d")
+    end_date = last_prev.strftime("%Y-%m-%d")
 elif date_range == "自定义" and custom_start and custom_end:
     start_date = custom_start.strftime("%Y-%m-%d")
-    end_date   = custom_end.strftime("%Y-%m-%d")
+    end_date = custom_end.strftime("%Y-%m-%d")
 else:
     start_date = end_date = None
 
@@ -85,17 +91,19 @@ if not meals:
 def _meals_to_df(meals_list):
     rows = []
     for m in meals_list:
-        rows.append({
-            "id":       m["id"],
-            "date":     m["date"],
-            "time":     m.get("time") or "",
-            "meal_type": m.get("meal_type") or "",
-            "foods":    "、".join(
-                f"{f['food_name']}{'×'+f['quantity'] if f.get('quantity') else ''}"
-                for f in m["foods"]
-            ),
-            "notes":    m.get("notes") or "",
-        })
+        rows.append(
+            {
+                "id": m["id"],
+                "date": m["date"],
+                "time": m.get("time") or "",
+                "meal_type": m.get("meal_type") or "",
+                "foods": "、".join(
+                    f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
+                    for f in m["foods"]
+                ),
+                "notes": m.get("notes") or "",
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -105,20 +113,22 @@ def _meals_to_export_df(meals_list):
     rows = []
     for m in meals_list:
         foods_str = "、".join(
-            f"{f['food_name']}{'×'+f['quantity'] if f.get('quantity') else ''}"
+            f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
             for f in m["foods"]
         )
-        rows.append({
-            "id":          m["id"],
-            "date":        m["date"],
-            "time":        m.get("time") or "",
-            "meal_type":   m.get("meal_type") or "",
-            "foods":       foods_str,
-            "description": m.get("description") or "",
-            "notes":       m.get("notes") or "",
-            "confidence":  m.get("confidence"),
-            "created_at":  m.get("created_at") or "",
-        })
+        rows.append(
+            {
+                "id": m["id"],
+                "date": m["date"],
+                "time": m.get("time") or "",
+                "meal_type": m.get("meal_type") or "",
+                "foods": foods_str,
+                "description": m.get("description") or "",
+                "notes": m.get("notes") or "",
+                "confidence": m.get("confidence"),
+                "created_at": m.get("created_at") or "",
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -144,12 +154,12 @@ event = st.dataframe(
     selection_mode="single-row",
     on_select="rerun",
     column_config={
-        "id":        st.column_config.NumberColumn("ID", width="small"),
-        "date":      st.column_config.TextColumn("日期"),
-        "time":      st.column_config.TextColumn("时间"),
+        "id": st.column_config.NumberColumn("ID", width="small"),
+        "date": st.column_config.TextColumn("日期"),
+        "time": st.column_config.TextColumn("时间"),
         "meal_type": st.column_config.TextColumn("餐顿"),
-        "foods":     st.column_config.TextColumn("食物"),
-        "notes":     st.column_config.TextColumn("备注"),
+        "foods": st.column_config.TextColumn("食物"),
+        "notes": st.column_config.TextColumn("备注"),
     },
 )
 
@@ -175,19 +185,25 @@ with tab_edit:
             edit_time = st.text_input("时间", value=meal.get("time") or "")
 
         cur_meal = meal.get("meal_type") or MEAL_TYPES[-1]
-        meal_idx = MEAL_TYPES.index(cur_meal) if cur_meal in MEAL_TYPES else len(MEAL_TYPES) - 1
-        edit_meal_type   = st.selectbox("餐顿类型", MEAL_TYPES, index=meal_idx)
-        edit_description = st.text_area("原始描述", value=meal.get("description") or "", height=68)
-        edit_notes       = st.text_area("备注", value=meal.get("notes") or "", height=60)
+        meal_idx = (
+            MEAL_TYPES.index(cur_meal)
+            if cur_meal in MEAL_TYPES
+            else len(MEAL_TYPES) - 1
+        )
+        edit_meal_type = st.selectbox("餐顿类型", MEAL_TYPES, index=meal_idx)
+        edit_description = st.text_area(
+            "原始描述", value=meal.get("description") or "", height=68
+        )
+        edit_notes = st.text_area("备注", value=meal.get("notes") or "", height=60)
 
         st.caption("食物清单（可编辑、增删行）")
-        foods_df  = pd.DataFrame(meal["foods"] or [{"food_name": "", "quantity": ""}])
+        foods_df = pd.DataFrame(meal["foods"] or [{"food_name": "", "quantity": ""}])
         edited_foods = st.data_editor(
             foods_df,
             num_rows="dynamic",
             column_config={
                 "food_name": st.column_config.TextColumn("食物名称", required=True),
-                "quantity":  st.column_config.TextColumn("份量"),
+                "quantity": st.column_config.TextColumn("份量"),
             },
             hide_index=True,
             width="stretch",
@@ -201,7 +217,10 @@ with tab_edit:
 
     if save:
         new_foods = [
-            {"food_name": str(row["food_name"]), "quantity": str(row.get("quantity") or "")}
+            {
+                "food_name": str(row["food_name"]),
+                "quantity": str(row.get("quantity") or ""),
+            }
             for _, row in edited_foods.iterrows()
             if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
         ]

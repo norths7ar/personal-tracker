@@ -46,7 +46,9 @@ class BatchExtractor:
 
     def _build_event_prompt(self, default_date: str) -> str:
         meal_types_str = "、".join(self.meal_types)
-        return load_prompt("batch_events.txt", default_date=default_date, meal_types=meal_types_str)
+        return load_prompt(
+            "batch_events.txt", default_date=default_date, meal_types=meal_types_str
+        )
 
     def _events_to_records(self, events: list[dict]) -> tuple[list[dict], list[dict]]:
         records = []
@@ -61,22 +63,24 @@ class BatchExtractor:
                 elif event_type in {"收入", "迁移"}:
                     records.append(self._simple_finance_event_to_record(event))
             except Exception as e:
-                rejected.append({
-                    "reason": f"{event_type} pipeline 失败：{e}",
-                    "record": event,
-                })
+                rejected.append(
+                    {
+                        "reason": f"{event_type} pipeline 失败：{e}",
+                        "record": event,
+                    }
+                )
         return records, rejected
 
     def _expense_event_to_record(self, event: dict) -> dict:
         result = self._classifier.classify(event["text"])
         if result.get("status") == "confirmed":
-            category    = result["category"]
+            category = result["category"]
             subcategory = result["subcategory"]
         else:
-            category    = PENDING_CATEGORY
+            category = PENDING_CATEGORY
             subcategory = PENDING_CATEGORY
         confidence = result.get("confidence", event.get("confidence", 0.0))
-        reasoning  = result.get("reasoning", event.get("reasoning", ""))
+        reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         return self._record(
             record_type="支出",
@@ -92,7 +96,9 @@ class BatchExtractor:
 
     def _meal_event_to_record(self, event: dict) -> dict:
         result = self._diet_extractor.extract(event["text"])
-        meal_type = result.get("meal_type") or event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
+        meal_type = (
+            result.get("meal_type") or event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
+        )
         foods = result.get("foods") or []
         confidence = result.get("confidence", 0.0)
         reasoning = result.get("reasoning", event.get("reasoning", ""))
@@ -114,7 +120,11 @@ class BatchExtractor:
         )
 
     def _simple_finance_event_to_record(self, event: dict) -> dict:
-        categories = self.income_categories if event["event_type"] == "收入" else self.transfer_categories
+        categories = (
+            self.income_categories
+            if event["event_type"] == "收入"
+            else self.transfer_categories
+        )
         category, subcategory = self._pick_category(
             categories,
             event.get("category_hint", ""),
@@ -161,7 +171,9 @@ class BatchExtractor:
         }
 
     @staticmethod
-    def _pick_category(categories: dict, category_hint: str, subcategory_hint: str) -> tuple[str, str]:
+    def _pick_category(
+        categories: dict, category_hint: str, subcategory_hint: str
+    ) -> tuple[str, str]:
         if category_hint in categories:
             subs = categories.get(category_hint) or []
             if not subs:
@@ -177,7 +189,9 @@ class BatchExtractor:
             return first, subs[0] if subs else ""
         return DEFAULT_CATEGORY, ""
 
-    def _normalize_events(self, raw: dict, default_date: str) -> tuple[list[dict], list[dict]]:
+    def _normalize_events(
+        self, raw: dict, default_date: str
+    ) -> tuple[list[dict], list[dict]]:
         if not isinstance(raw, dict):
             return [], [{"reason": "LLM 输出不是 JSON 对象", "record": raw}]
         raw_events = raw.get("events", [])
@@ -193,7 +207,9 @@ class BatchExtractor:
 
             event_type = str(item.get("event_type") or "").strip()
             if event_type not in self.RECORD_TYPES:
-                rejected.append({"reason": f"未知事件类型：{event_type}", "record": item})
+                rejected.append(
+                    {"reason": f"未知事件类型：{event_type}", "record": item}
+                )
                 continue
 
             text = str(item.get("text") or "").strip()
@@ -209,7 +225,9 @@ class BatchExtractor:
                     rejected.append({"reason": "财务事件缺少有效金额", "record": item})
                     continue
                 if amount <= 0:
-                    rejected.append({"reason": "财务事件金额必须大于 0", "record": item})
+                    rejected.append(
+                        {"reason": "财务事件金额必须大于 0", "record": item}
+                    )
                     continue
             else:
                 amount = None
@@ -220,17 +238,19 @@ class BatchExtractor:
             except ValueError:
                 event_date = default_date
 
-            events.append({
-                "event_type": event_type,
-                "text": text,
-                "date": event_date,
-                "time": str(item.get("time") or "").strip(),
-                "amount": amount,
-                "category_hint": str(item.get("category_hint") or "").strip(),
-                "subcategory_hint": str(item.get("subcategory_hint") or "").strip(),
-                "meal_type_hint": str(item.get("meal_type_hint") or "").strip(),
-                "linked_group": str(item.get("linked_group") or "").strip(),
-                "confidence": 0.0,
-                "reasoning": str(item.get("reasoning") or "").strip(),
-            })
+            events.append(
+                {
+                    "event_type": event_type,
+                    "text": text,
+                    "date": event_date,
+                    "time": str(item.get("time") or "").strip(),
+                    "amount": amount,
+                    "category_hint": str(item.get("category_hint") or "").strip(),
+                    "subcategory_hint": str(item.get("subcategory_hint") or "").strip(),
+                    "meal_type_hint": str(item.get("meal_type_hint") or "").strip(),
+                    "linked_group": str(item.get("linked_group") or "").strip(),
+                    "confidence": 0.0,
+                    "reasoning": str(item.get("reasoning") or "").strip(),
+                }
+            )
         return events, rejected

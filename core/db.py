@@ -83,7 +83,9 @@ def _connect_postgres():
             "PostgreSQL backend requires psycopg. Install requirements.txt first."
         ) from exc
 
-    conn = psycopg.connect(get_database_url(), row_factory=dict_row, prepare_threshold=None)
+    conn = psycopg.connect(
+        get_database_url(), row_factory=dict_row, prepare_threshold=None
+    )
     return conn
 
 

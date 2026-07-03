@@ -6,7 +6,9 @@ from core.prompts import load_prompt
 class Classifier:
     def __init__(self, config: dict):
         self.categories: dict = config.get("支出", {})
-        self.threshold: float = config.get("classifier", {}).get("confidence_threshold", 0.75)
+        self.threshold: float = config.get("classifier", {}).get(
+            "confidence_threshold", 0.75
+        )
         self._llm = LLMClient(config.get("llm", {}))
 
     def classify(self, description: str) -> dict:
@@ -58,11 +60,17 @@ class Classifier:
         candidates = []
         for c in data.get("candidates", []):
             try:
-                candidates.append({
-                    "category":    c.get("category", DEFAULT_CATEGORY),
-                    "subcategory": c.get("subcategory", c.get("category", DEFAULT_CATEGORY)),
-                    "confidence":  max(0.0, min(1.0, float(c.get("confidence", 0.0)))),
-                })
+                candidates.append(
+                    {
+                        "category": c.get("category", DEFAULT_CATEGORY),
+                        "subcategory": c.get(
+                            "subcategory", c.get("category", DEFAULT_CATEGORY)
+                        ),
+                        "confidence": max(
+                            0.0, min(1.0, float(c.get("confidence", 0.0)))
+                        ),
+                    }
+                )
             except (TypeError, ValueError):
                 pass
         data["candidates"] = candidates
@@ -75,13 +83,13 @@ class Classifier:
     @staticmethod
     def _fallback(reason: str) -> dict:
         return {
-            "status":      "error",
-            "category":    DEFAULT_CATEGORY,
+            "status": "error",
+            "category": DEFAULT_CATEGORY,
             "subcategory": DEFAULT_CATEGORY,
-            "confidence":  0.0,
-            "reasoning":   reason,
-            "candidates":  [],
-            "error":       True,
+            "confidence": 0.0,
+            "reasoning": reason,
+            "candidates": [],
+            "error": True,
         }
 
     def _is_known(self, category: str, subcategory: str) -> bool:

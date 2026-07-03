@@ -21,8 +21,12 @@ st.markdown(
 )
 
 # ── session state ───────────────────────────────────────────────────────────
-for key, default in [("diet_pending", None), ("diet_flash", None),
-                      ("diet_processing", False), ("diet_processing_form", None)]:
+for key, default in [
+    ("diet_pending", None),
+    ("diet_flash", None),
+    ("diet_processing", False),
+    ("diet_processing_form", None),
+]:
     if key not in st.session_state:
         st.session_state[key] = default
 
@@ -41,7 +45,7 @@ with st.sidebar:
                 time_tag = f" {meal['time']}" if meal.get("time") else ""
                 st.caption(f"**{meal['meal_type']}**{time_tag}")
                 foods_str = "、".join(
-                    f"{f['food_name']}{'×'+f['quantity'] if f.get('quantity') else ''}"
+                    f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
                     for f in meal["foods"]
                 )
                 st.caption(f"　{foods_str}")
@@ -70,7 +74,9 @@ def save_and_done(form, meal_type, foods, confidence=None):
     )
     foods_str = "、".join(f["food_name"] for f in foods)
     st.session_state.diet_pending = None
-    st.session_state.diet_flash = f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+    st.session_state.diet_flash = (
+        f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+    )
     st.rerun()
 
 
@@ -94,7 +100,11 @@ def render_confirm_form(form, result, meal_types):
         st.caption(f"理由：{result['reasoning']}")
 
     default_meal = result.get("meal_type", meal_types[-1])
-    default_idx  = meal_types.index(default_meal) if default_meal in meal_types else len(meal_types) - 1
+    default_idx = (
+        meal_types.index(default_meal)
+        if default_meal in meal_types
+        else len(meal_types) - 1
+    )
     meal_type = st.selectbox("餐顿类型", meal_types, index=default_idx)
 
     st.caption("食物清单（可编辑、增删行）")
@@ -104,7 +114,7 @@ def render_confirm_form(form, result, meal_types):
         num_rows="dynamic",
         column_config={
             "food_name": st.column_config.TextColumn("食物名称", required=True),
-            "quantity":  st.column_config.TextColumn("份量"),
+            "quantity": st.column_config.TextColumn("份量"),
         },
         hide_index=True,
         width="stretch",
@@ -117,7 +127,10 @@ def render_confirm_form(form, result, meal_types):
     with c1:
         if st.button(save_label, type="primary", width="stretch"):
             foods = [
-                {"food_name": str(row["food_name"]), "quantity": str(row.get("quantity") or "")}
+                {
+                    "food_name": str(row["food_name"]),
+                    "quantity": str(row.get("quantity") or ""),
+                }
                 for _, row in edited_df.iterrows()
                 if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
             ]
@@ -139,9 +152,12 @@ if st.session_state.diet_processing:
     if result["status"] == "confirmed":
         foods_str = "、".join(f["food_name"] for f in result["foods"])
         meal_id = add_meal(
-            date=form["date"], time=form["time"],
-            meal_type=result["meal_type"], description=form["description"],
-            notes=form["notes"], confidence=result["confidence"],
+            date=form["date"],
+            time=form["time"],
+            meal_type=result["meal_type"],
+            description=form["description"],
+            notes=form["notes"],
+            confidence=result["confidence"],
             foods=result["foods"],
         )
         st.session_state.diet_flash = (
@@ -156,7 +172,7 @@ if st.session_state.diet_processing:
 
 # ── 确认界面 ────────────────────────────────────────────────────────────────
 if st.session_state.diet_pending:
-    form   = st.session_state.diet_pending["form"]
+    form = st.session_state.diet_pending["form"]
     result = st.session_state.diet_pending["result"]
     st.caption(f"**{form['date']}** {form['time'] or ''}　描述：{form['description']}")
     st.divider()
@@ -171,7 +187,8 @@ with st.form("diet_form", clear_on_submit=True):
         entry_date = st.date_input("日期", value=date.today())
     with col2:
         time_str = st.text_input(
-            "时间（可选）", placeholder="如：12:30",
+            "时间（可选）",
+            placeholder="如：12:30",
             help="24小时制，如 08:00、12:30、18:45",
         )
 
@@ -185,7 +202,9 @@ with st.form("diet_form", clear_on_submit=True):
         height=100,
         help="用自然语言描述你吃了什么，AI会自动提取餐顿和每种食物",
     )
-    notes    = st.text_area("备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等")
+    notes = st.text_area(
+        "备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等"
+    )
     submitted = st.form_submit_button("提交", type="primary", width="stretch")
 
 if submitted:
@@ -203,10 +222,10 @@ if submitted:
             time_value = time_str.strip()
 
     form_data = {
-        "date":        entry_date.strftime("%Y-%m-%d"),
-        "time":        time_value,
+        "date": entry_date.strftime("%Y-%m-%d"),
+        "time": time_value,
         "description": description.strip(),
-        "notes":       notes.strip() or None,
+        "notes": notes.strip() or None,
     }
 
     st.session_state.diet_processing_form = form_data

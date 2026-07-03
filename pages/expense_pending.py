@@ -5,7 +5,11 @@ import streamlit as st
 
 from core.config import load_config
 from core.constants import PENDING_CATEGORY
-from core.expense.db import get_pending_transactions, update_transaction, void_transaction
+from core.expense.db import (
+    get_pending_transactions,
+    update_transaction,
+    void_transaction,
+)
 
 st.title("待处理")
 
@@ -20,7 +24,16 @@ if not rows:
 st.caption("包含待分类、空分类、空子类和低置信度支出。")
 
 df = pd.DataFrame(rows)
-display_cols = ["id", "date", "description", "amount", "category", "subcategory", "confidence", "notes"]
+display_cols = [
+    "id",
+    "date",
+    "description",
+    "amount",
+    "category",
+    "subcategory",
+    "confidence",
+    "notes",
+]
 display_df = df[display_cols].copy()
 display_df["amount"] = display_df["amount"].apply(lambda x: f"¥{float(x or 0):.2f}")
 display_df["confidence"] = display_df["confidence"].apply(

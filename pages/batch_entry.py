@@ -32,7 +32,11 @@ def _validate_category_pair(
     subcategory: str,
 ) -> str | None:
     if record_type == "支出" and category == PENDING_CATEGORY:
-        return None if subcategory in {"", PENDING_CATEGORY} else f"{PENDING_CATEGORY} 必须搭配 {PENDING_CATEGORY}"
+        return (
+            None
+            if subcategory in {"", PENDING_CATEGORY}
+            else f"{PENDING_CATEGORY} 必须搭配 {PENDING_CATEGORY}"
+        )
 
     categories = config.get(record_type, {})
     if not category:
@@ -80,21 +84,23 @@ def _food_text_to_list(text: str) -> list[dict]:
 def _records_to_df(records: list[dict]) -> pd.DataFrame:
     rows = []
     for record in records:
-        rows.append({
-            "include": record.get("include", True),
-            "record_type": record.get("record_type") or "",
-            "date": record.get("date") or date.today().isoformat(),
-            "time": record.get("time") or "",
-            "description": record.get("description") or "",
-            "amount": record.get("amount"),
-            "category": record.get("category") or "",
-            "subcategory": record.get("subcategory") or "",
-            "meal_type": record.get("meal_type") or "",
-            "foods": _food_list_to_text(record.get("foods", [])),
-            "notes": record.get("notes") or "",
-            "confidence": record.get("confidence", 0.0),
-            "reasoning": record.get("reasoning") or "",
-        })
+        rows.append(
+            {
+                "include": record.get("include", True),
+                "record_type": record.get("record_type") or "",
+                "date": record.get("date") or date.today().isoformat(),
+                "time": record.get("time") or "",
+                "description": record.get("description") or "",
+                "amount": record.get("amount"),
+                "category": record.get("category") or "",
+                "subcategory": record.get("subcategory") or "",
+                "meal_type": record.get("meal_type") or "",
+                "foods": _food_list_to_text(record.get("foods", [])),
+                "notes": record.get("notes") or "",
+                "confidence": record.get("confidence", 0.0),
+                "reasoning": record.get("reasoning") or "",
+            }
+        )
     return pd.DataFrame(rows)
 
 
@@ -126,7 +132,9 @@ def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
             return f"第 {idx + 1} 行金额必须大于 0"
         category = str(row.get("category") or "").strip()
         subcategory = str(row.get("subcategory") or "").strip()
-        category_error = _validate_category_pair(config, record_type, category, subcategory)
+        category_error = _validate_category_pair(
+            config, record_type, category, subcategory
+        )
         if category_error:
             return f"第 {idx + 1} 行{category_error}"
     return None
@@ -205,7 +213,9 @@ if st.session_state.batch_flash:
     st.session_state.batch_flash = None
 
 config = load_config()
-meal_types = config.get("diet", {}).get("meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"])
+meal_types = config.get("diet", {}).get(
+    "meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"]
+)
 
 with st.form("batch_parse_form"):
     default_date = st.date_input("默认日期", value=date.today())
@@ -288,12 +298,18 @@ edited_df = st.data_editor(
         "time": st.column_config.TextColumn("时间"),
         "description": st.column_config.TextColumn("描述", required=True),
         "amount": st.column_config.NumberColumn("金额", format="%.2f"),
-        "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config)),
+        "category": st.column_config.SelectboxColumn(
+            "主类别", options=_all_categories(config)
+        ),
         "subcategory": st.column_config.TextColumn("子类别"),
-        "meal_type": st.column_config.SelectboxColumn("餐顿", options=[""] + meal_types),
+        "meal_type": st.column_config.SelectboxColumn(
+            "餐顿", options=[""] + meal_types
+        ),
         "foods": st.column_config.TextColumn("食物"),
         "notes": st.column_config.TextColumn("备注"),
-        "confidence": st.column_config.NumberColumn("置信度", min_value=0.0, max_value=1.0, format="%.2f"),
+        "confidence": st.column_config.NumberColumn(
+            "置信度", min_value=0.0, max_value=1.0, format="%.2f"
+        ),
         "reasoning": st.column_config.TextColumn("理由"),
     },
 )
@@ -316,7 +332,9 @@ with c1:
             if db_errors:
                 st.error("；".join(db_errors))
                 if saved:
-                    st.warning(f"已部分写入 {saved} 条，失败行请修改后重试（注意勾选情况避免重复提交）")
+                    st.warning(
+                        f"已部分写入 {saved} 条，失败行请修改后重试（注意勾选情况避免重复提交）"
+                    )
             elif saved:
                 st.session_state.batch_records = None
                 st.session_state.batch_diagnostics = None

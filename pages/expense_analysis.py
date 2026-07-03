@@ -5,7 +5,9 @@ from datetime import date, timedelta
 
 from core.expense.db import (
     get_period_data,
-    get_active_weeks, get_active_months, get_active_years,
+    get_active_weeks,
+    get_active_months,
+    get_active_years,
 )
 
 st.title("开销分析")
@@ -20,22 +22,27 @@ basis_key = "amortized" if analysis_basis == "摊销后" else "cash"
 
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 
+
 def metrics_row(cur: dict, prev: dict, n_days: int):
     """顶部四格指标：本期总额 / 日均 / 与上期对比 / 收支结余。"""
     col1, col2, col3, col4 = st.columns(4)
     for col, label, cur_val, prev_val in [
         (col1, "支出", cur["expense"], prev["expense"]),
-        (col2, "收入", cur["income"],  prev["income"]),
+        (col2, "收入", cur["income"], prev["income"]),
     ]:
         delta = cur_val - prev_val
-        col.metric(label, f"¥{cur_val:,.2f}",
-                   delta=f"¥{delta:+,.2f}" if prev_val else None,
-                   delta_color="inverse" if label == "支出" else "normal")
+        col.metric(
+            label,
+            f"¥{cur_val:,.2f}",
+            delta=f"¥{delta:+,.2f}" if prev_val else None,
+            delta_color="inverse" if label == "支出" else "normal",
+        )
 
-    col3.metric("日均支出", f"¥{cur['expense']/n_days:,.2f}" if n_days else "—")
+    col3.metric("日均支出", f"¥{cur['expense'] / n_days:,.2f}" if n_days else "—")
     balance = cur["balance"]
-    col4.metric("收支结余", f"¥{balance:,.2f}",
-                delta=f"¥{balance:,.2f}", delta_color="normal")
+    col4.metric(
+        "收支结余", f"¥{balance:,.2f}", delta=f"¥{balance:,.2f}", delta_color="normal"
+    )
 
 
 def daily_bar(daily: list, all_dates: list):
@@ -50,9 +57,10 @@ def daily_bar(daily: list, all_dates: list):
 
     fig = go.Figure()
     fig.add_bar(x=dates, y=expenses, name="支出", marker_color="#5B9BD5")
-    fig.add_bar(x=dates, y=incomes,  name="收入", marker_color="#70AD47")
+    fig.add_bar(x=dates, y=incomes, name="收入", marker_color="#70AD47")
     fig.update_layout(
-        barmode="group", height=240,
+        barmode="group",
+        height=240,
         margin=dict(t=8, b=8, l=0, r=0),
         legend=dict(orientation="h", y=1.1),
         xaxis=dict(tickangle=-45),
@@ -62,15 +70,16 @@ def daily_bar(daily: list, all_dates: list):
 
 def period_compare_bar(periods: list):
     """多期汇总对比柱状图。periods: [{label, income, expense}]"""
-    labels   = [p["label"]   for p in periods]
+    labels = [p["label"] for p in periods]
     expenses = [p["expense"] for p in periods]
-    incomes  = [p["income"]  for p in periods]
+    incomes = [p["income"] for p in periods]
 
     fig = go.Figure()
     fig.add_bar(x=labels, y=expenses, name="支出", marker_color="#5B9BD5")
-    fig.add_bar(x=labels, y=incomes,  name="收入", marker_color="#70AD47")
+    fig.add_bar(x=labels, y=incomes, name="收入", marker_color="#70AD47")
     fig.update_layout(
-        barmode="group", height=240,
+        barmode="group",
+        height=240,
         margin=dict(t=8, b=8, l=0, r=0),
         legend=dict(orientation="h", y=1.1),
     )
@@ -114,7 +123,7 @@ tab_week, tab_month, tab_year = st.tabs(["周", "月", "年"])
 # 周视图
 # ════════════════════════════════════════════════════════════════════════════
 with tab_week:
-    weeks = get_active_weeks()   # 每周的周一日期字符串
+    weeks = get_active_weeks()  # 每周的周一日期字符串
     if not weeks:
         st.info("暂无数据")
     else:
@@ -123,25 +132,31 @@ with tab_week:
             d = date.fromisoformat(mon)
             sun = d + timedelta(days=6)
             wn = d.isocalendar()[1]
-            return f"W{wn:02d}（{d.month:02d}/{d.day:02d}–{sun.month:02d}/{sun.day:02d}）"
+            return (
+                f"W{wn:02d}（{d.month:02d}/{d.day:02d}–{sun.month:02d}/{sun.day:02d}）"
+            )
 
         options = {week_label(w): w for w in weeks}
         # 默认选当前自然周
         today = date.today()
         cur_mon = (today - timedelta(days=today.weekday())).isoformat()
         default_label = next(
-            (lbl for lbl, w in options.items() if w == cur_mon),
-            list(options.keys())[0]
+            (lbl for lbl, w in options.items() if w == cur_mon), list(options.keys())[0]
         )
-        selected_label = st.selectbox("选择周", list(options.keys()),
-                                      index=list(options.keys()).index(default_label),
-                                      key="week_sel")
+        selected_label = st.selectbox(
+            "选择周",
+            list(options.keys()),
+            index=list(options.keys()).index(default_label),
+            key="week_sel",
+        )
         mon = options[selected_label]
         start = mon
-        end   = (date.fromisoformat(mon) + timedelta(days=6)).isoformat()
-        all_dates = [(date.fromisoformat(mon) + timedelta(days=i)).isoformat() for i in range(7)]
+        end = (date.fromisoformat(mon) + timedelta(days=6)).isoformat()
+        all_dates = [
+            (date.fromisoformat(mon) + timedelta(days=i)).isoformat() for i in range(7)
+        ]
 
-        cur  = get_period_data(start, end, basis=basis_key)
+        cur = get_period_data(start, end, basis=basis_key)
         # 上一周
         prev_mon = (date.fromisoformat(mon) - timedelta(weeks=1)).isoformat()
         prev_end = (date.fromisoformat(mon) - timedelta(days=1)).isoformat()
@@ -158,14 +173,29 @@ with tab_week:
         for w in recent_weeks:
             w_end = (date.fromisoformat(w) + timedelta(days=6)).isoformat()
             d = get_period_data(w, w_end, basis=basis_key)
-            period_bars.append({"label": week_label(w), "income": d["income"], "expense": d["expense"]})
+            period_bars.append(
+                {"label": week_label(w), "income": d["income"], "expense": d["expense"]}
+            )
         period_compare_bar(period_bars)
 
-        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="week_breakdown_level")
+        breakdown_level = st.radio(
+            "明细聚合",
+            ["一级分类", "二级分类"],
+            horizontal=True,
+            key="week_breakdown_level",
+        )
         st.subheader("支出明细")
-        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
+            "支出",
+            breakdown_level,
+        )
         st.subheader("收入明细")
-        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
+            "收入",
+            breakdown_level,
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -179,7 +209,9 @@ with tab_month:
         today = date.today()
         cur_ym = today.strftime("%Y-%m")
         default_idx = months.index(cur_ym) if cur_ym in months else 0
-        selected_ym = st.selectbox("选择月份", months, index=default_idx, key="month_sel")
+        selected_ym = st.selectbox(
+            "选择月份", months, index=default_idx, key="month_sel"
+        )
 
         y, m = int(selected_ym[:4]), int(selected_ym[5:])
         start = f"{y:04d}-{m:02d}-01"
@@ -190,18 +222,20 @@ with tab_month:
         end = (next_first - timedelta(days=1)).isoformat()
         n_days = (next_first - date(y, m, 1)).days
 
-        all_dates = [(date(y, m, 1) + timedelta(days=i)).isoformat() for i in range(n_days)]
+        all_dates = [
+            (date(y, m, 1) + timedelta(days=i)).isoformat() for i in range(n_days)
+        ]
 
         cur = get_period_data(start, end, basis=basis_key)
 
         # 上个月
         if m == 1:
-            prev_start = f"{y-1:04d}-12-01"
-            prev_end   = f"{y:04d}-01-01"
-            prev_end   = (date(y, 1, 1) - timedelta(days=1)).isoformat()
+            prev_start = f"{y - 1:04d}-12-01"
+            prev_end = f"{y:04d}-01-01"
+            prev_end = (date(y, 1, 1) - timedelta(days=1)).isoformat()
         else:
-            prev_start = f"{y:04d}-{m-1:02d}-01"
-            prev_end   = (date(y, m, 1) - timedelta(days=1)).isoformat()
+            prev_start = f"{y:04d}-{m - 1:02d}-01"
+            prev_end = (date(y, m, 1) - timedelta(days=1)).isoformat()
         prev = get_period_data(prev_start, prev_end, basis=basis_key)
 
         metrics_row(cur, prev, n_days=n_days)
@@ -216,18 +250,33 @@ with tab_month:
             yy, mm = int(ym[:4]), int(ym[5:])
             ms = f"{yy:04d}-{mm:02d}-01"
             if mm == 12:
-                me = (date(yy+1,1,1) - timedelta(days=1)).isoformat()
+                me = (date(yy + 1, 1, 1) - timedelta(days=1)).isoformat()
             else:
-                me = (date(yy, mm+1, 1) - timedelta(days=1)).isoformat()
+                me = (date(yy, mm + 1, 1) - timedelta(days=1)).isoformat()
             d = get_period_data(ms, me, basis=basis_key)
-            period_bars.append({"label": ym, "income": d["income"], "expense": d["expense"]})
+            period_bars.append(
+                {"label": ym, "income": d["income"], "expense": d["expense"]}
+            )
         period_compare_bar(period_bars)
 
-        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="month_breakdown_level")
+        breakdown_level = st.radio(
+            "明细聚合",
+            ["一级分类", "二级分类"],
+            horizontal=True,
+            key="month_breakdown_level",
+        )
         st.subheader("支出明细")
-        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
+            "支出",
+            breakdown_level,
+        )
         st.subheader("收入明细")
-        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
+            "收入",
+            breakdown_level,
+        )
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -240,10 +289,12 @@ with tab_year:
     else:
         cur_year = str(date.today().year)
         default_idx = years.index(cur_year) if cur_year in years else 0
-        selected_year = st.selectbox("选择年份", years, index=default_idx, key="year_sel")
+        selected_year = st.selectbox(
+            "选择年份", years, index=default_idx, key="year_sel"
+        )
 
         start = f"{selected_year}-01-01"
-        end   = f"{selected_year}-12-31"
+        end = f"{selected_year}-12-31"
 
         # 按月生成 all_dates（用月份标签，不是每天）
         all_months = [f"{selected_year}-{m:02d}" for m in range(1, 13)]
@@ -252,7 +303,9 @@ with tab_year:
 
         # 上一年
         prev_year = str(int(selected_year) - 1)
-        prev = get_period_data(f"{prev_year}-01-01", f"{prev_year}-12-31", basis=basis_key)
+        prev = get_period_data(
+            f"{prev_year}-01-01", f"{prev_year}-12-31", basis=basis_key
+        )
         n_days = 366 if int(selected_year) % 4 == 0 else 365
 
         metrics_row(cur, prev, n_days=n_days)
@@ -263,9 +316,15 @@ with tab_year:
         for ym in all_months:
             yy, mm = int(ym[:4]), int(ym[5:])
             ms = f"{yy:04d}-{mm:02d}-01"
-            me = (date(yy, mm+1, 1) - timedelta(days=1)).isoformat() if mm < 12 else f"{yy}-12-31"
+            me = (
+                (date(yy, mm + 1, 1) - timedelta(days=1)).isoformat()
+                if mm < 12
+                else f"{yy}-12-31"
+            )
             d = get_period_data(ms, me, basis=basis_key)
-            month_bars.append({"label": f"{mm}月", "income": d["income"], "expense": d["expense"]})
+            month_bars.append(
+                {"label": f"{mm}月", "income": d["income"], "expense": d["expense"]}
+            )
         period_compare_bar(month_bars)
 
         # 历年对比
@@ -273,11 +332,26 @@ with tab_year:
         year_bars = []
         for yr in years[::-1]:
             d = get_period_data(f"{yr}-01-01", f"{yr}-12-31", basis=basis_key)
-            year_bars.append({"label": yr, "income": d["income"], "expense": d["expense"]})
+            year_bars.append(
+                {"label": yr, "income": d["income"], "expense": d["expense"]}
+            )
         period_compare_bar(year_bars)
 
-        breakdown_level = st.radio("明细聚合", ["一级分类", "二级分类"], horizontal=True, key="year_breakdown_level")
+        breakdown_level = st.radio(
+            "明细聚合",
+            ["一级分类", "二级分类"],
+            horizontal=True,
+            key="year_breakdown_level",
+        )
         st.subheader("支出明细")
-        breakdown_table(aggregate_breakdown(cur["expense_breakdown"], breakdown_level), "支出", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
+            "支出",
+            breakdown_level,
+        )
         st.subheader("收入明细")
-        breakdown_table(aggregate_breakdown(cur["income_breakdown"], breakdown_level), "收入", breakdown_level)
+        breakdown_table(
+            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
+            "收入",
+            breakdown_level,
+        )

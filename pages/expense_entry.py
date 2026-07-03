@@ -28,8 +28,12 @@ def get_classifier(version: int):
 
 
 # ── session state 初始化 ────────────────────────────────────────────────────
-for key, default in [("expense_pending", None), ("expense_flash", None),
-                      ("expense_processing", False), ("expense_processing_form", None)]:
+for key, default in [
+    ("expense_pending", None),
+    ("expense_flash", None),
+    ("expense_processing", False),
+    ("expense_processing_form", None),
+]:
     if key not in st.session_state:
         st.session_state[key] = default
 
@@ -43,9 +47,13 @@ with st.sidebar:
     st.subheader("今日支出")
     today_str = date.today().strftime("%Y-%m-%d")
     try:
-        today_rows = get_transactions(start_date=today_str, end_date=today_str, limit=50)
+        today_rows = get_transactions(
+            start_date=today_str, end_date=today_str, limit=50
+        )
         if today_rows:
-            df_today = pd.DataFrame(today_rows)[["type", "description", "amount", "category"]]
+            df_today = pd.DataFrame(today_rows)[
+                ["type", "description", "amount", "category"]
+            ]
             df_today["amount"] = df_today["amount"].apply(lambda x: f"¥{x:.2f}")
             st.dataframe(df_today, hide_index=True, width="stretch")
             expense_total = sum(r["amount"] for r in today_rows if r["type"] == "支出")
@@ -60,14 +68,17 @@ with st.sidebar:
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 def save_and_done(form, category, subcategory, confidence=None):
     record_id = add_transaction(
-        form["type"], form["description"], form["amount"], form["date"],
-        category=category, subcategory=subcategory,
-        notes=form["notes"], confidence=confidence,
+        form["type"],
+        form["description"],
+        form["amount"],
+        form["date"],
+        category=category,
+        subcategory=subcategory,
+        notes=form["notes"],
+        confidence=confidence,
     )
     st.session_state.expense_pending = None
-    st.session_state.expense_flash = (
-        f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
-    )
+    st.session_state.expense_flash = f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
     st.rerun()
 
 
@@ -78,9 +89,14 @@ if st.session_state.expense_processing:
         result = get_classifier(config_version()).classify(form["description"])
     if result["status"] == "confirmed":
         record_id = add_transaction(
-            form["type"], form["description"], form["amount"], form["date"],
-            category=result["category"], subcategory=result["subcategory"],
-            confidence=result["confidence"], notes=form["notes"],
+            form["type"],
+            form["description"],
+            form["amount"],
+            form["date"],
+            category=result["category"],
+            subcategory=result["subcategory"],
+            confidence=result["confidence"],
+            notes=form["notes"],
         )
         st.session_state.expense_flash = (
             f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
@@ -98,8 +114,7 @@ if st.session_state.expense_pending:
     result = st.session_state.expense_pending["result"]
 
     st.caption(
-        f"**{form['type']}** {form['description']} "
-        f"¥{form['amount']:.2f} {form['date']}"
+        f"**{form['type']}** {form['description']} ¥{form['amount']:.2f} {form['date']}"
     )
     st.divider()
 
@@ -135,7 +150,9 @@ if st.session_state.expense_pending:
         if result["status"] == "low_confidence":
             st.warning(f"置信度较低（{result['confidence']:.0%}），请确认分类")
         elif result["status"] == "new_category":
-            st.warning(f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择")
+            st.warning(
+                f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择"
+            )
         else:
             st.error(f"自动分类失败：{result['reasoning']}")
 
@@ -162,7 +179,9 @@ if st.session_state.expense_pending:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("确认保存", type="primary", width="stretch"):
-                save_and_done(form, category, subcategory, confidence=result.get("confidence"))
+                save_and_done(
+                    form, category, subcategory, confidence=result.get("confidence")
+                )
         with c2:
             if st.button("取消", width="stretch"):
                 cancel()
@@ -176,7 +195,9 @@ with st.form("entry_form", clear_on_submit=True):
     description = st.text_input("描述", placeholder="例：中午麦当劳")
     col1, col2 = st.columns(2)
     with col1:
-        amount = st.number_input("金额（元）", min_value=0.0, value=0.0, step=0.1, format="%.2f")
+        amount = st.number_input(
+            "金额（元）", min_value=0.0, value=0.0, step=0.1, format="%.2f"
+        )
     with col2:
         entry_date = st.date_input("日期", value=date.today())
     notes = st.text_area("备注（可选）", height=68)
@@ -200,7 +221,10 @@ if submitted:
 
     if entry_type == "迁移":
         record_id = add_transaction(
-            entry_type, description.strip(), amount, entry_date.strftime("%Y-%m-%d"),
+            entry_type,
+            description.strip(),
+            amount,
+            entry_date.strftime("%Y-%m-%d"),
             notes=notes.strip() or None,
         )
         st.session_state.expense_flash = f"迁移记录已保存（ID {record_id}）"
