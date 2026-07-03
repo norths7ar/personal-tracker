@@ -98,6 +98,7 @@ with c1:
             category=category,
             subcategory=subcategory,
             notes=notes.strip() or None,
+            confidence=1.0,
         )
         st.success("已更新。")
         st.rerun()

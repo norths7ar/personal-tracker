@@ -128,7 +128,8 @@ def get_monthly_summary(year: int, month: int) -> dict:
 def update_transaction(id_: int, **fields) -> None:
     allowed = {
         "type", "description", "amount", "date", "category", "subcategory", "notes",
-        "status", "void_reason", "refund_for_id", "amortization_months", "amortization_start",
+        "confidence", "status", "void_reason", "refund_for_id", "amortization_months",
+        "amortization_start",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
