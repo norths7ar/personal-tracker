@@ -123,6 +123,7 @@ def init_db():
             _init_sqlite(conn)
 
         _ensure_transaction_amount_cents(conn)
+        _ensure_transaction_workflow_columns(conn)
         conn.commit()
 
 
@@ -207,17 +208,7 @@ def _init_postgres(conn):
 
 
 def _ensure_transaction_amount_cents(conn):
-    if conn.backend == "postgres":
-        rows = conn.execute(
-            """SELECT column_name FROM information_schema.columns
-               WHERE table_name = 'transactions' AND table_schema = 'public'"""
-        ).fetchall()
-        columns = {row["column_name"] for row in rows}
-    else:
-        columns = {
-            row["name"]
-            for row in conn.execute("PRAGMA table_info(transactions)").fetchall()
-        }
+    columns = _transaction_columns(conn)
     if "amount_cents" not in columns:
         conn.execute("ALTER TABLE transactions ADD COLUMN amount_cents INTEGER")
     conn.execute(
@@ -225,3 +216,32 @@ def _ensure_transaction_amount_cents(conn):
            SET amount_cents = CAST(ROUND(amount * 100) AS INTEGER)
            WHERE amount_cents IS NULL AND amount IS NOT NULL"""
     )
+
+
+def _transaction_columns(conn) -> set[str]:
+    if conn.backend == "postgres":
+        rows = conn.execute(
+            """SELECT column_name FROM information_schema.columns
+               WHERE table_name = 'transactions' AND table_schema = 'public'"""
+        ).fetchall()
+        return {row["column_name"] for row in rows}
+    return {
+        row["name"]
+        for row in conn.execute("PRAGMA table_info(transactions)").fetchall()
+    }
+
+
+def _ensure_transaction_workflow_columns(conn):
+    columns = _transaction_columns(conn)
+    additions = {
+        "status": "TEXT DEFAULT 'active'",
+        "void_reason": "TEXT",
+        "refund_for_id": "INTEGER",
+        "amortization_months": "INTEGER",
+        "amortization_start": "TEXT",
+    }
+    for name, definition in additions.items():
+        if name not in columns:
+            conn.execute(f"ALTER TABLE transactions ADD COLUMN {name} {definition}")
+
+    conn.execute("UPDATE transactions SET status = 'active' WHERE status IS NULL")

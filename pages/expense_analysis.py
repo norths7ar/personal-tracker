@@ -10,6 +10,14 @@ from core.expense.db import (
 
 st.title("开销分析")
 
+analysis_basis = st.radio(
+    "统计口径",
+    ["现金流", "摊销后"],
+    horizontal=True,
+    help="现金流按实际付款日期统计；摊销后会把设置了摊销月数的支出分摊到对应月份。",
+)
+basis_key = "amortized" if analysis_basis == "摊销后" else "cash"
+
 # ── 工具函数 ────────────────────────────────────────────────────────────────
 
 def metrics_row(cur: dict, prev: dict, n_days: int):
@@ -133,11 +141,11 @@ with tab_week:
         end   = (date.fromisoformat(mon) + timedelta(days=6)).isoformat()
         all_dates = [(date.fromisoformat(mon) + timedelta(days=i)).isoformat() for i in range(7)]
 
-        cur  = get_period_data(start, end)
+        cur  = get_period_data(start, end, basis=basis_key)
         # 上一周
         prev_mon = (date.fromisoformat(mon) - timedelta(weeks=1)).isoformat()
         prev_end = (date.fromisoformat(mon) - timedelta(days=1)).isoformat()
-        prev = get_period_data(prev_mon, prev_end)
+        prev = get_period_data(prev_mon, prev_end, basis=basis_key)
 
         metrics_row(cur, prev, n_days=7)
         st.caption("本周每日收支")
@@ -149,7 +157,7 @@ with tab_week:
         period_bars = []
         for w in recent_weeks:
             w_end = (date.fromisoformat(w) + timedelta(days=6)).isoformat()
-            d = get_period_data(w, w_end)
+            d = get_period_data(w, w_end, basis=basis_key)
             period_bars.append({"label": week_label(w), "income": d["income"], "expense": d["expense"]})
         period_compare_bar(period_bars)
 
@@ -184,7 +192,7 @@ with tab_month:
 
         all_dates = [(date(y, m, 1) + timedelta(days=i)).isoformat() for i in range(n_days)]
 
-        cur = get_period_data(start, end)
+        cur = get_period_data(start, end, basis=basis_key)
 
         # 上个月
         if m == 1:
@@ -194,7 +202,7 @@ with tab_month:
         else:
             prev_start = f"{y:04d}-{m-1:02d}-01"
             prev_end   = (date(y, m, 1) - timedelta(days=1)).isoformat()
-        prev = get_period_data(prev_start, prev_end)
+        prev = get_period_data(prev_start, prev_end, basis=basis_key)
 
         metrics_row(cur, prev, n_days=n_days)
         st.caption("本月每日收支")
@@ -211,7 +219,7 @@ with tab_month:
                 me = (date(yy+1,1,1) - timedelta(days=1)).isoformat()
             else:
                 me = (date(yy, mm+1, 1) - timedelta(days=1)).isoformat()
-            d = get_period_data(ms, me)
+            d = get_period_data(ms, me, basis=basis_key)
             period_bars.append({"label": ym, "income": d["income"], "expense": d["expense"]})
         period_compare_bar(period_bars)
 
@@ -240,11 +248,11 @@ with tab_year:
         # 按月生成 all_dates（用月份标签，不是每天）
         all_months = [f"{selected_year}-{m:02d}" for m in range(1, 13)]
         # 年视图的 daily_bar 改为按月聚合
-        cur = get_period_data(start, end)
+        cur = get_period_data(start, end, basis=basis_key)
 
         # 上一年
         prev_year = str(int(selected_year) - 1)
-        prev = get_period_data(f"{prev_year}-01-01", f"{prev_year}-12-31")
+        prev = get_period_data(f"{prev_year}-01-01", f"{prev_year}-12-31", basis=basis_key)
         n_days = 366 if int(selected_year) % 4 == 0 else 365
 
         metrics_row(cur, prev, n_days=n_days)
@@ -256,7 +264,7 @@ with tab_year:
             yy, mm = int(ym[:4]), int(ym[5:])
             ms = f"{yy:04d}-{mm:02d}-01"
             me = (date(yy, mm+1, 1) - timedelta(days=1)).isoformat() if mm < 12 else f"{yy}-12-31"
-            d = get_period_data(ms, me)
+            d = get_period_data(ms, me, basis=basis_key)
             month_bars.append({"label": f"{mm}月", "income": d["income"], "expense": d["expense"]})
         period_compare_bar(month_bars)
 
@@ -264,7 +272,7 @@ with tab_year:
         st.caption("历年对比")
         year_bars = []
         for yr in years[::-1]:
-            d = get_period_data(f"{yr}-01-01", f"{yr}-12-31")
+            d = get_period_data(f"{yr}-01-01", f"{yr}-12-31", basis=basis_key)
             year_bars.append({"label": yr, "income": d["income"], "expense": d["expense"]})
         period_compare_bar(year_bars)
 

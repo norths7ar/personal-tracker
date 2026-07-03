@@ -7,6 +7,7 @@ init_db()
 
 pages = [
     st.Page("pages/batch_entry.py",      title="批量记录", icon="🧾"),
+    st.Page("pages/expense_pending.py",  title="待处理", icon="✅"),
     st.Page("pages/expense_entry.py",    title="开销记录", icon="✏️"),
     st.Page("pages/expense_ledger.py",   title="开销流水", icon="📋"),
     st.Page("pages/expense_analysis.py", title="开销分析", icon="📊"),
