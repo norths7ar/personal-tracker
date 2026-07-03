@@ -8,6 +8,7 @@ from core.config import config_version, load_config
 from core.constants import PENDING_CATEGORY
 from core.diet.db import add_meal
 from core.expense.db import add_transaction
+from core.text import display_text, optional_text
 
 st.title("批量记录")
 
@@ -55,8 +56,8 @@ def _validate_category_pair(
 def _food_list_to_text(foods: list[dict]) -> str:
     parts = []
     for food in foods or []:
-        name = str(food.get("food_name") or "").strip()
-        quantity = str(food.get("quantity") or "").strip()
+        name = display_text(food.get("food_name")).strip()
+        quantity = display_text(food.get("quantity")).strip()
         if not name:
             continue
         parts.append(f"{name}:{quantity}" if quantity else name)
@@ -65,7 +66,7 @@ def _food_list_to_text(foods: list[dict]) -> str:
 
 def _food_text_to_list(text: str) -> list[dict]:
     foods = []
-    for part in str(text or "").replace("\n", "；").split("；"):
+    for part in display_text(text).replace("\n", "；").split("；"):
         part = part.strip()
         if not part:
             continue
@@ -96,7 +97,7 @@ def _records_to_df(records: list[dict]) -> pd.DataFrame:
                 "subcategory": record.get("subcategory") or "",
                 "meal_type": record.get("meal_type") or "",
                 "foods": _food_list_to_text(record.get("foods", [])),
-                "notes": record.get("notes") or "",
+                "notes": display_text(record.get("notes")),
                 "confidence": record.get("confidence", 0.0),
                 "reasoning": record.get("reasoning") or "",
             }
@@ -105,21 +106,21 @@ def _records_to_df(records: list[dict]) -> pd.DataFrame:
 
 
 def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
-    record_type = str(row.get("record_type") or "").strip()
+    record_type = display_text(row.get("record_type")).strip()
     if record_type not in {"支出", "收入", "迁移", "饮食"}:
         return f"第 {idx + 1} 行类型无效"
-    row_date = str(row.get("date") or "").strip()
+    row_date = display_text(row.get("date")).strip()
     if not row_date:
         return f"第 {idx + 1} 行缺少日期"
     try:
         date.fromisoformat(row_date)
     except ValueError:
         return f"第 {idx + 1} 行日期必须是 YYYY-MM-DD"
-    if not str(row.get("description") or "").strip():
+    if not display_text(row.get("description")).strip():
         return f"第 {idx + 1} 行缺少描述"
 
     if record_type == "饮食":
-        if not str(row.get("meal_type") or "").strip():
+        if not display_text(row.get("meal_type")).strip():
             return f"第 {idx + 1} 行缺少餐顿类型"
         if not _food_text_to_list(row.get("foods")):
             return f"第 {idx + 1} 行缺少食物清单"
@@ -130,8 +131,8 @@ def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
             return f"第 {idx + 1} 行金额无效"
         if amount <= 0:
             return f"第 {idx + 1} 行金额必须大于 0"
-        category = str(row.get("category") or "").strip()
-        subcategory = str(row.get("subcategory") or "").strip()
+        category = display_text(row.get("category")).strip()
+        subcategory = display_text(row.get("subcategory")).strip()
         category_error = _validate_category_pair(
             config, record_type, category, subcategory
         )
@@ -151,31 +152,31 @@ def _save_rows(df: pd.DataFrame, config: dict) -> tuple[int, list[str]]:
             errors.append(error)
             continue
 
-        record_type = str(row["record_type"]).strip()
+        record_type = display_text(row["record_type"]).strip()
         try:
             if record_type == "饮食":
                 add_meal(
-                    date=str(row["date"]).strip(),
-                    time=str(row.get("time") or "").strip() or None,
-                    meal_type=str(row["meal_type"]).strip(),
-                    description=str(row["description"]).strip(),
-                    notes=str(row.get("notes") or "").strip() or None,
+                    date=display_text(row["date"]).strip(),
+                    time=optional_text(row.get("time")),
+                    meal_type=display_text(row["meal_type"]).strip(),
+                    description=display_text(row["description"]).strip(),
+                    notes=optional_text(row.get("notes")),
                     confidence=float(row.get("confidence") or 0),
                     foods=_food_text_to_list(row.get("foods")),
                 )
             else:
-                category = str(row.get("category") or "").strip() or None
-                subcategory = str(row.get("subcategory") or "").strip() or None
+                category = optional_text(row.get("category"))
+                subcategory = optional_text(row.get("subcategory"))
                 if record_type == "支出" and category == PENDING_CATEGORY:
                     subcategory = PENDING_CATEGORY
                 add_transaction(
                     record_type,
-                    str(row["description"]).strip(),
+                    display_text(row["description"]).strip(),
                     float(row["amount"]),
-                    str(row["date"]).strip(),
+                    display_text(row["date"]).strip(),
                     category=category,
                     subcategory=subcategory,
-                    notes=str(row.get("notes") or "").strip() or None,
+                    notes=optional_text(row.get("notes")),
                     confidence=float(row.get("confidence") or 0),
                 )
             saved += 1

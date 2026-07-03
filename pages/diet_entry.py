@@ -5,6 +5,7 @@ from datetime import date, datetime
 from core.config import config_version, load_config
 from core.diet.db import add_meal, get_meals
 from core.diet.extractor import DietExtractor
+from core.text import display_text
 
 st.title("🍽️ 饮食记录")
 
@@ -129,7 +130,7 @@ def render_confirm_form(form, result, meal_types):
             foods = [
                 {
                     "food_name": str(row["food_name"]),
-                    "quantity": str(row.get("quantity") or ""),
+                    "quantity": display_text(row.get("quantity")),
                 }
                 for _, row in edited_df.iterrows()
                 if pd.notna(row["food_name"]) and str(row["food_name"]).strip()

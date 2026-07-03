@@ -1,6 +1,7 @@
 from core.constants import DEFAULT_MEAL_TYPE
 from core.llm import LLMClient
 from core.prompts import load_prompt
+from core.text import display_text
 
 
 class DietExtractor:
@@ -55,7 +56,10 @@ class DietExtractor:
         if not isinstance(raw_foods, list):
             raw_foods = []
         foods = [
-            {"food_name": str(f["food_name"]), "quantity": str(f.get("quantity") or "")}
+            {
+                "food_name": str(f["food_name"]),
+                "quantity": display_text(f.get("quantity")),
+            }
             for f in raw_foods
             if isinstance(f, dict) and f.get("food_name")
         ]

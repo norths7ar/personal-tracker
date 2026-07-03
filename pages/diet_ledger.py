@@ -8,6 +8,7 @@ from core.diet.db import (
     update_meal_with_foods,
     delete_meal,
 )
+from core.text import display_text, optional_text
 
 st.title("📋 饮食查看")
 
@@ -95,13 +96,13 @@ def _meals_to_df(meals_list):
             {
                 "id": m["id"],
                 "date": m["date"],
-                "time": m.get("time") or "",
-                "meal_type": m.get("meal_type") or "",
+                "time": display_text(m.get("time")),
+                "meal_type": display_text(m.get("meal_type")),
                 "foods": "、".join(
                     f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
                     for f in m["foods"]
                 ),
-                "notes": m.get("notes") or "",
+                "notes": display_text(m.get("notes")),
             }
         )
     return pd.DataFrame(rows)
@@ -120,11 +121,11 @@ def _meals_to_export_df(meals_list):
             {
                 "id": m["id"],
                 "date": m["date"],
-                "time": m.get("time") or "",
-                "meal_type": m.get("meal_type") or "",
+                "time": display_text(m.get("time")),
+                "meal_type": display_text(m.get("meal_type")),
                 "foods": foods_str,
-                "description": m.get("description") or "",
-                "notes": m.get("notes") or "",
+                "description": display_text(m.get("description")),
+                "notes": display_text(m.get("notes")),
                 "confidence": m.get("confidence"),
                 "created_at": m.get("created_at") or "",
             }
@@ -182,7 +183,7 @@ with tab_edit:
         with col1:
             edit_date = st.date_input("日期", value=date.fromisoformat(meal["date"]))
         with col2:
-            edit_time = st.text_input("时间", value=meal.get("time") or "")
+            edit_time = st.text_input("时间", value=display_text(meal.get("time")))
 
         cur_meal = meal.get("meal_type") or MEAL_TYPES[-1]
         meal_idx = (
@@ -192,9 +193,9 @@ with tab_edit:
         )
         edit_meal_type = st.selectbox("餐顿类型", MEAL_TYPES, index=meal_idx)
         edit_description = st.text_area(
-            "原始描述", value=meal.get("description") or "", height=68
+            "原始描述", value=display_text(meal.get("description")), height=68
         )
-        edit_notes = st.text_area("备注", value=meal.get("notes") or "", height=60)
+        edit_notes = st.text_area("备注", value=display_text(meal.get("notes")), height=60)
 
         st.caption("食物清单（可编辑、增删行）")
         foods_df = pd.DataFrame(meal["foods"] or [{"food_name": "", "quantity": ""}])
@@ -219,7 +220,7 @@ with tab_edit:
         new_foods = [
             {
                 "food_name": str(row["food_name"]),
-                "quantity": str(row.get("quantity") or ""),
+                "quantity": display_text(row.get("quantity")),
             }
             for _, row in edited_foods.iterrows()
             if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
@@ -231,10 +232,10 @@ with tab_edit:
                 meal_id,
                 new_foods,
                 date=edit_date.strftime("%Y-%m-%d"),
-                time=edit_time or None,
+                time=optional_text(edit_time),
                 meal_type=edit_meal_type,
                 description=edit_description,
-                notes=edit_notes or None,
+                notes=optional_text(edit_notes),
             )
             st.session_state.diet_ledger_flash = f"✅ 记录 ID {meal_id} 已更新"
             st.rerun()
