@@ -80,7 +80,7 @@
 
 # LLM 配置
 llm:
-  base_url: "	https://api.deepseek.com"
+  base_url: "https://api.deepseek.com"
   model: "deepseek-v4-flash"
   temperature: 0.3
   max_tokens: 8000
