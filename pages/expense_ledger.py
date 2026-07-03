@@ -14,6 +14,7 @@ from core.expense.db import (
     void_transaction,
     delete_transaction,
 )
+from core.text import display_text, is_blank, optional_text
 
 st.title("开销流水")
 
@@ -67,25 +68,27 @@ def _subcategory_options(
 # ── 筛选 ────────────────────────────────────────────────────────────────────
 config = load_config()
 
-col1, col2, col3, col4, col5 = st.columns(5)
+col1, col2, col3 = st.columns([1, 2, 1])
 with col1:
     type_filter = st.selectbox("类型", ["全部", "支出", "收入", "迁移"])
 with col2:
-    category_filter = st.selectbox("主类别", _category_options(config, type_filter))
+    keyword = st.text_input("搜索", placeholder="描述 / 分类 / 备注")
 with col3:
-    subcategory_filter = st.selectbox(
-        "子类别", _subcategory_options(config, type_filter, category_filter)
-    )
-with col4:
-    keyword = st.text_input("搜索描述", placeholder="关键词")
-with col5:
-    status_filter = st.selectbox("状态", ["正常", "已撤销", "全部"])
+    include_voided = st.checkbox("含已撤销", value=False)
+
+with st.expander("更多筛选"):
+    fc1, fc2 = st.columns(2)
+    with fc1:
+        category_filter = st.selectbox("主类别", _category_options(config, type_filter))
+    with fc2:
+        subcategory_filter = st.selectbox(
+            "子类别", _subcategory_options(config, type_filter, category_filter)
+        )
 
 rows = get_transactions(
     type_=None if type_filter == "全部" else type_filter,
     limit=500,
-    include_voided=status_filter == "全部",
-    status="voided" if status_filter == "已撤销" else None,
+    include_voided=include_voided,
 )
 
 if category_filter != "全部":
@@ -100,7 +103,7 @@ if needle:
     rows = [
         r
         for r in rows
-        if any(needle in str(r.get(field) or "").lower() for field in search_fields)
+        if any(needle in display_text(r.get(field)).lower() for field in search_fields)
     ]
 
 if not rows:
@@ -132,12 +135,12 @@ display_cols = [
     "category",
     "subcategory",
     "status",
-    "refund_for_id",
     "amortization_months",
-    "notes",
 ]
 display_df = df[display_cols].copy()
 display_df["amount"] = display_df["amount"].apply(lambda x: f"¥{x:.2f}")
+for text_col in ("category", "subcategory", "status"):
+    display_df[text_col] = display_df[text_col].apply(display_text)
 
 event = st.dataframe(
     display_df,
@@ -154,9 +157,7 @@ event = st.dataframe(
         "category": st.column_config.TextColumn("主类别"),
         "subcategory": st.column_config.TextColumn("子类别"),
         "status": st.column_config.TextColumn("状态"),
-        "refund_for_id": st.column_config.NumberColumn("退款关联", width="small"),
-        "amortization_months": st.column_config.NumberColumn("摊销月数", width="small"),
-        "notes": st.column_config.TextColumn("备注"),
+        "amortization_months": st.column_config.NumberColumn("摊销月", width="small"),
     },
 )
 
@@ -167,20 +168,16 @@ if not selected_rows:
 
 # ── 编辑面板 ────────────────────────────────────────────────────────────────
 record = df.iloc[selected_rows[0]].to_dict()
-# pandas 将空值读为 float NaN；统一转为 None 避免 "nan" 字符串
-record = {
-    k: (None if isinstance(v, float) and pd.isna(v) else v) for k, v in record.items()
-}
 record_id = int(str(record["id"]))
-record_type = str(record["type"])
-record_desc = str(record["description"])
+record_type = display_text(record["type"])
+record_desc = display_text(record["description"])
 record_amt = float(str(record["amount"]))
-record_date = str(record["date"])
-record_status = str(record.get("status") or "active")
+record_date = display_text(record["date"])
+record_status = display_text(record.get("status")) or "active"
 st.divider()
 st.subheader(f"编辑记录 #{record_id}")
 if record_status == "voided":
-    st.warning(f"这条记录已撤销。原因：{record.get('void_reason') or '未填写'}")
+    st.warning(f"这条记录已撤销。原因：{display_text(record.get('void_reason')) or '未填写'}")
 
 config = load_config()
 
@@ -208,7 +205,7 @@ cat_keys = _unique(cat_keys)
 
 col3, col4 = st.columns(2)
 with col3:
-    cur_cat = record.get("category") or ""
+    cur_cat = display_text(record.get("category"))
     cat_idx = cat_keys.index(cur_cat) if cur_cat in cat_keys else 0
     if cat_keys:
         category = st.selectbox(
@@ -221,7 +218,7 @@ with col4:
         subs = [PENDING_CATEGORY]
     else:
         subs = (cats.get(category) or []) if cat_keys else []
-    cur_sub = record.get("subcategory") or ""
+    cur_sub = display_text(record.get("subcategory"))
     if subs:
         sub_idx = subs.index(cur_sub) if cur_sub in subs else 0
         subcategory = st.selectbox(
@@ -232,32 +229,28 @@ with col4:
             "子类别（可选）", value=cur_sub, key=f"edit_sub_{record_id}_{category}"
         )
 
-notes = st.text_area("备注", value=record.get("notes") or "", height=68)
+notes = st.text_area("备注", value=display_text(record.get("notes")), height=68)
 
+amortization_months = None
+amortization_start = None
 if entry_type == "支出":
-    st.caption("退款和摊销")
-    existing_refunds = get_refunds_for(record_id)
-    if existing_refunds:
-        total_refund = sum(float(r.get("amount") or 0) for r in existing_refunds)
-        st.info(f"已关联退款 ¥{total_refund:.2f}，共 {len(existing_refunds)} 条。")
-    amort_months = int(record.get("amortization_months") or 1)
-    amort_start = str(record.get("amortization_start") or record_date)[:7]
-    acol1, acol2 = st.columns(2)
-    with acol1:
-        amortization_months = st.number_input(
-            "摊销月数",
-            min_value=1,
-            max_value=120,
-            value=max(1, amort_months),
-            step=1,
-        )
-    with acol2:
-        amortization_start = st.text_input(
-            "摊销开始月份", value=amort_start, placeholder="YYYY-MM"
-        )
-else:
-    amortization_months = None
-    amortization_start = None
+    _amort_raw = record.get("amortization_months")
+    amort_months = 1 if is_blank(_amort_raw) else int(float(_amort_raw))
+    amort_start = (display_text(record.get("amortization_start")) or record_date)[:7]
+    with st.expander("摊销设置", expanded=amort_months > 1):
+        acol1, acol2 = st.columns(2)
+        with acol1:
+            amortization_months = st.number_input(
+                "摊销月数",
+                min_value=1,
+                max_value=120,
+                value=max(1, amort_months),
+                step=1,
+            )
+        with acol2:
+            amortization_start = st.text_input(
+                "摊销开始月份", value=amort_start, placeholder="YYYY-MM"
+            )
 
 c1, c2, c3 = st.columns([2, 2, 1])
 with c1:
@@ -285,7 +278,7 @@ if save:
         date=entry_date.strftime("%Y-%m-%d"),
         category=category or None,
         subcategory=subcategory or None,
-        notes=notes.strip() or None,
+        notes=optional_text(notes),
         amortization_months=amortization_months if entry_type == "支出" else None,
         amortization_start=amortization_start_value,
     )
@@ -324,40 +317,40 @@ if st.session_state.expense_delete_candidate == record_id:
         st.session_state.expense_delete_candidate = None
         st.rerun()
 
-st.divider()
-action_col1, action_col2 = st.columns(2)
-with action_col1:
-    if record_status == "voided":
-        if st.button("恢复记录", width="stretch"):
-            restore_transaction(record_id)
-            st.rerun()
-    else:
-        void_reason = st.text_input("撤销原因", key=f"void_reason_{record_id}")
-        if st.button("撤销记录", width="stretch"):
-            void_transaction(record_id, void_reason.strip() or None)
-            st.rerun()
-
-with action_col2:
-    if record_type == "支出" and record_status != "voided":
-        with st.form(f"refund_form_{record_id}"):
-            st.caption("新增关联退款")
-            refunded = refund_total_for(record_id)
-            default_amount = max(0.0, record_amt - refunded)
-            refund_amount = st.number_input(
-                "退款金额", min_value=0.0, value=default_amount, format="%.2f"
-            )
-            refund_date = st.date_input("退款日期", value=date.today())
-            refund_desc = st.text_input("退款描述", value=f"{record_desc} 退款")
-            submitted = st.form_submit_button("保存退款", width="stretch")
-            if submitted and refund_amount > 0:
-                add_transaction(
-                    "收入",
-                    refund_desc.strip() or f"{record_desc} 退款",
-                    refund_amount,
-                    refund_date.isoformat(),
-                    category="退款",
-                    subcategory=None,
-                    notes=f"关联支出 #{record_id}",
-                    refund_for_id=record_id,
-                )
+with st.expander("⚠️ 撤销 / 退款"):
+    action_col1, action_col2 = st.columns(2)
+    with action_col1:
+        if record_status == "voided":
+            if st.button("恢复记录", width="stretch"):
+                restore_transaction(record_id)
                 st.rerun()
+        else:
+            void_reason = st.text_input("撤销原因", key=f"void_reason_{record_id}")
+            if st.button("撤销记录", width="stretch"):
+                void_transaction(record_id, optional_text(void_reason))
+                st.rerun()
+
+    with action_col2:
+        if record_type == "支出" and record_status != "voided":
+            with st.form(f"refund_form_{record_id}"):
+                st.caption("新增关联退款")
+                refunded = refund_total_for(record_id)
+                default_amount = max(0.0, record_amt - refunded)
+                refund_amount = st.number_input(
+                    "退款金额", min_value=0.0, value=default_amount, format="%.2f"
+                )
+                refund_date = st.date_input("退款日期", value=date.today())
+                refund_desc = st.text_input("退款描述", value=f"{record_desc} 退款")
+                submitted = st.form_submit_button("保存退款", width="stretch")
+                if submitted and refund_amount > 0:
+                    add_transaction(
+                        "收入",
+                        refund_desc.strip() or f"{record_desc} 退款",
+                        refund_amount,
+                        refund_date.isoformat(),
+                        category="退款",
+                        subcategory=None,
+                        notes=f"关联支出 #{record_id}",
+                        refund_for_id=record_id,
+                    )
+                    st.rerun()
