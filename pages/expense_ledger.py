@@ -3,7 +3,15 @@ import pandas as pd
 from datetime import date
 
 from core.config import load_config
-from core.constants import PENDING_CATEGORY
+from core.constants import (
+    PENDING_CATEGORY,
+    REFUND_CATEGORY,
+    STATUS_ACTIVE,
+    STATUS_VOIDED,
+    TRANSACTION_TYPES,
+    TYPE_EXPENSE,
+    TYPE_INCOME,
+)
 from core.expense.db import (
     add_transaction,
     get_refunds_for,
@@ -34,12 +42,12 @@ def _unique(values):
 
 def _category_options(config: dict, selected_type: str) -> list[str]:
     type_names = (
-        ["支出", "收入", "迁移"] if selected_type == "全部" else [selected_type]
+        list(TRANSACTION_TYPES) if selected_type == "全部" else [selected_type]
     )
     categories = []
     for type_name in type_names:
         categories.extend(config.get(type_name, {}).keys())
-    if "支出" in type_names:
+    if TYPE_EXPENSE in type_names:
         categories.append(PENDING_CATEGORY)
     return ["全部"] + _unique(categories)
 
@@ -50,7 +58,7 @@ def _subcategory_options(
     if selected_category == PENDING_CATEGORY:
         return ["全部", PENDING_CATEGORY]
     type_names = (
-        ["支出", "收入", "迁移"] if selected_type == "全部" else [selected_type]
+        list(TRANSACTION_TYPES) if selected_type == "全部" else [selected_type]
     )
     subcategories = []
     for type_name in type_names:
@@ -58,7 +66,7 @@ def _subcategory_options(
         if selected_category == "全部":
             for subs in categories.values():
                 subcategories.extend(subs or [])
-            if type_name == "支出":
+            if type_name == TYPE_EXPENSE:
                 subcategories.append(PENDING_CATEGORY)
         else:
             subcategories.extend(categories.get(selected_category) or [])
@@ -70,7 +78,7 @@ config = load_config()
 
 col1, col2, col3 = st.columns([1, 2, 1])
 with col1:
-    type_filter = st.selectbox("类型", ["全部", "支出", "收入", "迁移"])
+    type_filter = st.selectbox("类型", ["全部", *TRANSACTION_TYPES])
 with col2:
     keyword = st.text_input("搜索", placeholder="描述 / 分类 / 备注")
 with col3:
@@ -173,18 +181,18 @@ record_type = display_text(record["type"])
 record_desc = display_text(record["description"])
 record_amt = float(str(record["amount"]))
 record_date = display_text(record["date"])
-record_status = display_text(record.get("status")) or "active"
+record_status = display_text(record.get("status")) or STATUS_ACTIVE
 st.divider()
 st.subheader(f"编辑记录 #{record_id}")
-if record_status == "voided":
+if record_status == STATUS_VOIDED:
     st.warning(f"这条记录已撤销。原因：{display_text(record.get('void_reason')) or '未填写'}")
 
 config = load_config()
 
 entry_type = st.selectbox(
     "类型",
-    ["支出", "收入", "迁移"],
-    index=["支出", "收入", "迁移"].index(record_type),
+    list(TRANSACTION_TYPES),
+    index=list(TRANSACTION_TYPES).index(record_type),
     key=f"edit_type_{record_id}",
 )
 description = st.text_input("描述", value=record_desc)
@@ -199,7 +207,7 @@ with col2:
 
 cats = config.get(entry_type, {})
 cat_keys = list(cats.keys())
-if entry_type == "支出":
+if entry_type == TYPE_EXPENSE:
     cat_keys.append(PENDING_CATEGORY)
 cat_keys = _unique(cat_keys)
 
@@ -233,7 +241,7 @@ notes = st.text_area("备注", value=display_text(record.get("notes")), height=6
 
 amortization_months = None
 amortization_start = None
-if entry_type == "支出":
+if entry_type == TYPE_EXPENSE:
     _amort_raw = record.get("amortization_months")
     amort_months = 1 if is_blank(_amort_raw) else int(float(_amort_raw))
     amort_start = (display_text(record.get("amortization_start")) or record_date)[:7]
@@ -262,7 +270,7 @@ with c3:
 
 if save:
     amortization_start_value = None
-    if entry_type == "支出" and amortization_start:
+    if entry_type == TYPE_EXPENSE and amortization_start:
         try:
             amortization_start_value = date.fromisoformat(
                 f"{amortization_start}-01"
@@ -279,7 +287,7 @@ if save:
         category=category or None,
         subcategory=subcategory or None,
         notes=optional_text(notes),
-        amortization_months=amortization_months if entry_type == "支出" else None,
+        amortization_months=amortization_months if entry_type == TYPE_EXPENSE else None,
         amortization_start=amortization_start_value,
     )
     st.session_state.expense_delete_candidate = None
@@ -320,7 +328,7 @@ if st.session_state.expense_delete_candidate == record_id:
 with st.expander("⚠️ 撤销 / 退款"):
     action_col1, action_col2 = st.columns(2)
     with action_col1:
-        if record_status == "voided":
+        if record_status == STATUS_VOIDED:
             if st.button("恢复记录", width="stretch"):
                 restore_transaction(record_id)
                 st.rerun()
@@ -331,7 +339,7 @@ with st.expander("⚠️ 撤销 / 退款"):
                 st.rerun()
 
     with action_col2:
-        if record_type == "支出" and record_status != "voided":
+        if record_type == TYPE_EXPENSE and record_status != STATUS_VOIDED:
             with st.form(f"refund_form_{record_id}"):
                 st.caption("新增关联退款")
                 refunded = refund_total_for(record_id)
@@ -344,11 +352,11 @@ with st.expander("⚠️ 撤销 / 退款"):
                 submitted = st.form_submit_button("保存退款", width="stretch")
                 if submitted and refund_amount > 0:
                     add_transaction(
-                        "收入",
+                        TYPE_INCOME,
                         refund_desc.strip() or f"{record_desc} 退款",
                         refund_amount,
                         refund_date.isoformat(),
-                        category="退款",
+                        category=REFUND_CATEGORY,
                         subcategory=None,
                         notes=f"关联支出 #{record_id}",
                         refund_for_id=record_id,

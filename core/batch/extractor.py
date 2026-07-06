@@ -1,6 +1,16 @@
 from datetime import date
 
-from core.constants import DEFAULT_CATEGORY, DEFAULT_MEAL_TYPE, PENDING_CATEGORY
+from core.constants import (
+    DEFAULT_CATEGORY,
+    DEFAULT_MEAL_TYPE,
+    DEFAULT_MEAL_TYPES,
+    PENDING_CATEGORY,
+    TRANSACTION_TYPES,
+    TYPE_EXPENSE,
+    TYPE_INCOME,
+    TYPE_MEAL,
+    TYPE_TRANSFER,
+)
 from core.diet.extractor import DietExtractor
 from core.expense.classifier import Classifier
 from core.llm import LLMClient
@@ -10,8 +20,8 @@ from core.prompts import load_prompt
 class BatchExtractor:
     """Turn one natural-language note into records via event extraction + pipelines."""
 
-    FINANCE_TYPES = {"支出", "收入", "迁移"}
-    RECORD_TYPES = FINANCE_TYPES | {"饮食"}
+    FINANCE_TYPES = set(TRANSACTION_TYPES)
+    RECORD_TYPES = FINANCE_TYPES | {TYPE_MEAL}
 
     def __init__(self, config: dict):
         self.config = config
@@ -19,7 +29,7 @@ class BatchExtractor:
         self.income_categories: dict = config.get("收入", {})
         self.transfer_categories: dict = config.get("迁移", {})
         self.meal_types: list = config.get("diet", {}).get(
-            "meal_types", ["早餐", "午餐", "晚餐", "零食", DEFAULT_MEAL_TYPE]
+            "meal_types", list(DEFAULT_MEAL_TYPES)
         )
         self._llm = LLMClient(config.get("llm", {}))
         self._classifier = Classifier(config)
@@ -56,11 +66,11 @@ class BatchExtractor:
         for event in events:
             event_type = event["event_type"]
             try:
-                if event_type == "支出":
+                if event_type == TYPE_EXPENSE:
                     records.append(self._expense_event_to_record(event))
-                elif event_type == "饮食":
+                elif event_type == TYPE_MEAL:
                     records.append(self._meal_event_to_record(event))
-                elif event_type in {"收入", "迁移"}:
+                elif event_type in {TYPE_INCOME, TYPE_TRANSFER}:
                     records.append(self._simple_finance_event_to_record(event))
             except Exception as e:
                 rejected.append(
@@ -83,7 +93,7 @@ class BatchExtractor:
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         return self._record(
-            record_type="支出",
+            record_type=TYPE_EXPENSE,
             event=event,
             amount=event["amount"],
             category=category,
@@ -108,7 +118,7 @@ class BatchExtractor:
             foods = [{"food_name": event["text"], "quantity": ""}]
 
         return self._record(
-            record_type="饮食",
+            record_type=TYPE_MEAL,
             event=event,
             amount=None,
             category="",
@@ -122,7 +132,7 @@ class BatchExtractor:
     def _simple_finance_event_to_record(self, event: dict) -> dict:
         categories = (
             self.income_categories
-            if event["event_type"] == "收入"
+            if event["event_type"] == TYPE_INCOME
             else self.transfer_categories
         )
         category, subcategory = self._pick_category(

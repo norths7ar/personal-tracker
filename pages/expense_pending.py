@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from core.config import load_config
-from core.constants import PENDING_CATEGORY
+from core.constants import PENDING_CATEGORY, TYPE_EXPENSE
 from core.expense.db import (
     get_pending_transactions,
     update_transaction,
@@ -15,7 +15,7 @@ from core.text import display_text, optional_text
 st.title("待处理")
 
 config = load_config()
-expense_categories = config.get("支出", {})
+expense_categories = config.get(TYPE_EXPENSE, {})
 rows = get_pending_transactions()
 
 if not rows:

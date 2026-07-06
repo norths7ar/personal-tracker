@@ -3,6 +3,7 @@ import streamlit as st
 from datetime import date, timedelta
 
 from core.config import load_config
+from core.constants import DEFAULT_MEAL_TYPES
 from core.diet.db import (
     get_meals,
     update_meal_with_foods,
@@ -15,7 +16,7 @@ st.title("📋 饮食查看")
 MEAL_TYPES = (
     load_config()
     .get("diet", {})
-    .get("meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"])
+    .get("meal_types", list(DEFAULT_MEAL_TYPES))
 )
 
 # ── session state ───────────────────────────────────────────────────────────

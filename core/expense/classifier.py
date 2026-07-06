@@ -1,4 +1,4 @@
-from core.constants import DEFAULT_CATEGORY
+from core.constants import DEFAULT_CATEGORY, DEFAULT_CONFIDENCE_THRESHOLD
 from core.llm import LLMClient
 from core.prompts import load_prompt
 
@@ -6,8 +6,8 @@ from core.prompts import load_prompt
 class Classifier:
     def __init__(self, config: dict):
         self.categories: dict = config.get("支出", {})
-        self.threshold: float = config.get("classifier", {}).get(
-            "confidence_threshold", 0.75
+        self.threshold: float = config.get("llm", {}).get(
+            "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
         )
         self._llm = LLMClient(config.get("llm", {}))
 

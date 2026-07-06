@@ -1,4 +1,8 @@
-from core.constants import DEFAULT_MEAL_TYPE
+from core.constants import (
+    DEFAULT_CONFIDENCE_THRESHOLD,
+    DEFAULT_MEAL_TYPE,
+    DEFAULT_MEAL_TYPES,
+)
 from core.llm import LLMClient
 from core.prompts import load_prompt
 from core.text import display_text
@@ -9,9 +13,11 @@ class DietExtractor:
 
     def __init__(self, config: dict):
         self.meal_types: list = config.get("diet", {}).get(
-            "meal_types", ["早餐", "午餐", "晚餐", "零食", DEFAULT_MEAL_TYPE]
+            "meal_types", list(DEFAULT_MEAL_TYPES)
         )
-        self.threshold: float = config.get("diet", {}).get("confidence_threshold", 0.7)
+        self.threshold: float = config.get("llm", {}).get(
+            "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
+        )
         self._llm = LLMClient(config.get("llm", {}))
 
     def extract(self, description: str) -> dict:

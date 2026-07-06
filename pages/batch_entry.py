@@ -5,7 +5,14 @@ import streamlit as st
 
 from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
-from core.constants import PENDING_CATEGORY
+from core.constants import (
+    BATCH_RECORD_TYPES,
+    DEFAULT_MEAL_TYPES,
+    PENDING_CATEGORY,
+    TRANSACTION_TYPES,
+    TYPE_EXPENSE,
+    TYPE_MEAL,
+)
 from core.diet.db import add_meal
 from core.expense.db import add_transaction
 from core.text import display_text, optional_text
@@ -20,7 +27,7 @@ def get_batch_extractor(version: int):
 
 def _all_categories(config: dict) -> list[str]:
     values = []
-    for section in ("支出", "收入", "迁移"):
+    for section in TRANSACTION_TYPES:
         values.extend(config.get(section, {}).keys())
     values.append(PENDING_CATEGORY)
     return [""] + sorted(set(values))
@@ -32,7 +39,7 @@ def _validate_category_pair(
     category: str,
     subcategory: str,
 ) -> str | None:
-    if record_type == "支出" and category == PENDING_CATEGORY:
+    if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
         return (
             None
             if subcategory in {"", PENDING_CATEGORY}
@@ -107,7 +114,7 @@ def _records_to_df(records: list[dict]) -> pd.DataFrame:
 
 def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
     record_type = display_text(row.get("record_type")).strip()
-    if record_type not in {"支出", "收入", "迁移", "饮食"}:
+    if record_type not in BATCH_RECORD_TYPES:
         return f"第 {idx + 1} 行类型无效"
     row_date = display_text(row.get("date")).strip()
     if not row_date:
@@ -119,7 +126,7 @@ def _validate_row(row: pd.Series, idx: int, config: dict) -> str | None:
     if not display_text(row.get("description")).strip():
         return f"第 {idx + 1} 行缺少描述"
 
-    if record_type == "饮食":
+    if record_type == TYPE_MEAL:
         if not display_text(row.get("meal_type")).strip():
             return f"第 {idx + 1} 行缺少餐顿类型"
         if not _food_text_to_list(row.get("foods")):
@@ -154,7 +161,7 @@ def _save_rows(df: pd.DataFrame, config: dict) -> tuple[int, list[str]]:
 
         record_type = display_text(row["record_type"]).strip()
         try:
-            if record_type == "饮食":
+            if record_type == TYPE_MEAL:
                 add_meal(
                     date=display_text(row["date"]).strip(),
                     time=optional_text(row.get("time")),
@@ -167,7 +174,7 @@ def _save_rows(df: pd.DataFrame, config: dict) -> tuple[int, list[str]]:
             else:
                 category = optional_text(row.get("category"))
                 subcategory = optional_text(row.get("subcategory"))
-                if record_type == "支出" and category == PENDING_CATEGORY:
+                if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
                     subcategory = PENDING_CATEGORY
                 add_transaction(
                     record_type,
@@ -215,7 +222,7 @@ if st.session_state.batch_flash:
 
 config = load_config()
 meal_types = config.get("diet", {}).get(
-    "meal_types", ["早餐", "午餐", "晚餐", "零食", "其他"]
+    "meal_types", list(DEFAULT_MEAL_TYPES)
 )
 
 with st.form("batch_parse_form"):
@@ -293,7 +300,7 @@ edited_df = st.data_editor(
     column_config={
         "include": st.column_config.CheckboxColumn("保存"),
         "record_type": st.column_config.SelectboxColumn(
-            "类型", options=["支出", "收入", "迁移", "饮食"], required=True
+            "类型", options=list(BATCH_RECORD_TYPES), required=True
         ),
         "date": st.column_config.TextColumn("日期", required=True),
         "time": st.column_config.TextColumn("时间"),

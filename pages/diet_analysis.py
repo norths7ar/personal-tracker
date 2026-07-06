@@ -3,11 +3,12 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import date, timedelta
 
+from core.constants import DEFAULT_MEAL_TYPES
 from core.diet.db import get_diet_stats
 
 st.title("📊 饮食分析")
 
-MAIN_MEAL_TYPES = ["早餐", "午餐", "晚餐"]
+MAIN_MEAL_TYPES = list(DEFAULT_MEAL_TYPES[:3])
 
 
 # ── 工具函数 ────────────────────────────────────────────────────────────────

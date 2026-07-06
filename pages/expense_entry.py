@@ -4,6 +4,12 @@ from datetime import date
 import pandas as pd
 
 from core.config import config_version, load_config
+from core.constants import (
+    TRANSACTION_TYPES,
+    TYPE_EXPENSE,
+    TYPE_INCOME,
+    TYPE_TRANSFER,
+)
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
 
@@ -56,7 +62,9 @@ with st.sidebar:
             ]
             df_today["amount"] = df_today["amount"].apply(lambda x: f"¥{x:.2f}")
             st.dataframe(df_today, hide_index=True, width="stretch")
-            expense_total = sum(r["amount"] for r in today_rows if r["type"] == "支出")
+            expense_total = sum(
+                r["amount"] for r in today_rows if r["type"] == TYPE_EXPENSE
+            )
             if expense_total:
                 st.caption(f"今日支出合计：¥{expense_total:.2f}")
         else:
@@ -125,7 +133,7 @@ if st.session_state.expense_pending:
     # 收入：从 config 选择分类
     if result is None:
         st.subheader("填写收入分类")
-        income_cats = load_config().get("收入", {})
+        income_cats = load_config().get(TYPE_INCOME, {})
         col1, col2 = st.columns(2)
         with col1:
             category = st.selectbox("主类别", list(income_cats.keys()) or ["其他"])
@@ -144,7 +152,7 @@ if st.session_state.expense_pending:
 
     # 支出需确认：低置信度 / LLM返回未知类别 / 出错，统一用 selectbox 预选
     elif result["status"] in ("low_confidence", "new_category", "error"):
-        cats = load_config().get("支出", {})
+        cats = load_config().get(TYPE_EXPENSE, {})
         cat_keys = list(cats.keys())
 
         if result["status"] == "low_confidence":
@@ -191,7 +199,7 @@ if st.session_state.expense_pending:
 
 # ── 输入表单 ────────────────────────────────────────────────────────────────
 with st.form("entry_form", clear_on_submit=True):
-    entry_type = st.radio("类型", ["支出", "收入", "迁移"], horizontal=True)
+    entry_type = st.radio("类型", list(TRANSACTION_TYPES), horizontal=True)
     description = st.text_input("描述", placeholder="例：中午麦当劳")
     col1, col2 = st.columns(2)
     with col1:
@@ -219,7 +227,7 @@ if submitted:
         "notes": notes.strip() or None,
     }
 
-    if entry_type == "迁移":
+    if entry_type == TYPE_TRANSFER:
         record_id = add_transaction(
             entry_type,
             description.strip(),
@@ -230,7 +238,7 @@ if submitted:
         st.session_state.expense_flash = f"迁移记录已保存（ID {record_id}）"
         st.rerun()
 
-    elif entry_type == "收入":
+    elif entry_type == TYPE_INCOME:
         st.session_state.expense_pending = {"form": form_data, "result": None}
         st.rerun()
 
