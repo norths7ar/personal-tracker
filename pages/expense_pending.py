@@ -8,7 +8,6 @@ from core.constants import PENDING_CATEGORY, TYPE_EXPENSE
 from core.expense.db import (
     get_pending_transactions,
     update_transaction,
-    void_transaction,
 )
 from core.text import display_text, optional_text
 
@@ -77,7 +76,9 @@ amount = st.number_input(
     value=float(record.get("amount") or 0),
     format="%.2f",
 )
-entry_date = st.date_input("日期", value=date.fromisoformat(display_text(record.get("date"))))
+entry_date = st.date_input(
+    "日期", value=date.fromisoformat(display_text(record.get("date")))
+)
 
 cat_options = list(expense_categories.keys()) + [PENDING_CATEGORY]
 cur_cat = display_text(record.get("category")) or PENDING_CATEGORY
@@ -125,8 +126,4 @@ with c2:
             subcategory=PENDING_CATEGORY,
             notes=optional_text(notes),
         )
-        st.rerun()
-with c3:
-    if st.button("撤销记录", width="stretch"):
-        void_transaction(record_id, "待处理页撤销")
         st.rerun()

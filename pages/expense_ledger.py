@@ -85,7 +85,6 @@ with row2_c1:
 rows = get_transactions(
     type_=None if type_filter == "全部" else type_filter,
     limit=500,
-    include_voided=False,
 )
 
 if category_filter != "全部":
@@ -133,7 +132,7 @@ display_cols = [
     "subcategory",
     "amortization_months",
 ]
-display_df = df[display_cols].copy()
+display_df = df[[c for c in display_cols if c in df.columns]].copy()
 display_df["amount"] = display_df["amount"].apply(lambda x: f"¥{x:.2f}")
 for text_col in ("category", "subcategory"):
     display_df[text_col] = display_df[text_col].apply(display_text)
@@ -197,7 +196,6 @@ action = st.session_state.get("ledger_action")
 
 # ── 编辑表单 ─────────────────────────────────────────────────────────────────
 if action == "edit":
-    config = load_config()
     entry_type = st.selectbox(
         "类型", list(TRANSACTION_TYPES),
         index=list(TRANSACTION_TYPES).index(record_type),

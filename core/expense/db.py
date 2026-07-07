@@ -9,11 +9,7 @@ from core.constants import (
     TYPE_INCOME,
     TYPE_TRANSFER,
 )
-from core.db import _connect, inserted_id, is_postgres, returning_id_clause
-
-
-def _to_cents(amount) -> int:
-    return int(round(float(amount) * 100))
+from core.db import _connect, inserted_id, is_postgres, returning_id_clause, to_cents
 
 
 def _amount_expr() -> str:
@@ -40,7 +36,7 @@ def add_transaction(
     amortization_months: int | None = None,
     amortization_start: str | None = None,
 ) -> int:
-    amount_cents = _to_cents(amount)
+    amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO transactions
@@ -73,8 +69,6 @@ def get_transactions(
     end_date: str | None = None,
     type_: str | None = None,
     limit: int = 500,
-    include_voided: bool = False,  # kept for call-site compat, ignored
-    status: str | None = None,     # kept for call-site compat, ignored
 ) -> list[dict]:
     query = "SELECT * FROM transactions WHERE 1=1"
     params = []
@@ -154,7 +148,7 @@ def update_transaction(id_: int, **fields) -> None:
     if not updates:
         return
     if "amount" in updates:
-        amount_cents = _to_cents(updates["amount"])
+        amount_cents = to_cents(updates["amount"])
         updates["amount"] = amount_cents / 100
         updates["amount_cents"] = amount_cents
     set_clause = ", ".join(f"{k} = ?" for k in updates)
@@ -180,8 +174,6 @@ def get_pending_transactions(limit: int = 200) -> list[dict]:
                     OR subcategory = '{PENDING_CATEGORY}'
                     OR category IS NULL
                     OR category = ''
-                    OR subcategory IS NULL
-                    OR subcategory = ''
                     OR COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
                  )
                ORDER BY date DESC, created_at DESC

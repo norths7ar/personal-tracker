@@ -107,6 +107,10 @@ def returning_id_clause() -> str:
     return " RETURNING id" if is_postgres() else ""
 
 
+def to_cents(amount) -> int:
+    return int(round(float(amount) * 100))
+
+
 def inserted_id(cursor) -> int:
     if is_postgres():
         row = cursor.fetchone()

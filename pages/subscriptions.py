@@ -17,7 +17,7 @@ from core.constants import (
     SUBSCRIPTION_STATUSES,
     TYPE_EXPENSE,
 )
-from core.expense.db import add_transaction
+from core.expense.db import add_transaction, update_transaction
 from core.subscription.db import (
     add_subscription,
     delete_subscription,
@@ -191,16 +191,22 @@ with st.expander("新增跨期费用", expanded=not all_active):
                         amortization_months=int(total_months),
                         amortization_start=amort_start,
                     )
-                    add_subscription(
-                        name=name.strip(), vendor=optional_text(vendor), amount=amount,
-                        billing_cycle=SUBSCRIPTION_CYCLE_ONE_TIME,
-                        billing_interval_months=int(total_months),
-                        start_date=amort_start,
-                        category=category, subcategory=optional_text(subcategory),
-                        auto_renew=False, notes=optional_text(notes),
-                        payment_type=RECURRING_PAYMENT_PREPAID,
-                        transaction_id=tx_id,
-                    )
+                    try:
+                        add_subscription(
+                            name=name.strip(), vendor=optional_text(vendor), amount=amount,
+                            billing_cycle=SUBSCRIPTION_CYCLE_ONE_TIME,
+                            billing_interval_months=int(total_months),
+                            start_date=amort_start,
+                            category=category, subcategory=optional_text(subcategory),
+                            auto_renew=False, notes=optional_text(notes),
+                            payment_type=RECURRING_PAYMENT_PREPAID,
+                            transaction_id=tx_id,
+                        )
+                    except Exception as e:
+                        from core.expense.db import delete_transaction
+                        delete_transaction(tx_id)
+                        st.error(f"保存失败，已回滚流水记录：{e}")
+                        st.stop()
                     st.success(f"预付项目已保存，同时已在账目中录入 ¥{amount:.2f} 支出（ID {tx_id}）。")
                     st.rerun()
 
@@ -398,6 +404,16 @@ else:  # prepaid — 编辑摊销信息（不能改已有流水，只改归类/�
             category=category, subcategory=optional_text(subcategory),
             notes=optional_text(notes),
         )
+        tx_id = record.get("transaction_id")
+        if tx_id:
+            update_transaction(
+                int(tx_id),
+                amortization_months=int(total_months),
+                amortization_start=amort_start,
+                category=category,
+                subcategory=optional_text(subcategory),
+                notes=optional_text(notes),
+            )
         st.success("已保存。")
         st.rerun()
 

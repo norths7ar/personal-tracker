@@ -1,3 +1,4 @@
+import logging
 from contextlib import closing
 
 from core.constants import (
@@ -10,11 +11,7 @@ from core.constants import (
     SUBSCRIPTION_CYCLE_YEARLY,
     SUBSCRIPTION_STATUS_ACTIVE,
 )
-from core.db import _connect, inserted_id, returning_id_clause
-
-
-def _to_cents(amount) -> int:
-    return int(round(float(amount) * 100))
+from core.db import _connect, inserted_id, returning_id_clause, to_cents
 
 
 def _normalize_subscription(row) -> dict:
@@ -47,7 +44,8 @@ def monthly_equivalent(item: dict) -> float:
         return amount / max(1, months)
     if cycle == SUBSCRIPTION_CYCLE_ONE_TIME:
         return 0.0
-    return amount
+    logging.getLogger(__name__).warning("monthly_equivalent: unknown billing_cycle %r, defaulting to 0", cycle)
+    return 0.0
 
 
 def add_subscription(
@@ -68,7 +66,7 @@ def add_subscription(
     payment_type: str = RECURRING_PAYMENT_SUBSCRIPTION,
     transaction_id: int | None = None,
 ) -> int:
-    amount_cents = _to_cents(amount)
+    amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO subscriptions
@@ -148,7 +146,7 @@ def update_subscription(id_: int, **fields) -> None:
     if not updates:
         return
     if "amount" in updates:
-        amount_cents = _to_cents(updates["amount"])
+        amount_cents = to_cents(updates["amount"])
         updates["amount"] = amount_cents / 100
         updates["amount_cents"] = amount_cents
     if "auto_renew" in updates:

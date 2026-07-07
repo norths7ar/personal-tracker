@@ -358,7 +358,11 @@ def render_batch_tab():
                 if db_errors:
                     st.error("；".join(db_errors))
                     if saved:
-                        st.warning(f"已部分写入 {saved} 条，失败行请修改后重试")
+                        st.session_state.batch_records = None
+                        st.session_state.batch_diagnostics = None
+                        st.session_state.batch_source_text = ""
+                        st.warning(f"已写入 {saved} 条，失败行已丢弃，请重新录入失败记录")
+                        st.rerun()
                 elif saved:
                     st.session_state.batch_records = None
                     st.session_state.batch_diagnostics = None

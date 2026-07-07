@@ -1,4 +1,7 @@
+import logging
 from datetime import date
+
+logger = logging.getLogger(__name__)
 
 from core.constants import (
     DEFAULT_CATEGORY,
@@ -41,6 +44,7 @@ class BatchExtractor:
             raw = self._llm.invoke(self._build_event_prompt(default_date), text)
             events, rejected_events = self._normalize_events(raw, default_date)
         except Exception as e:
+            logger.exception("BatchExtractor.extract failed")
             return {"status": "error", "records": [], "reasoning": str(e)}
 
         records, rejected_records = self._events_to_records(events)
