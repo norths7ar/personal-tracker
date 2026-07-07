@@ -5,8 +5,6 @@ from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     PENDING_CATEGORY,
     REFUND_CATEGORY,
-    STATUS_ACTIVE,
-    STATUS_VOIDED,
     TYPE_EXPENSE,
     TYPE_INCOME,
     TYPE_TRANSFER,
@@ -47,8 +45,8 @@ def add_transaction(
         cur = conn.execute(
             """INSERT INTO transactions
                (type, description, amount, amount_cents, date, category, subcategory, notes, confidence,
-                status, refund_for_id, amortization_months, amortization_start)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                refund_for_id, amortization_months, amortization_start)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (
                 type_,
@@ -60,7 +58,6 @@ def add_transaction(
                 subcategory,
                 notes,
                 confidence,
-                STATUS_ACTIVE,
                 refund_for_id,
                 amortization_months,
                 amortization_start,
@@ -76,16 +73,11 @@ def get_transactions(
     end_date: str | None = None,
     type_: str | None = None,
     limit: int = 500,
-    include_voided: bool = False,
-    status: str | None = None,
+    include_voided: bool = False,  # kept for call-site compat, ignored
+    status: str | None = None,     # kept for call-site compat, ignored
 ) -> list[dict]:
     query = "SELECT * FROM transactions WHERE 1=1"
     params = []
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-    elif not include_voided:
-        query += f" AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'"
     if start_date:
         query += " AND date >= ?"
         params.append(start_date)
@@ -113,7 +105,6 @@ def get_monthly_summary(year: int, month: int) -> dict:
             f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date < ? AND type = ?
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                GROUP BY category, subcategory
                ORDER BY total DESC""",
             (start, end, type_),
@@ -124,7 +115,6 @@ def get_monthly_summary(year: int, month: int) -> dict:
             f"""SELECT type, SUM({_amount_expr()}) as total
                FROM transactions
                WHERE date >= ? AND date < ? AND type IN ('{TYPE_INCOME}', '{TYPE_EXPENSE}')
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                GROUP BY type""",
             (start, end),
         ).fetchall()
@@ -156,8 +146,6 @@ def update_transaction(id_: int, **fields) -> None:
         "subcategory",
         "notes",
         "confidence",
-        "status",
-        "void_reason",
         "refund_for_id",
         "amortization_months",
         "amortization_start",
@@ -184,18 +172,9 @@ def delete_transaction(id_: int) -> None:
         conn.commit()
 
 
-def void_transaction(id_: int, reason: str | None = None) -> None:
-    update_transaction(id_, status=STATUS_VOIDED, void_reason=reason)
-
-
-def restore_transaction(id_: int) -> None:
-    update_transaction(id_, status=STATUS_ACTIVE, void_reason=None)
-
-
 def get_pending_transactions(limit: int = 200) -> list[dict]:
     query = f"""SELECT * FROM transactions
-               WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
-                 AND type = '{TYPE_EXPENSE}'
+               WHERE type = '{TYPE_EXPENSE}'
                  AND (
                     category = '{PENDING_CATEGORY}'
                     OR subcategory = '{PENDING_CATEGORY}'
@@ -215,9 +194,8 @@ def get_pending_transactions(limit: int = 200) -> list[dict]:
 def get_refunds_for(transaction_id: int) -> list[dict]:
     with closing(_connect()) as conn:
         rows = conn.execute(
-            f"""SELECT * FROM transactions
+            """SELECT * FROM transactions
                WHERE refund_for_id = ?
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                ORDER BY date DESC, created_at DESC""",
             (transaction_id,),
         ).fetchall()
@@ -250,8 +228,7 @@ def _amortization_allocation_dates() -> list[str]:
         rows = conn.execute(
             f"""SELECT date, amortization_start, amortization_months
                FROM transactions
-               WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
-                 AND type = '{TYPE_EXPENSE}'
+               WHERE type = '{TYPE_EXPENSE}'
                  AND COALESCE(amortization_months, 1) > 1"""
         ).fetchall()
 
@@ -273,14 +250,11 @@ def _week_start(value: str) -> str:
 
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
-    """通用期间查询，返回 income/expense/balance/daily/expense_breakdown/income_breakdown。"""
-
     def bd(conn, type_):
         return conn.execute(
             f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date <= ? AND type = ?
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                GROUP BY category, subcategory ORDER BY total DESC""",
             (start_date, end_date, type_),
         ).fetchall()
@@ -289,7 +263,6 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
         totals_rows = conn.execute(
             f"""SELECT type, category, SUM({_amount_expr()}) as total FROM transactions
                WHERE date >= ? AND date <= ? AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                GROUP BY type, category""",
             (start_date, end_date),
         ).fetchall()
@@ -297,7 +270,6 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
         daily_rows = conn.execute(
             f"""SELECT date, type, category, SUM({_amount_expr()}) as total FROM transactions
                WHERE date >= ? AND date <= ? AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
-                 AND COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                GROUP BY date, type, category ORDER BY date""",
             (start_date, end_date),
         ).fetchall()
@@ -348,8 +320,7 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
     with closing(_connect()) as conn:
         rows = conn.execute(
             f"""SELECT * FROM transactions
-               WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
-                 AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
+               WHERE type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
                ORDER BY date""",
         ).fetchall()
 
@@ -414,18 +385,15 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
 
 
 def get_active_weeks() -> list:
-    """返回有记录的自然周起始日（周一）列表。"""
     if is_postgres():
-        sql = f"""SELECT DISTINCT
+        sql = """SELECT DISTINCT
                     ((date::date - ((EXTRACT(ISODOW FROM date::date)::int - 1) * INTERVAL '1 day'))::date)::text
                     as week_start
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY week_start DESC"""
     else:
-        sql = f"""SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
+        sql = """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY week_start DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
@@ -436,14 +404,12 @@ def get_active_weeks() -> list:
 
 def get_active_years() -> list:
     if is_postgres():
-        sql = f"""SELECT DISTINCT to_char(date::date, 'YYYY') as year
+        sql = """SELECT DISTINCT to_char(date::date, 'YYYY') as year
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY year DESC"""
     else:
-        sql = f"""SELECT DISTINCT strftime('%Y', date) as year
+        sql = """SELECT DISTINCT strftime('%Y', date) as year
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY year DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
@@ -454,14 +420,12 @@ def get_active_years() -> list:
 
 def get_active_months() -> list:
     if is_postgres():
-        sql = f"""SELECT DISTINCT to_char(date::date, 'YYYY-MM') as month
+        sql = """SELECT DISTINCT to_char(date::date, 'YYYY-MM') as month
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY month DESC"""
     else:
-        sql = f"""SELECT DISTINCT strftime('%Y-%m', date) as month
+        sql = """SELECT DISTINCT strftime('%Y-%m', date) as month
                  FROM transactions
-                 WHERE COALESCE(status, '{STATUS_ACTIVE}') = '{STATUS_ACTIVE}'
                  ORDER BY month DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
