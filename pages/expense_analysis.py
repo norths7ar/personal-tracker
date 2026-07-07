@@ -5,7 +5,6 @@ from datetime import date, timedelta
 
 from core.expense.db import (
     get_period_data,
-    get_active_weeks,
     get_active_months,
     get_active_years,
 )
@@ -116,86 +115,7 @@ def aggregate_breakdown(breakdown: list, level: str) -> list:
 
 
 # ── 页面主体 ────────────────────────────────────────────────────────────────
-tab_week, tab_month, tab_year = st.tabs(["周", "月", "年"])
-
-
-# ════════════════════════════════════════════════════════════════════════════
-# 周视图
-# ════════════════════════════════════════════════════════════════════════════
-with tab_week:
-    weeks = get_active_weeks()  # 每周的周一日期字符串
-    if not weeks:
-        st.info("暂无数据")
-    else:
-        # 格式化标签：W14（03/30–04/05）
-        def week_label(mon: str) -> str:
-            d = date.fromisoformat(mon)
-            sun = d + timedelta(days=6)
-            wn = d.isocalendar()[1]
-            return (
-                f"W{wn:02d}（{d.month:02d}/{d.day:02d}–{sun.month:02d}/{sun.day:02d}）"
-            )
-
-        options = {week_label(w): w for w in weeks}
-        # 默认选当前自然周
-        today = date.today()
-        cur_mon = (today - timedelta(days=today.weekday())).isoformat()
-        default_label = next(
-            (lbl for lbl, w in options.items() if w == cur_mon), list(options.keys())[0]
-        )
-        selected_label = st.selectbox(
-            "选择周",
-            list(options.keys()),
-            index=list(options.keys()).index(default_label),
-            key="week_sel",
-        )
-        mon = options[selected_label]
-        start = mon
-        end = (date.fromisoformat(mon) + timedelta(days=6)).isoformat()
-        all_dates = [
-            (date.fromisoformat(mon) + timedelta(days=i)).isoformat() for i in range(7)
-        ]
-
-        cur = get_period_data(start, end, basis=basis_key)
-        # 上一周
-        prev_mon = (date.fromisoformat(mon) - timedelta(weeks=1)).isoformat()
-        prev_end = (date.fromisoformat(mon) - timedelta(days=1)).isoformat()
-        prev = get_period_data(prev_mon, prev_end, basis=basis_key)
-
-        metrics_row(cur, prev, n_days=7)
-        st.caption("本周每日收支")
-        daily_bar(cur["daily"], all_dates)
-
-        # 最近 8 周对比
-        st.caption("最近 8 周对比")
-        recent_weeks = weeks[:8][::-1]
-        period_bars = []
-        for w in recent_weeks:
-            w_end = (date.fromisoformat(w) + timedelta(days=6)).isoformat()
-            d = get_period_data(w, w_end, basis=basis_key)
-            period_bars.append(
-                {"label": week_label(w), "income": d["income"], "expense": d["expense"]}
-            )
-        period_compare_bar(period_bars)
-
-        breakdown_level = st.radio(
-            "明细聚合",
-            ["一级分类", "二级分类"],
-            horizontal=True,
-            key="week_breakdown_level",
-        )
-        st.subheader("支出明细")
-        breakdown_table(
-            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
-            "支出",
-            breakdown_level,
-        )
-        st.subheader("收入明细")
-        breakdown_table(
-            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
-            "收入",
-            breakdown_level,
-        )
+tab_month, tab_year = st.tabs(["月", "年"])
 
 
 # ════════════════════════════════════════════════════════════════════════════
