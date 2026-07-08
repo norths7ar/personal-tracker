@@ -164,3 +164,16 @@ def delete_subscription(id_: int) -> None:
     with closing(_connect()) as conn:
         conn.execute("DELETE FROM subscriptions WHERE id = ?", (id_,))
         conn.commit()
+
+
+def delete_prepaid_subscription(id_: int, transaction_id: int) -> None:
+    with closing(_connect()) as conn:
+        conn.execute(
+            """UPDATE transactions
+               SET amortization_months = NULL,
+                   amortization_start = NULL
+               WHERE id = ?""",
+            (transaction_id,),
+        )
+        conn.execute("DELETE FROM subscriptions WHERE id = ?", (id_,))
+        conn.commit()
