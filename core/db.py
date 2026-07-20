@@ -3,7 +3,7 @@ from contextlib import closing
 from pathlib import Path
 from urllib.parse import quote
 
-from core.constants import TRANSACTION_TYPE_SQL_LIST
+from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME, TRANSACTION_TYPE_SQL_LIST
 from core.secrets import get_secret
 
 DB_PATH = Path(__file__).parent.parent / "data" / "expenses.db"
@@ -343,11 +343,12 @@ def _migrate_amortized_to_subscriptions(conn):
                (name, amount, amount_cents, billing_cycle, billing_interval_months,
                 start_date, category, subcategory, payment_type, transaction_id,
                 auto_renew, status)
-               VALUES (?, ?, ?, 'one_time', ?, ?, ?, ?, 'prepaid', ?, 0, 'active')""",
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'prepaid', ?, 0, 'active')""",
             (
                 item["description"],
                 amount,
                 amount_cents,
+                SUBSCRIPTION_CYCLE_ONE_TIME,
                 months,
                 start,
                 item.get("category"),

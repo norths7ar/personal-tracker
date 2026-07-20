@@ -1,18 +1,34 @@
 # personal-tracker
 
-个人记录工具，基于 Streamlit、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。
+个人记录工具，基于 Streamlit、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录，并支持跨设备部署到 Streamlit Cloud + Supabase PostgreSQL。
 
 ## 功能
 
-- **开销记录**：记录支出、收入、迁移三类账目
+- **记录**：统一入口，包含批量录入、单笔开销录入和单餐饮食录入
+  - 批量录入会先把自然语言拆成语义事件，再分别进入开销/饮食 pipeline
+  - 支持确认、编辑、跳过候选记录后批量保存
+- **待处理**：集中处理待分类、低置信度或未知分类的支出
+- **账目**：查询、筛选、编辑、删除和导出交易流水
+  - 支持记录关联退款
+  - 支持为支出设置摊销月数和摊销开始月份
+- **开销分析**：按月 / 年查看收支、日均、与上期对比和分类明细
+  - 支持现金流和摊销后两种统计口径
+  - 明细支持一级/二级分类聚合切换
+- **跨期费用**：统一管理订阅和预付摊销
+  - 订阅用于记录自动续费、下次续费、支付方式和折合月成本
+  - 预付用于记录一次付清、按月摊销的费用，并关联账目流水
+- **饮食**：查看、编辑、删除、导出饮食记录，并按月查看覆盖率、餐顿分布和高频食物
+
+开销记录支持：
+
   - 支出描述自动调用 LLM 分类；低置信度或未知类别时进入手动确认
   - 收入和迁移从 `config.yaml` 选择分类
   - 迁移记录保存到流水，但不参与收支结余计算
-- **批量记录**：先把自然语言拆成语义事件，再复用开销/饮食 pipeline 生成多条候选记录，确认后批量保存
-- **开销流水**：支持按类型、主类别、子类别筛选，支持搜索描述、分类和备注，可导出 CSV、编辑和二次确认删除
-- **开销分析**：按周 / 月 / 年查看收支、日均、与上期对比和分类明细；明细支持一级/二级分类聚合切换
-- **饮食记录**：用自然语言记录一餐，LLM 提取餐顿类型和食物清单，低置信度时可手动确认
-- **饮食查看与分析**：查看、编辑、删除、导出饮食记录，并按周/月查看覆盖率、餐顿分布和高频食物
+
+饮食记录支持：
+
+- 用自然语言记录一餐，LLM 提取餐顿类型和食物清单
+- 低置信度时可手动确认
 
 ## 项目结构
 
@@ -26,6 +42,8 @@ personal-tracker/
 │   ├── config.py           # 配置加载
 │   ├── db.py               # SQLite/PostgreSQL 连接和表初始化
 │   ├── llm.py              # OpenAI-compatible LLM 调用封装
+│   ├── subscription/
+│   │   └── db.py           # 跨期费用（订阅/预付摊销）查询与维护
 │   ├── batch/
 │   │   └── extractor.py    # 批量自然语言记录解析
 │   ├── expense/
@@ -36,12 +54,13 @@ personal-tracker/
 │       └── db.py           # 饮食记录查询与统计
 ├── pages/
 │   ├── batch_entry.py
-│   ├── expense_entry.py
+│   ├── expense_pending.py
 │   ├── expense_ledger.py
 │   ├── expense_analysis.py
-│   ├── diet_entry.py
-│   ├── diet_ledger.py
-│   └── diet_analysis.py
+│   ├── subscriptions.py
+│   └── diet_ledger.py
+├── tests/
+│   └── test_db_workflows.py
 └── data/
     └── expenses.db         # 本地 SQLite 数据库，不进版本控制
 ```
@@ -101,9 +120,8 @@ LLM_API_KEY=your_llm_api_key
 - `支出`：支出主类别和子类别，供 LLM 分类和手动确认使用
 - `收入`：收入分类
 - `迁移`：还款、投资、提现、充值等不参与收支结余的流水分类
-- `llm`：公开的 LLM 参数，包括 `base_url`、`model`、`temperature`、`max_tokens` 和 `timeout`
-- `classifier`：开销分类置信度阈值
-- `diet`：餐顿类型和饮食抽取置信度阈值
+- `llm`：公开的 LLM 参数，包括 `base_url`、`model`、`temperature`、`max_tokens`、`timeout` 和统一置信度阈值
+- `diet`：餐顿类型
 
 `.env` 或 Streamlit secrets 包含：
 
@@ -126,3 +144,18 @@ LLM_API_KEY=your_llm_api_key
 - 数据库：SQLite（本地默认）/ PostgreSQL（云端部署）
 - 数据处理：Pandas
 - 可视化：Plotly
+
+## 测试
+
+当前测试使用标准库 `unittest`，不需要额外安装 pytest：
+
+```powershell
+C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m unittest discover -s tests -v
+```
+
+测试覆盖重点：
+
+- SQLite 初始化和兼容迁移
+- 旧摊销交易自动迁移为预付跨期费用
+- 删除预付跨期费用时同步清空关联交易的摊销字段
+- 金额写入和更新时同步维护 `amount_cents`
