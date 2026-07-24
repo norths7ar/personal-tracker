@@ -84,7 +84,9 @@ def postgres_columns(connection, table_name: str) -> list[str]:
     return [row["column_name"] for row in rows]
 
 
-def copy_table(remote_connection, local_connection: sqlite3.Connection, table_name: str) -> int:
+def copy_table(
+    remote_connection, local_connection: sqlite3.Connection, table_name: str
+) -> int:
     local_columns = sqlite_columns(local_connection, table_name)
     remote_columns = postgres_columns(remote_connection, table_name)
     if not remote_columns:
@@ -117,7 +119,9 @@ def verify_snapshot(path: Path, expected_counts: dict[str, int]) -> None:
         foreign_key_errors = connection.execute("PRAGMA foreign_key_check").fetchall()
 
     if counts != expected_counts:
-        raise RuntimeError(f"Snapshot row-count mismatch: expected {expected_counts}, got {counts}")
+        raise RuntimeError(
+            f"Snapshot row-count mismatch: expected {expected_counts}, got {counts}"
+        )
     if foreign_key_errors:
         raise RuntimeError("Snapshot foreign-key validation failed")
 
@@ -136,7 +140,9 @@ def refresh_local_database(snapshot: Path) -> Path:
     if local_database.exists():
         DEFAULT_LOCAL_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        local_archive = DEFAULT_LOCAL_BACKUP_DIR / f"before-cloud-refresh-{timestamp}.db"
+        local_archive = (
+            DEFAULT_LOCAL_BACKUP_DIR / f"before-cloud-refresh-{timestamp}.db"
+        )
         shutil.copy2(local_database, local_archive)
 
     local_database.parent.mkdir(parents=True, exist_ok=True)
@@ -146,7 +152,9 @@ def refresh_local_database(snapshot: Path) -> Path:
     return local_database
 
 
-def create_backup(output_dir: Path, keep: int, refresh_local: bool) -> tuple[Path, dict[str, int]]:
+def create_backup(
+    output_dir: Path, keep: int, refresh_local: bool
+) -> tuple[Path, dict[str, int]]:
     if keep < 1:
         raise ValueError("--keep must be at least 1")
 
@@ -179,9 +187,7 @@ def main() -> None:
     args = parse_args()
     snapshot, counts = create_backup(args.output_dir, args.keep, args.refresh_local)
     print(f"Created cloud backup: {snapshot}")
-    print(
-        "Rows: " + ", ".join(f"{table}={count}" for table, count in counts.items())
-    )
+    print("Rows: " + ", ".join(f"{table}={count}" for table, count in counts.items()))
     if args.refresh_local:
         print(f"Refreshed local database: {core_db.DB_PATH}")
 

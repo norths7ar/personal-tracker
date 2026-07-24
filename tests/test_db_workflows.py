@@ -2,8 +2,8 @@ import sqlite3
 import unittest
 from unittest.mock import patch
 
-import core.db as core_db
 import core.budget.db as budget_db
+import core.db as core_db
 import core.expense.db as expense_db
 import core.planned_expense.db as planned_expense_db
 import core.subscription.db as subscription_db
@@ -88,9 +88,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
 
         core_db.init_db()
 
-        rows = subscription_db.get_subscriptions(
-            payment_type=RECURRING_PAYMENT_PREPAID
-        )
+        rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["transaction_id"], tx_id)
         self.assertEqual(rows[0]["billing_cycle"], SUBSCRIPTION_CYCLE_ONE_TIME)
@@ -98,9 +96,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(rows[0]["monthly_equivalent"], 10)
 
         core_db.init_db()
-        rows = subscription_db.get_subscriptions(
-            payment_type=RECURRING_PAYMENT_PREPAID
-        )
+        rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
         self.assertEqual(len(rows), 1)
 
     def test_deleting_prepaid_subscription_clears_linked_amortization(self):
@@ -143,12 +139,12 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(remaining, 0)
 
         core_db.init_db()
-        rows = subscription_db.get_subscriptions(
-            payment_type=RECURRING_PAYMENT_PREPAID
-        )
+        rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
         self.assertEqual(rows, [])
 
-    def test_pending_transactions_include_pending_category_but_not_normal_null_subcategory(self):
+    def test_pending_transactions_include_pending_category_but_not_normal_null_subcategory(
+        self,
+    ):
         pending_id = expense_db.add_transaction(
             TYPE_EXPENSE,
             "unknown expense",
@@ -196,9 +192,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertIsNone(july["cash_total"])
         self.assertEqual(august["amortized_total"], 9000)
 
-        budget_db.save_month_budget(
-            "2026-07", amortized_total=None, cash_total=None
-        )
+        budget_db.save_month_budget("2026-07", amortized_total=None, cash_total=None)
         self.assertEqual(
             budget_db.get_month_budget("2026-07"),
             {"amortized_total": None, "cash_total": None},
@@ -234,10 +228,13 @@ class DatabaseWorkflowTest(unittest.TestCase):
             columns,
             {"month", "amortized_budget_cents", "cash_budget_cents"},
         )
-        self.assertEqual(budget_db.get_month_budget("2026-07"), {
-            "amortized_total": 8000,
-            "cash_total": 10000,
-        })
+        self.assertEqual(
+            budget_db.get_month_budget("2026-07"),
+            {
+                "amortized_total": 8000,
+                "cash_total": 10000,
+            },
+        )
 
     def test_budget_can_compare_cash_and_amortized_costs(self):
         expense_db.add_transaction(
@@ -325,7 +322,11 @@ class DatabaseWorkflowTest(unittest.TestCase):
 
         self.assertEqual(
             subscription_db.next_renewal_date(
-                dict(self.raw.execute("SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)).fetchone()),
+                dict(
+                    self.raw.execute(
+                        "SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)
+                    ).fetchone()
+                ),
                 "2026-02-28",
             ),
             "2026-03-31",
@@ -352,7 +353,8 @@ class DatabaseWorkflowTest(unittest.TestCase):
             None,
         )
         next_date = self.raw.execute(
-            "SELECT next_renewal_date FROM subscriptions WHERE id = ?", (subscription_id,)
+            "SELECT next_renewal_date FROM subscriptions WHERE id = ?",
+            (subscription_id,),
         ).fetchone()["next_renewal_date"]
         self.assertEqual(next_date, "2026-03-02")
 
@@ -415,7 +417,11 @@ class DatabaseWorkflowTest(unittest.TestCase):
             renewal_anchor_day=15,
         )
         plan_id = planned_expense_db.add_planned_expense(
-            "video service", 30, "2026-07-15", "通讯", "平台会员",
+            "video service",
+            30,
+            "2026-07-15",
+            "通讯",
+            "平台会员",
             subscription_id=subscription_id,
         )
 
@@ -431,10 +437,12 @@ class DatabaseWorkflowTest(unittest.TestCase):
         )
 
         plan = self.raw.execute(
-            "SELECT status, transaction_id FROM planned_expenses WHERE id = ?", (plan_id,)
+            "SELECT status, transaction_id FROM planned_expenses WHERE id = ?",
+            (plan_id,),
         ).fetchone()
         subscription = self.raw.execute(
-            "SELECT next_renewal_date FROM subscriptions WHERE id = ?", (subscription_id,)
+            "SELECT next_renewal_date FROM subscriptions WHERE id = ?",
+            (subscription_id,),
         ).fetchone()
         self.assertEqual(plan["status"], "completed")
         self.assertEqual(plan["transaction_id"], transaction_id)

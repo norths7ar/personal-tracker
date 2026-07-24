@@ -4,12 +4,12 @@ from contextlib import closing
 from datetime import date, timedelta
 
 from core.constants import (
+    PLANNED_EXPENSE_STATUS_COMPLETED,
+    PLANNED_EXPENSE_STATUS_OPEN,
     RECURRING_PAYMENT_PREPAID,
     RECURRING_PAYMENT_SUBSCRIPTION,
     RENEWAL_MODE_FIXED_DAYS,
     RENEWAL_MODE_SAME_DAY,
-    PLANNED_EXPENSE_STATUS_COMPLETED,
-    PLANNED_EXPENSE_STATUS_OPEN,
     SUBSCRIPTION_CYCLE_CUSTOM,
     SUBSCRIPTION_CYCLE_MONTHLY,
     SUBSCRIPTION_CYCLE_ONE_TIME,
@@ -55,7 +55,9 @@ def monthly_equivalent(item: dict) -> float:
         return amount / max(1, months)
     if cycle == SUBSCRIPTION_CYCLE_ONE_TIME:
         return 0.0
-    logging.getLogger(__name__).warning("monthly_equivalent: unknown billing_cycle %r, defaulting to 0", cycle)
+    logging.getLogger(__name__).warning(
+        "monthly_equivalent: unknown billing_cycle %r, defaulting to 0", cycle
+    )
     return 0.0
 
 
@@ -151,17 +153,38 @@ def get_upcoming_subscriptions(start_date: str, end_date: str) -> list[dict]:
                  AND next_renewal_date >= ?
                  AND next_renewal_date <= ?
                ORDER BY next_renewal_date, amount_cents DESC, name""",
-            (SUBSCRIPTION_STATUS_ACTIVE, RECURRING_PAYMENT_SUBSCRIPTION, start_date, end_date),
+            (
+                SUBSCRIPTION_STATUS_ACTIVE,
+                RECURRING_PAYMENT_SUBSCRIPTION,
+                start_date,
+                end_date,
+            ),
         ).fetchall()
     return [_normalize_subscription(row) for row in rows]
 
 
 def update_subscription(id_: int, **fields) -> None:
     allowed = {
-        "name", "vendor", "amount", "billing_cycle", "billing_interval_months",
-        "start_date", "next_renewal_date", "end_date", "category", "subcategory",
-        "payment_method", "auto_renew", "status", "notes", "payment_type", "transaction_id",
-        "renewal_mode", "renewal_interval", "renewal_anchor_day", "last_payment_date",
+        "name",
+        "vendor",
+        "amount",
+        "billing_cycle",
+        "billing_interval_months",
+        "start_date",
+        "next_renewal_date",
+        "end_date",
+        "category",
+        "subcategory",
+        "payment_method",
+        "auto_renew",
+        "status",
+        "notes",
+        "payment_type",
+        "transaction_id",
+        "renewal_mode",
+        "renewal_interval",
+        "renewal_anchor_day",
+        "last_payment_date",
     }
     updates = {key: value for key, value in fields.items() if key in allowed}
     if not updates:
@@ -256,7 +279,9 @@ def record_subscription_payment(
             ),
         )
         transaction_id = inserted_id(cur)
-        next_date = next_renewal_override or next_renewal_date(subscription, payment_date)
+        next_date = next_renewal_override or next_renewal_date(
+            subscription, payment_date
+        )
         conn.execute(
             """UPDATE subscriptions
                SET last_payment_date = ?,

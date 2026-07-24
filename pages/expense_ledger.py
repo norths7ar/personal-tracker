@@ -91,7 +91,9 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                 TRANSACTION_TYPES,
                 index=TRANSACTION_TYPES.index(record_type),
             )
-            description = st.text_input("描述", value=display_text(record["description"]))
+            description = st.text_input(
+                "描述", value=display_text(record["description"])
+            )
             amount_col, date_col = st.columns(2)
             with amount_col:
                 amount = st.number_input(
@@ -101,11 +103,16 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                     format="%.2f",
                 )
             with date_col:
-                entry_date = st.date_input("日期", value=date.fromisoformat(record_date))
+                entry_date = st.date_input(
+                    "日期", value=date.fromisoformat(record_date)
+                )
 
             categories = config.get(entry_type, {})
             category_options = _unique(
-                [*categories, *([PENDING_CATEGORY] if entry_type == TYPE_EXPENSE else [])]
+                [
+                    *categories,
+                    *([PENDING_CATEGORY] if entry_type == TYPE_EXPENSE else []),
+                ]
             )
             current_category = display_text(record.get("category"))
             if category_options:
@@ -254,9 +261,7 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                 "续费方式",
                 [RENEWAL_MODE_SAME_DAY, RENEWAL_MODE_FIXED_DAYS],
                 format_func=lambda value: (
-                    "按月同日"
-                    if value == RENEWAL_MODE_SAME_DAY
-                    else "固定天数"
+                    "按月同日" if value == RENEWAL_MODE_SAME_DAY else "固定天数"
                 ),
                 horizontal=True,
                 key=f"recurring_mode_{record_id}",
@@ -306,7 +311,7 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                             next_payment_date.day
                             if renewal_mode == RENEWAL_MODE_SAME_DAY
                             else None
-                        )
+                        ),
                     )
                     st.rerun()
 
@@ -332,7 +337,9 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
 
 
 config = load_config()
-filter_type, filter_category, filter_subcategory, filter_keyword = st.columns([2, 3, 3, 4])
+filter_type, filter_category, filter_subcategory, filter_keyword = st.columns(
+    [2, 3, 3, 4]
+)
 with filter_type:
     type_filter = st.selectbox("类型", ["全部", *TRANSACTION_TYPES])
 with filter_category:
@@ -366,7 +373,16 @@ if not rows:
 
 df = pd.DataFrame(rows)
 display_df = df[
-    ["id", "date", "type", "description", "amount", "category", "subcategory", "amortization_months"]
+    [
+        "id",
+        "date",
+        "type",
+        "description",
+        "amount",
+        "category",
+        "subcategory",
+        "amortization_months",
+    ]
 ].copy()
 display_df["amount"] = display_df["amount"].map(lambda value: f"¥{float(value):.2f}")
 for column in ("category", "subcategory"):

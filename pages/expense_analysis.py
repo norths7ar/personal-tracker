@@ -1,15 +1,16 @@
-import streamlit as st
-import pandas as pd
-import plotly.graph_objects as go
 from datetime import date, timedelta
 
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+from core.budget.db import get_month_budget, save_month_budget
 from core.constants import RECURRING_PAYMENT_SUBSCRIPTION
 from core.expense.db import (
-    get_period_data,
     get_active_months,
     get_active_years,
+    get_period_data,
 )
-from core.budget.db import get_month_budget, save_month_budget
 from core.subscription.db import get_subscriptions
 
 st.title("开销分析")
@@ -122,7 +123,9 @@ def breakdown_chart(breakdown: list, level: str):
         return
     rows = breakdown[:8][::-1]
     labels = [
-        row["category"] if level == "一级分类" else f"{row['category']} / {row['subcategory']}"
+        row["category"]
+        if level == "一级分类"
+        else f"{row['category']} / {row['subcategory']}"
         for row in rows
     ]
     fig = go.Figure(
@@ -179,7 +182,10 @@ def trend_summary(current: dict, previous: dict, basis_label: str) -> str:
     current_categories = category_totals(current["expense_breakdown"])
     previous_categories = category_totals(previous["expense_breakdown"])
     changes = [
-        (category, current_categories.get(category, 0) - previous_categories.get(category, 0))
+        (
+            category,
+            current_categories.get(category, 0) - previous_categories.get(category, 0),
+        )
         for category in set(current_categories) | set(previous_categories)
     ]
     if not changes:
@@ -210,7 +216,9 @@ def render_budget_status(
     if ratio >= 1:
         st.error(f"{label}已超出 ¥{actual - budget:,.2f}。")
     elif projected is not None and projected > budget:
-        st.warning(f"按当前日均速度，月底预计 ¥{projected:,.2f}，可能超出 ¥{projected - budget:,.2f}。")
+        st.warning(
+            f"按当前日均速度，月底预计 ¥{projected:,.2f}，可能超出 ¥{projected - budget:,.2f}。"
+        )
     elif ratio >= 0.8:
         st.warning(f"{label}已达到 80%，剩余 ¥{budget - actual:,.2f}。")
     else:
@@ -263,9 +271,7 @@ with tab_month:
 
         recurring_monthly_cost = sum(
             float(record.get("monthly_equivalent") or 0)
-            for record in get_subscriptions(
-                payment_type=RECURRING_PAYMENT_SUBSCRIPTION
-            )
+            for record in get_subscriptions(payment_type=RECURRING_PAYMENT_SUBSCRIPTION)
         )
         metrics_row(cur, prev, n_days=n_days)
         fixed_cost_col, _ = st.columns([1, 3])
@@ -277,7 +283,9 @@ with tab_month:
         budget = get_month_budget(selected_ym)
         cash_data = cur if basis_key == "cash" else get_period_data(start, end, "cash")
         amortized_data = (
-            cur if basis_key == "amortized" else get_period_data(start, end, "amortized")
+            cur
+            if basis_key == "amortized"
+            else get_period_data(start, end, "amortized")
         )
         elapsed_days = today.day if selected_ym == cur_ym else None
         cash_projection = (
@@ -301,32 +309,31 @@ with tab_month:
                 budget["cash_total"],
                 cash_projection,
             )
-        with st.expander("设置本月预算"):
-            with st.form("month_budget_form"):
-                budget_col, cash_col = st.columns(2)
-                with budget_col:
-                    amortized_total = st.number_input(
-                        "摊销后成本上限（元）",
-                        min_value=0.0,
-                        value=float(budget["amortized_total"] or 0),
-                        format="%.2f",
-                        help="0 表示不设置该上限。",
-                    )
-                with cash_col:
-                    cash_total = st.number_input(
-                        "现金流上限（元）",
-                        min_value=0.0,
-                        value=float(budget["cash_total"] or 0),
-                        format="%.2f",
-                        help="0 表示不设置该上限。",
-                    )
-                if st.form_submit_button("保存预算", type="primary"):
-                    save_month_budget(
-                        selected_ym,
-                        amortized_total=amortized_total if amortized_total > 0 else None,
-                        cash_total=cash_total if cash_total > 0 else None,
-                    )
-                    st.rerun()
+        with st.expander("设置本月预算"), st.form("month_budget_form"):
+            budget_col, cash_col = st.columns(2)
+            with budget_col:
+                amortized_total = st.number_input(
+                    "摊销后成本上限（元）",
+                    min_value=0.0,
+                    value=float(budget["amortized_total"] or 0),
+                    format="%.2f",
+                    help="0 表示不设置该上限。",
+                )
+            with cash_col:
+                cash_total = st.number_input(
+                    "现金流上限（元）",
+                    min_value=0.0,
+                    value=float(budget["cash_total"] or 0),
+                    format="%.2f",
+                    help="0 表示不设置该上限。",
+                )
+            if st.form_submit_button("保存预算", type="primary"):
+                save_month_budget(
+                    selected_ym,
+                    amortized_total=amortized_total if amortized_total > 0 else None,
+                    cash_total=cash_total if cash_total > 0 else None,
+                )
+                st.rerun()
         st.info(trend_summary(cur, prev, analysis_basis))
         st.caption("本月每日收支")
         daily_line(cur["daily"], all_dates)
@@ -355,7 +362,9 @@ with tab_month:
             key="month_breakdown_level",
         )
         st.subheader("支出明细")
-        expense_breakdown = aggregate_breakdown(cur["expense_breakdown"], breakdown_level)
+        expense_breakdown = aggregate_breakdown(
+            cur["expense_breakdown"], breakdown_level
+        )
         breakdown_chart(expense_breakdown, breakdown_level)
         with st.expander("查看收入明细"):
             breakdown_table(
@@ -429,7 +438,9 @@ with tab_year:
             key="year_breakdown_level",
         )
         st.subheader("支出明细")
-        expense_breakdown = aggregate_breakdown(cur["expense_breakdown"], breakdown_level)
+        expense_breakdown = aggregate_breakdown(
+            cur["expense_breakdown"], breakdown_level
+        )
         breakdown_chart(expense_breakdown, breakdown_level)
         with st.expander("查看收入明细"):
             breakdown_table(

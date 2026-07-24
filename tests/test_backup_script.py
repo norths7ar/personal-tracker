@@ -3,9 +3,8 @@ import sqlite3
 import tempfile
 import unittest
 from contextlib import closing
-from unittest.mock import patch
 from pathlib import Path
-
+from unittest.mock import patch
 
 PROJECT_ROOT = Path(__file__).parent.parent
 SCRIPT_PATH = PROJECT_ROOT / "scripts" / "backup_cloud_to_sqlite.py"

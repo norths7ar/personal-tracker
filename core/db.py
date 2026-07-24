@@ -206,6 +206,7 @@ def _init_sqlite(conn):
     )
     """)
 
+
 def _init_postgres(conn):
     conn.execute(f"""
     CREATE TABLE IF NOT EXISTS transactions (
@@ -272,10 +273,11 @@ def _init_postgres(conn):
     )
     """)
 
+
 def _create_budgets_table(conn):
     """Store monthly targets separately from immutable transaction facts."""
     conn.execute(
-        f"""CREATE TABLE IF NOT EXISTS budgets (
+        """CREATE TABLE IF NOT EXISTS budgets (
             month                   TEXT PRIMARY KEY,
             amortized_budget_cents  INTEGER,
             cash_budget_cents       INTEGER
@@ -334,12 +336,15 @@ def _ensure_transaction_workflow_columns(conn):
             conn.execute(f"ALTER TABLE transactions ADD COLUMN {name} {definition}")
 
 
-
 def _ensure_subscription_payment_type(conn):
     columns = _table_columns(conn, "subscriptions")
     if "payment_type" not in columns:
-        conn.execute("ALTER TABLE subscriptions ADD COLUMN payment_type TEXT DEFAULT 'subscription'")
-        conn.execute("UPDATE subscriptions SET payment_type = 'subscription' WHERE payment_type IS NULL")
+        conn.execute(
+            "ALTER TABLE subscriptions ADD COLUMN payment_type TEXT DEFAULT 'subscription'"
+        )
+        conn.execute(
+            "UPDATE subscriptions SET payment_type = 'subscription' WHERE payment_type IS NULL"
+        )
     if "transaction_id" not in columns:
         conn.execute("ALTER TABLE subscriptions ADD COLUMN transaction_id INTEGER")
 

@@ -30,9 +30,7 @@ def save_month_budget(
     cash_total: float | None,
 ) -> None:
     """Save the two optional total targets for one month."""
-    amortized_cents = (
-        to_cents(amortized_total) if amortized_total is not None else None
-    )
+    amortized_cents = to_cents(amortized_total) if amortized_total is not None else None
     cash_cents = to_cents(cash_total) if cash_total is not None else None
 
     with closing(_connect()) as conn:

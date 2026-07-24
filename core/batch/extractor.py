@@ -1,8 +1,6 @@
 import logging
 from datetime import date
 
-logger = logging.getLogger(__name__)
-
 from core.constants import (
     DEFAULT_CATEGORY,
     DEFAULT_MEAL_TYPE,
@@ -18,6 +16,8 @@ from core.diet.extractor import DietExtractor
 from core.expense.classifier import Classifier
 from core.llm import LLMClient
 from core.prompts import load_prompt
+
+logger = logging.getLogger(__name__)
 
 
 class BatchExtractor:

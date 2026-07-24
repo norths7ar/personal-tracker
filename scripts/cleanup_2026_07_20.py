@@ -9,8 +9,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME  # noqa: E402
-from core.db import get_database_url  # noqa: E402
+from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME
+from core.db import get_database_url
 
 
 def _fetch_one(cur, sql: str) -> dict:
@@ -65,10 +65,14 @@ def _print_plan(cur) -> dict:
     print(f"- transactions.status column exists: {columns['status']}")
     print(f"- transactions.void_reason column exists: {columns['void_reason']}")
     print(f"- transactions status='voided' rows: {counts['status_voided']}")
-    print(f"- transactions non-empty void_reason rows: {counts['void_reason_nonempty']}")
+    print(
+        f"- transactions non-empty void_reason rows: {counts['void_reason_nonempty']}"
+    )
     print()
     print("Actions when --apply is set:")
-    print(f"- UPDATE subscriptions billing_cycle 'one_time' -> '{SUBSCRIPTION_CYCLE_ONE_TIME}'")
+    print(
+        f"- UPDATE subscriptions billing_cycle 'one_time' -> '{SUBSCRIPTION_CYCLE_ONE_TIME}'"
+    )
     print("- DROP transactions.status if present")
     print("- DROP transactions.void_reason if present")
 
@@ -102,7 +106,9 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    with psycopg.connect(get_database_url(), row_factory=dict_row, prepare_threshold=None) as conn:
+    with psycopg.connect(
+        get_database_url(), row_factory=dict_row, prepare_threshold=None
+    ) as conn:
         with conn.cursor() as cur:
             plan = _print_plan(cur)
             if not args.apply:

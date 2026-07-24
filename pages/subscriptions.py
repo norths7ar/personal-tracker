@@ -109,9 +109,7 @@ def _cycle_label(record: dict) -> str:
     interval = _positive_int(record.get("renewal_interval"))
     if record.get("renewal_mode") == RENEWAL_MODE_FIXED_DAYS:
         return f"每{interval}天"
-    return {1: "月付", 3: "季付", 12: "年付"}.get(
-        interval, f"每{interval}个月"
-    )
+    return {1: "月付", 3: "季付", 12: "年付"}.get(interval, f"每{interval}个月")
 
 
 def _due_state(record: dict) -> str:
@@ -164,9 +162,7 @@ def _render_recurrence_fields(
 @st.dialog("新增预计支出", width="small")
 def _add_expected_dialog() -> None:
     description = st.text_input("描述", placeholder="例：QQ会员或显卡预算")
-    amount = st.number_input(
-        "预计金额（元）", min_value=0.0, value=0.0, format="%.2f"
-    )
+    amount = st.number_input("预计金额（元）", min_value=0.0, value=0.0, format="%.2f")
     recurring = st.checkbox("周期性付款", value=False)
     renewal_mode = None
     renewal_interval = None
@@ -197,9 +193,7 @@ def _add_expected_dialog() -> None:
         return
 
     if recurring:
-        billing_cycle, billing_interval_months = _cycle_from_months(
-            renewal_interval
-        )
+        billing_cycle, billing_interval_months = _cycle_from_months(renewal_interval)
         add_subscription(
             name=description.strip(),
             amount=amount,
@@ -233,9 +227,7 @@ def _add_expected_dialog() -> None:
 def _edit_expected_dialog(record: dict) -> None:
     periodic = record["source"] == "subscription"
     st.caption("周期性付款" if periodic else "一次性计划")
-    description = st.text_input(
-        "描述", value=display_text(record.get("description"))
-    )
+    description = st.text_input("描述", value=display_text(record.get("description")))
     amount = st.number_input(
         "预计金额（元）",
         min_value=0.0,
@@ -272,14 +264,14 @@ def _edit_expected_dialog(record: dict) -> None:
         display_text(record.get("category")),
         display_text(record.get("subcategory")),
     )
-    notes = st.text_area(
-        "备注", value=display_text(record.get("notes")), height=68
-    )
+    notes = st.text_area("备注", value=display_text(record.get("notes")), height=68)
 
     save_col, close_col = st.columns(2)
     with save_col:
         save = st.button(
-            "保存修改", type="primary", key=f"save_expected_{record['source']}_{record['id']}"
+            "保存修改",
+            type="primary",
+            key=f"save_expected_{record['source']}_{record['id']}",
         )
     with close_col:
         close = st.button(
@@ -295,9 +287,7 @@ def _edit_expected_dialog(record: dict) -> None:
         return
 
     if periodic:
-        billing_cycle, billing_interval_months = _cycle_from_months(
-            renewal_interval
-        )
+        billing_cycle, billing_interval_months = _cycle_from_months(renewal_interval)
         update_subscription(
             int(record["id"]),
             name=description.strip(),
@@ -329,9 +319,7 @@ def _edit_expected_dialog(record: dict) -> None:
 
 @st.dialog("确认入账", width="small")
 def _confirm_expected_dialog(record: dict) -> None:
-    description = st.text_input(
-        "描述", value=display_text(record.get("description"))
-    )
+    description = st.text_input("描述", value=display_text(record.get("description")))
     amount = st.number_input(
         "实际金额（元）",
         min_value=0.0,
@@ -344,9 +332,7 @@ def _confirm_expected_dialog(record: dict) -> None:
         display_text(record.get("category")),
         display_text(record.get("subcategory")),
     )
-    notes = st.text_area(
-        "备注", value=display_text(record.get("notes")), height=68
-    )
+    notes = st.text_area("备注", value=display_text(record.get("notes")), height=68)
 
     confirm_col, close_col = st.columns(2)
     with confirm_col:
@@ -418,13 +404,9 @@ def _delete_expected_dialog(record: dict) -> None:
 @st.dialog("新增预付摊销", width="small")
 def _add_prepaid_dialog() -> None:
     description = st.text_input("描述", placeholder="例：季度房租")
-    amount = st.number_input(
-        "总金额（元）", min_value=0.0, value=0.0, format="%.2f"
-    )
+    amount = st.number_input("总金额（元）", min_value=0.0, value=0.0, format="%.2f")
     payment_date = st.date_input("付款日期", value=today)
-    months = st.number_input(
-        "摊销月数", min_value=1, max_value=120, value=12, step=1
-    )
+    months = st.number_input("摊销月数", min_value=1, max_value=120, value=12, step=1)
     start_month = st.text_input(
         "摊销开始月份", value=payment_date.strftime("%Y-%m"), placeholder="YYYY-MM"
     )
@@ -444,9 +426,7 @@ def _add_prepaid_dialog() -> None:
         st.error("描述不能为空，金额必须大于 0。")
         return
     try:
-        amortization_start = date.fromisoformat(
-            f"{start_month.strip()}-01"
-        ).isoformat()
+        amortization_start = date.fromisoformat(f"{start_month.strip()}-01").isoformat()
     except ValueError:
         st.error("摊销开始月份必须是 YYYY-MM。")
         return
@@ -498,9 +478,7 @@ def _edit_prepaid_dialog(record: dict) -> None:
         f"关联流水 #{transaction_id}；金额 ¥{float(record['amount']):,.2f}，"
         "金额和付款日期请到账目页修改。"
     )
-    description = st.text_input(
-        "描述", value=display_text(record.get("name"))
-    )
+    description = st.text_input("描述", value=display_text(record.get("name")))
     months = st.number_input(
         "摊销月数",
         min_value=1,
@@ -517,15 +495,11 @@ def _edit_prepaid_dialog(record: dict) -> None:
         display_text(record.get("category")),
         display_text(record.get("subcategory")),
     )
-    notes = st.text_area(
-        "备注", value=display_text(record.get("notes")), height=68
-    )
+    notes = st.text_area("备注", value=display_text(record.get("notes")), height=68)
 
     save_col, close_col = st.columns(2)
     with save_col:
-        save = st.button(
-            "保存修改", type="primary", key=f"save_prepaid_{record['id']}"
-        )
+        save = st.button("保存修改", type="primary", key=f"save_prepaid_{record['id']}")
     with close_col:
         close = st.button("关闭", key=f"close_prepaid_{record['id']}")
     if close:
@@ -536,9 +510,7 @@ def _edit_prepaid_dialog(record: dict) -> None:
         st.error("请填写描述。")
         return
     try:
-        amortization_start = date.fromisoformat(
-            f"{start_month.strip()}-01"
-        ).isoformat()
+        amortization_start = date.fromisoformat(f"{start_month.strip()}-01").isoformat()
     except ValueError:
         st.error("摊销开始月份必须是 YYYY-MM。")
         return
@@ -580,17 +552,13 @@ def _delete_prepaid_dialog(record: dict) -> None:
     if close:
         st.rerun()
     if delete:
-        delete_prepaid_subscription(
-            int(record["id"]), int(record["transaction_id"])
-        )
+        delete_prepaid_subscription(int(record["id"]), int(record["transaction_id"]))
         st.rerun()
 
 
 def _expected_records() -> list[dict]:
     records = []
-    for subscription in get_subscriptions(
-        payment_type=RECURRING_PAYMENT_SUBSCRIPTION
-    ):
+    for subscription in get_subscriptions(payment_type=RECURRING_PAYMENT_SUBSCRIPTION):
         records.append(
             {
                 **subscription,
@@ -709,12 +677,8 @@ with prepaid_tab:
                 "描述": st.column_config.TextColumn("描述", width="large"),
                 "总金额": st.column_config.TextColumn("总金额", width="small"),
                 "月均": st.column_config.TextColumn("月均", width="small"),
-                "剩余月数": st.column_config.NumberColumn(
-                    "剩余月数", width="small"
-                ),
-                "摊销开始": st.column_config.TextColumn(
-                    "摊销开始", width="small"
-                ),
+                "剩余月数": st.column_config.NumberColumn("剩余月数", width="small"),
+                "摊销开始": st.column_config.TextColumn("摊销开始", width="small"),
                 "主类别": st.column_config.TextColumn("主类别", width="small"),
             },
         )
@@ -722,12 +686,8 @@ with prepaid_tab:
             selected = prepaid_records[prepaid_event.selection.rows[0]]
             edit_col, delete_col = st.columns([1, 5])
             with edit_col:
-                if st.button(
-                    "编辑", key=f"open_edit_prepaid_{selected['id']}"
-                ):
+                if st.button("编辑", key=f"open_edit_prepaid_{selected['id']}"):
                     _edit_prepaid_dialog(selected)
             with delete_col:
-                if st.button(
-                    "删除", key=f"open_delete_prepaid_{selected['id']}"
-                ):
+                if st.button("删除", key=f"open_delete_prepaid_{selected['id']}"):
                     _delete_prepaid_dialog(selected)

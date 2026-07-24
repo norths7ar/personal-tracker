@@ -50,9 +50,7 @@ def add_planned_expense(
         return planned_id
 
 
-def get_planned_expenses(
-    include_closed: bool = False, limit: int = 500
-) -> list[dict]:
+def get_planned_expenses(include_closed: bool = False, limit: int = 500) -> list[dict]:
     query = "SELECT * FROM planned_expenses"
     params: list = []
     if not include_closed:

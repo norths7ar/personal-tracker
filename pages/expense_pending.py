@@ -65,9 +65,7 @@ def _render_category_form(record: dict) -> None:
             else:
                 subcategory = None
 
-        notes = st.text_area(
-            "备注", value=display_text(record.get("notes")), height=68
-        )
+        notes = st.text_area("备注", value=display_text(record.get("notes")), height=68)
         submitted = st.form_submit_button("保存分类", type="primary")
 
     if submitted:
@@ -79,9 +77,12 @@ def _render_category_form(record: dict) -> None:
             category=category,
             subcategory=subcategory,
             notes=optional_text(notes),
-            confidence=1.0 if category != PENDING_CATEGORY else record.get("confidence"),
+            confidence=1.0
+            if category != PENDING_CATEGORY
+            else record.get("confidence"),
         )
         st.rerun()
+
 
 if not rows:
     st.info("暂无待处理支出。")
@@ -92,7 +93,9 @@ df = pd.DataFrame(rows)
 display_df = df[
     ["id", "date", "description", "amount", "category", "subcategory", "confidence"]
 ].copy()
-display_df["amount"] = display_df["amount"].map(lambda value: f"¥{float(value or 0):.2f}")
+display_df["amount"] = display_df["amount"].map(
+    lambda value: f"¥{float(value or 0):.2f}"
+)
 display_df["confidence"] = display_df["confidence"].map(
     lambda value: "" if pd.isna(value) else f"{float(value):.0%}"
 )

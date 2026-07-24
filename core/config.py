@@ -1,5 +1,6 @@
-import yaml
 from pathlib import Path
+
+import yaml
 
 _CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
 

@@ -26,6 +26,7 @@ st.title("记录")
 
 # ── 缓存资源 ──────────────────────────────────────────────────────────────────
 
+
 @st.cache_resource
 def get_batch_extractor(version: int):
     return BatchExtractor(load_config())
@@ -67,8 +68,12 @@ with st.sidebar:
     st.subheader("今日")
     today_str = date.today().strftime("%Y-%m-%d")
     try:
-        today_rows = get_transactions(start_date=today_str, end_date=today_str, limit=50)
-        expense_total = sum(r["amount"] for r in today_rows if r["type"] == TYPE_EXPENSE)
+        today_rows = get_transactions(
+            start_date=today_str, end_date=today_str, limit=50
+        )
+        expense_total = sum(
+            r["amount"] for r in today_rows if r["type"] == TYPE_EXPENSE
+        )
         if expense_total:
             st.caption(f"支出合计 ¥{expense_total:.2f}")
         else:
@@ -89,6 +94,7 @@ with st.sidebar:
 
 # ── 批量录入辅助函数 ──────────────────────────────────────────────────────────
 
+
 def _all_categories(config: dict) -> list[str]:
     values = []
     for section in TRANSACTION_TYPES:
@@ -100,7 +106,8 @@ def _all_categories(config: dict) -> list[str]:
 def _validate_category_pair(config, record_type, category, subcategory):
     if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
         return (
-            None if subcategory in {"", PENDING_CATEGORY}
+            None
+            if subcategory in {"", PENDING_CATEGORY}
             else f"{PENDING_CATEGORY} 必须搭配 {PENDING_CATEGORY}"
         )
     categories = config.get(record_type, {})
@@ -146,21 +153,26 @@ def _food_text_to_list(text):
 
 
 def _records_to_df(records):
-    return pd.DataFrame([{
-        "include": r.get("include", True),
-        "record_type": r.get("record_type") or "",
-        "date": r.get("date") or date.today().isoformat(),
-        "time": r.get("time") or "",
-        "description": r.get("description") or "",
-        "amount": r.get("amount"),
-        "category": r.get("category") or "",
-        "subcategory": r.get("subcategory") or "",
-        "meal_type": r.get("meal_type") or "",
-        "foods": _food_list_to_text(r.get("foods", [])),
-        "notes": display_text(r.get("notes")),
-        "confidence": r.get("confidence", 0.0),
-        "reasoning": r.get("reasoning") or "",
-    } for r in records])
+    return pd.DataFrame(
+        [
+            {
+                "include": r.get("include", True),
+                "record_type": r.get("record_type") or "",
+                "date": r.get("date") or date.today().isoformat(),
+                "time": r.get("time") or "",
+                "description": r.get("description") or "",
+                "amount": r.get("amount"),
+                "category": r.get("category") or "",
+                "subcategory": r.get("subcategory") or "",
+                "meal_type": r.get("meal_type") or "",
+                "foods": _food_list_to_text(r.get("foods", [])),
+                "notes": display_text(r.get("notes")),
+                "confidence": r.get("confidence", 0.0),
+                "reasoning": r.get("reasoning") or "",
+            }
+            for r in records
+        ]
+    )
 
 
 def _validate_row(row, idx, config):
@@ -258,6 +270,7 @@ def _render_diagnostics(diagnostics):
 
 # ── Tab 渲染函数 ──────────────────────────────────────────────────────────────
 
+
 def render_batch_tab():
     if st.session_state.batch_flash:
         st.success(st.session_state.batch_flash)
@@ -289,12 +302,14 @@ def render_batch_tab():
             return
         if not result["records"]:
             st.warning("没有解析出可保存的记录。")
-            _render_diagnostics({
-                "raw_count": len(result.get("raw_records", [])),
-                "kept_count": 0,
-                "rejected_records": result.get("rejected_records", []),
-                "reasoning": result.get("reasoning", ""),
-            })
+            _render_diagnostics(
+                {
+                    "raw_count": len(result.get("raw_records", [])),
+                    "kept_count": 0,
+                    "rejected_records": result.get("rejected_records", []),
+                    "reasoning": result.get("reasoning", ""),
+                }
+            )
             return
         st.session_state.batch_source_text = text.strip()
         st.session_state.batch_records = result["records"]
@@ -320,23 +335,41 @@ def render_batch_tab():
         num_rows="dynamic",
         width="stretch",
         column_order=[
-            "include", "record_type", "date", "time", "description",
-            "amount", "category", "subcategory", "meal_type", "foods",
-            "notes", "confidence", "reasoning",
+            "include",
+            "record_type",
+            "date",
+            "time",
+            "description",
+            "amount",
+            "category",
+            "subcategory",
+            "meal_type",
+            "foods",
+            "notes",
+            "confidence",
+            "reasoning",
         ],
         column_config={
             "include": st.column_config.CheckboxColumn("保存"),
-            "record_type": st.column_config.SelectboxColumn("类型", options=list(BATCH_RECORD_TYPES), required=True),
+            "record_type": st.column_config.SelectboxColumn(
+                "类型", options=list(BATCH_RECORD_TYPES), required=True
+            ),
             "date": st.column_config.TextColumn("日期", required=True),
             "time": st.column_config.TextColumn("时间"),
             "description": st.column_config.TextColumn("描述", required=True),
             "amount": st.column_config.NumberColumn("金额", format="%.2f"),
-            "category": st.column_config.SelectboxColumn("主类别", options=_all_categories(config)),
+            "category": st.column_config.SelectboxColumn(
+                "主类别", options=_all_categories(config)
+            ),
             "subcategory": st.column_config.TextColumn("子类别"),
-            "meal_type": st.column_config.SelectboxColumn("餐顿", options=[""] + meal_types),
+            "meal_type": st.column_config.SelectboxColumn(
+                "餐顿", options=[""] + meal_types
+            ),
             "foods": st.column_config.TextColumn("食物"),
             "notes": st.column_config.TextColumn("备注"),
-            "confidence": st.column_config.NumberColumn("置信度", min_value=0.0, max_value=1.0, format="%.2f"),
+            "confidence": st.column_config.NumberColumn(
+                "置信度", min_value=0.0, max_value=1.0, format="%.2f"
+            ),
             "reasoning": st.column_config.TextColumn("理由"),
         },
     )
@@ -361,7 +394,9 @@ def render_batch_tab():
                         st.session_state.batch_records = None
                         st.session_state.batch_diagnostics = None
                         st.session_state.batch_source_text = ""
-                        st.warning(f"已写入 {saved} 条，失败行已丢弃，请重新录入失败记录")
+                        st.warning(
+                            f"已写入 {saved} 条，失败行已丢弃，请重新录入失败记录"
+                        )
                         st.rerun()
                 elif saved:
                     st.session_state.batch_records = None
@@ -384,14 +419,17 @@ def render_expense_tab():
 
     def _save_and_done(form, category, subcategory, confidence=None):
         record_id = add_transaction(
-            form["type"], form["description"], form["amount"], form["date"],
-            category=category, subcategory=subcategory,
-            notes=form["notes"], confidence=confidence,
+            form["type"],
+            form["description"],
+            form["amount"],
+            form["date"],
+            category=category,
+            subcategory=subcategory,
+            notes=form["notes"],
+            confidence=confidence,
         )
         st.session_state.expense_pending = None
-        st.session_state.expense_flash = (
-            f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
-        )
+        st.session_state.expense_flash = f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
         st.rerun()
 
     if st.session_state.expense_processing:
@@ -400,9 +438,14 @@ def render_expense_tab():
             result = get_classifier(config_version()).classify(form["description"])
         if result["status"] == "confirmed":
             record_id = add_transaction(
-                form["type"], form["description"], form["amount"], form["date"],
-                category=result["category"], subcategory=result["subcategory"],
-                confidence=result["confidence"], notes=form["notes"],
+                form["type"],
+                form["description"],
+                form["amount"],
+                form["date"],
+                category=result["category"],
+                subcategory=result["subcategory"],
+                confidence=result["confidence"],
+                notes=form["notes"],
             )
             st.session_state.expense_flash = (
                 f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
@@ -418,7 +461,9 @@ def render_expense_tab():
     if st.session_state.expense_pending:
         form = st.session_state.expense_pending["form"]
         result = st.session_state.expense_pending["result"]
-        st.caption(f"**{form['type']}** {form['description']} ¥{form['amount']:.2f} {form['date']}")
+        st.caption(
+            f"**{form['type']}** {form['description']} ¥{form['amount']:.2f} {form['date']}"
+        )
         st.divider()
 
         config = load_config()
@@ -447,7 +492,9 @@ def render_expense_tab():
             if result["status"] == "low_confidence":
                 st.warning(f"置信度较低（{result['confidence']:.0%}），请确认分类")
             elif result["status"] == "new_category":
-                st.warning(f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择")
+                st.warning(
+                    f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择"
+                )
             else:
                 st.error(f"自动分类失败：{result['reasoning']}")
             if result.get("reasoning") and result["status"] != "error":
@@ -469,7 +516,9 @@ def render_expense_tab():
             c1, c2 = st.columns(2)
             with c1:
                 if st.button("确认保存", type="primary", width="stretch"):
-                    _save_and_done(form, category, subcategory, confidence=result.get("confidence"))
+                    _save_and_done(
+                        form, category, subcategory, confidence=result.get("confidence")
+                    )
             with c2:
                 if st.button("取消", width="stretch"):
                     st.session_state.expense_pending = None
@@ -481,7 +530,9 @@ def render_expense_tab():
         description = st.text_input("描述", placeholder="例：中午麦当劳")
         col1, col2 = st.columns(2)
         with col1:
-            amount = st.number_input("金额（元）", min_value=0.0, value=0.0, step=0.1, format="%.2f")
+            amount = st.number_input(
+                "金额（元）", min_value=0.0, value=0.0, step=0.1, format="%.2f"
+            )
         with col2:
             entry_date = st.date_input("日期", value=date.today())
         notes = st.text_area("备注（可选）", height=68)
@@ -503,8 +554,11 @@ def render_expense_tab():
         }
         if entry_type == TYPE_TRANSFER:
             record_id = add_transaction(
-                entry_type, description.strip(), amount,
-                entry_date.strftime("%Y-%m-%d"), notes=notes.strip() or None,
+                entry_type,
+                description.strip(),
+                amount,
+                entry_date.strftime("%Y-%m-%d"),
+                notes=notes.strip() or None,
             )
             st.session_state.expense_flash = f"迁移记录已保存（ID {record_id}）"
             st.rerun()
@@ -526,13 +580,19 @@ def render_diet_tab():
 
     def _save_and_done(form, meal_type, foods, confidence=None):
         meal_id = add_meal(
-            date=form["date"], time=form["time"], meal_type=meal_type,
-            description=form["description"], notes=form["notes"],
-            confidence=confidence, foods=foods,
+            date=form["date"],
+            time=form["time"],
+            meal_type=meal_type,
+            description=form["description"],
+            notes=form["notes"],
+            confidence=confidence,
+            foods=foods,
         )
         foods_str = "、".join(f["food_name"] for f in foods)
         st.session_state.diet_pending = None
-        st.session_state.diet_flash = f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+        st.session_state.diet_flash = (
+            f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+        )
         st.rerun()
 
     if st.session_state.diet_processing:
@@ -542,9 +602,13 @@ def render_diet_tab():
         if result["status"] == "confirmed":
             foods_str = "、".join(f["food_name"] for f in result["foods"])
             meal_id = add_meal(
-                date=form["date"], time=form["time"], meal_type=result["meal_type"],
-                description=form["description"], notes=form["notes"],
-                confidence=result["confidence"], foods=result["foods"],
+                date=form["date"],
+                time=form["time"],
+                meal_type=result["meal_type"],
+                description=form["description"],
+                notes=form["notes"],
+                confidence=result["confidence"],
+                foods=result["foods"],
             )
             st.session_state.diet_flash = (
                 f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
@@ -560,7 +624,9 @@ def render_diet_tab():
     if st.session_state.diet_pending:
         form = st.session_state.diet_pending["form"]
         result = st.session_state.diet_pending["result"]
-        st.caption(f"**{form['date']}** {form['time'] or ''}　描述：{form['description']}")
+        st.caption(
+            f"**{form['date']}** {form['time'] or ''}　描述：{form['description']}"
+        )
         st.divider()
 
         status = result["status"]
@@ -578,19 +644,25 @@ def render_diet_tab():
         meal_types = extractor.meal_types
         default_meal = result.get("meal_type", meal_types[-1])
         default_idx = (
-            meal_types.index(default_meal) if default_meal in meal_types else len(meal_types) - 1
+            meal_types.index(default_meal)
+            if default_meal in meal_types
+            else len(meal_types) - 1
         )
         meal_type = st.selectbox("餐顿类型", meal_types, index=default_idx)
 
         st.caption("食物清单（可编辑、增删行）")
-        foods_df = pd.DataFrame(result.get("foods", [{"food_name": "", "quantity": ""}]))
+        foods_df = pd.DataFrame(
+            result.get("foods", [{"food_name": "", "quantity": ""}])
+        )
         edited_df = st.data_editor(
-            foods_df, num_rows="dynamic",
+            foods_df,
+            num_rows="dynamic",
             column_config={
                 "food_name": st.column_config.TextColumn("食物名称", required=True),
                 "quantity": st.column_config.TextColumn("份量"),
             },
-            hide_index=True, width="stretch",
+            hide_index=True,
+            width="stretch",
         )
 
         notes = st.text_area("备注（可选）", value=form.get("notes") or "", height=60)
@@ -599,7 +671,10 @@ def render_diet_tab():
         with c1:
             if st.button(save_label, type="primary", width="stretch"):
                 foods = [
-                    {"food_name": str(row["food_name"]), "quantity": display_text(row.get("quantity"))}
+                    {
+                        "food_name": str(row["food_name"]),
+                        "quantity": display_text(row.get("quantity")),
+                    }
                     for _, row in edited_df.iterrows()
                     if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
                 ]
@@ -619,14 +694,18 @@ def render_diet_tab():
         with col1:
             entry_date = st.date_input("日期", value=date.today())
         with col2:
-            time_str = st.text_input("时间（可选）", placeholder="如：12:30", help="24小时制")
+            time_str = st.text_input(
+                "时间（可选）", placeholder="如：12:30", help="24小时制"
+            )
         description = st.text_area(
             "饮食描述",
             placeholder="例：早上喝了一杯豆浆，两个包子\n或：中午吃了麦当劳巨无霸套餐",
             height=100,
             help="用自然语言描述你吃了什么，AI会自动提取餐顿和每种食物",
         )
-        notes = st.text_area("备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等")
+        notes = st.text_area(
+            "备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等"
+        )
         submitted = st.form_submit_button("提交", type="primary", width="stretch")
 
     if submitted:
