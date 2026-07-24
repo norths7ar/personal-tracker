@@ -14,48 +14,10 @@ config = load_config()
 expense_categories = config.get(TYPE_EXPENSE, {})
 rows = get_pending_transactions()
 
-if not rows:
-    st.info("暂无待处理支出。")
-    st.stop()
 
-st.caption("处理待分类、缺失分类或低置信度的支出。")
-df = pd.DataFrame(rows)
-display_df = df[
-    ["id", "date", "description", "amount", "category", "subcategory", "confidence"]
-].copy()
-display_df["amount"] = display_df["amount"].map(lambda value: f"¥{float(value or 0):.2f}")
-display_df["confidence"] = display_df["confidence"].map(
-    lambda value: "" if pd.isna(value) else f"{float(value):.0%}"
-)
-for column in ("category", "subcategory"):
-    display_df[column] = display_df[column].map(display_text)
-
-list_col, inspector_col = st.columns([7, 5], gap="large")
-with list_col:
-    event = st.dataframe(
-        display_df,
-        hide_index=True,
-        width="stretch",
-        selection_mode="single-row",
-        on_select="rerun",
-        column_config={
-            "id": st.column_config.NumberColumn("ID", width="small"),
-            "date": st.column_config.TextColumn("日期", width="small"),
-            "description": st.column_config.TextColumn("描述"),
-            "amount": st.column_config.TextColumn("金额", width="small"),
-            "category": st.column_config.TextColumn("主类别"),
-            "subcategory": st.column_config.TextColumn("子类别"),
-            "confidence": st.column_config.TextColumn("置信度", width="small"),
-        },
-    )
-
-with inspector_col:
-    if not event.selection.rows:
-        st.caption("选择一条记录后，在这里确认分类。")
-        st.stop()
-
-    record = df.iloc[event.selection.rows[0]].to_dict()
+def _render_category_form(record: dict) -> None:
     record_id = int(record["id"])
+    st.divider()
     st.subheader("确认分类")
     st.caption(f"#{record_id} · {display_text(record.get('date'))}")
 
@@ -106,7 +68,7 @@ with inspector_col:
         notes = st.text_area(
             "备注", value=display_text(record.get("notes")), height=68
         )
-        submitted = st.form_submit_button("保存分类", type="primary", width="stretch")
+        submitted = st.form_submit_button("保存分类", type="primary")
 
     if submitted:
         update_transaction(
@@ -120,3 +82,40 @@ with inspector_col:
             confidence=1.0 if category != PENDING_CATEGORY else record.get("confidence"),
         )
         st.rerun()
+
+if not rows:
+    st.info("暂无待处理支出。")
+    st.stop()
+
+st.caption("处理待分类、缺失分类或低置信度的支出。")
+df = pd.DataFrame(rows)
+display_df = df[
+    ["id", "date", "description", "amount", "category", "subcategory", "confidence"]
+].copy()
+display_df["amount"] = display_df["amount"].map(lambda value: f"¥{float(value or 0):.2f}")
+display_df["confidence"] = display_df["confidence"].map(
+    lambda value: "" if pd.isna(value) else f"{float(value):.0%}"
+)
+for column in ("category", "subcategory"):
+    display_df[column] = display_df[column].map(display_text)
+
+event = st.dataframe(
+    display_df,
+    hide_index=True,
+    width="stretch",
+    selection_mode="single-row",
+    on_select="rerun",
+    column_config={
+        "id": st.column_config.NumberColumn("ID", width="small"),
+        "date": st.column_config.TextColumn("日期", width="small"),
+        "description": st.column_config.TextColumn("描述", width="large"),
+        "amount": st.column_config.TextColumn("金额", width="small"),
+        "category": st.column_config.TextColumn("主类别", width="medium"),
+        "subcategory": st.column_config.TextColumn("子类别", width="medium"),
+        "confidence": st.column_config.TextColumn("置信度", width="small"),
+    },
+)
+
+if event.selection.rows:
+    selected_record = df.iloc[event.selection.rows[0]].to_dict()
+    _render_category_form(selected_record)

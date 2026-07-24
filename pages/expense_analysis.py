@@ -3,18 +3,21 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import date, timedelta
 
+from core.constants import RECURRING_PAYMENT_SUBSCRIPTION
 from core.expense.db import (
     get_period_data,
     get_active_months,
     get_active_years,
 )
 from core.budget.db import get_month_budget, save_month_budget
+from core.subscription.db import get_subscriptions
 
 st.title("开销分析")
 
 analysis_basis = st.radio(
     "统计口径",
     ["现金流", "摊销后"],
+    index=1,
     horizontal=True,
     help="现金流按实际付款日期统计；摊销后会把设置了摊销月数的支出分摊到对应月份。",
 )
@@ -24,7 +27,7 @@ basis_key = "amortized" if analysis_basis == "摊销后" else "cash"
 
 
 def metrics_row(cur: dict, prev: dict, n_days: int):
-    """顶部四格指标：本期总额 / 日均 / 与上期对比 / 收支结余。"""
+    """Render period totals."""
     col1, col2, col3, col4 = st.columns(4)
     for col, label, cur_val, prev_val in [
         (col1, "支出", cur["expense"], prev["expense"]),
@@ -258,7 +261,19 @@ with tab_month:
             prev_end = (date(y, m, 1) - timedelta(days=1)).isoformat()
         prev = get_period_data(prev_start, prev_end, basis=basis_key)
 
+        recurring_monthly_cost = sum(
+            float(record.get("monthly_equivalent") or 0)
+            for record in get_subscriptions(
+                payment_type=RECURRING_PAYMENT_SUBSCRIPTION
+            )
+        )
         metrics_row(cur, prev, n_days=n_days)
+        fixed_cost_col, _ = st.columns([1, 3])
+        fixed_cost_col.metric(
+            "月固定支出",
+            f"¥{recurring_monthly_cost:,.2f}",
+            help="活跃周期性付款折算后的月均金额；不计入本月支出总额。",
+        )
         budget = get_month_budget(selected_ym)
         cash_data = cur if basis_key == "cash" else get_period_data(start, end, "cash")
         amortized_data = (

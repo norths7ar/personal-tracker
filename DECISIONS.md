@@ -1,7 +1,7 @@
 # Design Decisions
 
 This file records active product and data-model decisions for personal-tracker.
-It is not a changelog. Items marked as proposed are not implemented yet.
+It is not a changelog.
 
 ## Accounting Facts And Future Intent
 
@@ -11,25 +11,24 @@ It is not a changelog. Items marked as proposed are not implemented yet.
 - Prepaid expenses can be created from the cross-period page or by adding
   amortization to an existing transaction. Both routes converge on one expense
   transaction plus one prepaid management record.
-- A future plan must not be stored as a transaction. Planned expenses will be
-  confirmed into transactions only when the payment actually happens.
+- A future plan is not a transaction. Confirming a planned expense creates one
+  actual transaction only when the payment happens.
 
-## Subscription And Planned Expenses
+## Expected And Prepaid Expenses
 
-Status: proposed.
-
-- A subscription is a renewal rule, not proof that a payment happened.
-- A planned expense may have a due date or remain undated as a long-term plan.
-- Confirming a planned expense opens a form with the final amount, category and
-  date; the default date is the current day. Confirmation creates a transaction.
-- Subscriptions may manually create a planned renewal item. The application
-  must not silently create transactions or planned items on page load.
-- Subscription setup has two routes: manual rule creation, or marking a
-  confirmed ledger transaction as the first payment of a subscription.
+- The cross-period page has two user-facing concepts: expected expenses and
+  prepaid amortization.
+- Expected expenses may be one-time or recurring. One-time items may remain
+  undated; recurring items require a next payment date.
+- Confirming an expected expense creates one transaction. A one-time item then
+  closes; a recurring item advances its next payment date.
+- Prepaid amortization begins with an actual payment, so creating it immediately
+  creates a transaction and adds amortization metadata.
+- An existing expense may explicitly become the first payment of a recurring
+  item from the ledger editor. The application never infers links from text or
+  amount similarity.
 
 ## Renewal Rules
-
-Status: proposed.
 
 Two renewal modes are intentionally distinct:
 
@@ -38,7 +37,7 @@ Two renewal modes are intentionally distinct:
   without changing the anchor for later months.
 - `fixed_days`: renew after N days from the confirmed payment date.
 
-The subscription schema should store `renewal_mode`, `renewal_interval`,
+The subscription schema stores `renewal_mode`, `renewal_interval`,
 `renewal_anchor_day` for same-day rules, and `next_renewal_date`.
 
 ## Budgeting
@@ -47,13 +46,19 @@ The subscription schema should store `renewal_mode`, `renewal_interval`,
   cash outflow.
 - They are shown in the monthly analysis view, not as a separate budget page.
 - Personal budgeting is monthly; there is no annual or category budget plan.
+- Monthly analysis shows active recurring payments as a separate fixed-cost
+  reference. It excludes one-time plans and prepaid amortization.
 
 ## Interface Principles
 
 - Use constrained fluid layout: a 1280px maximum application content width,
   with narrower local regions for forms and wider regions for tables/charts.
-- List pages use a list-and-inspector layout. Selecting a row reveals its
-  editor beside the table rather than opening a full-width editor below it.
+- Tables remain the primary surface for scanning records. The ledger uses a
+  compact modal for occasional edits; the short pending-classification list
+  expands its confirmation form below the table.
+- Cross-period management uses parallel expected-expense and prepaid-
+  amortization tabs. Creation, editing, confirmation and deletion use compact
+  dialogs rather than persistent forms.
 - A primary save action is visually distinct. Refunds and deletion are
   secondary operations because they create a linked record or remove one.
 - Daily financial trends use line charts. A large single expense remains a
