@@ -20,6 +20,7 @@ BACKUP_TABLES = (
     "diet_meals",
     "diet_foods",
     "subscriptions",
+    "planned_expenses",
     "budgets",
 )
 DEFAULT_BACKUP_DIR = PROJECT_ROOT / "data" / "backups" / "cloud"
@@ -58,6 +59,8 @@ def initialize_snapshot(path: Path) -> sqlite3.Connection:
     core_db._ensure_transaction_workflow_columns(connection)
     core_db._ensure_subscription_amount_cents(connection)
     core_db._ensure_subscription_payment_type(connection)
+    core_db._ensure_subscription_renewal_columns(connection)
+    core_db._ensure_planned_expense_columns(connection)
     core_db._init_budgets(connection)
     raw_connection.commit()
     return raw_connection

@@ -5,10 +5,13 @@ from unittest.mock import patch
 import core.db as core_db
 import core.budget.db as budget_db
 import core.expense.db as expense_db
+import core.planned_expense.db as planned_expense_db
 import core.subscription.db as subscription_db
 from core.constants import (
     PENDING_CATEGORY,
     RECURRING_PAYMENT_PREPAID,
+    RENEWAL_MODE_FIXED_DAYS,
+    RENEWAL_MODE_SAME_DAY,
     SUBSCRIPTION_CYCLE_ONE_TIME,
     TYPE_EXPENSE,
 )
@@ -34,6 +37,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
             patch.object(expense_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "is_postgres", return_value=False),
             patch.object(subscription_db, "_connect", return_value=self.conn),
+            patch.object(planned_expense_db, "_connect", return_value=self.conn),
         ]
         self.patchers = patches
         for patcher in self.patchers:
@@ -258,6 +262,183 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(july_cash["expense"], 120)
         self.assertEqual(july_amortized["expense"], 40)
         self.assertEqual(august_amortized["expense"], 40)
+
+    def test_confirming_a_planned_expense_creates_one_transaction(self):
+        plan_id = planned_expense_db.add_planned_expense(
+            "graphics card", 20000, category="购物", subcategory="数码电子"
+        )
+
+        transaction_id = planned_expense_db.confirm_planned_expense(
+            plan_id,
+            "graphics card",
+            19888,
+            "2026-07-24",
+            "购物",
+            "数码电子",
+            "final price",
+        )
+
+        plan = self.raw.execute(
+            "SELECT status, transaction_id FROM planned_expenses WHERE id = ?",
+            (plan_id,),
+        ).fetchone()
+        transaction = self.raw.execute(
+            "SELECT description, amount_cents FROM transactions WHERE id = ?",
+            (transaction_id,),
+        ).fetchone()
+        self.assertEqual(plan["status"], "completed")
+        self.assertEqual(plan["transaction_id"], transaction_id)
+        self.assertEqual(transaction["description"], "graphics card")
+        self.assertEqual(transaction["amount_cents"], 1988800)
+
+    def test_subscription_payment_advances_same_day_without_month_end_drift(self):
+        subscription_id = subscription_db.add_subscription(
+            "month end service",
+            30,
+            "月付",
+            category="通讯",
+            subcategory="平台会员",
+            renewal_mode=RENEWAL_MODE_SAME_DAY,
+            renewal_interval=1,
+            renewal_anchor_day=31,
+        )
+
+        transaction_id = subscription_db.record_subscription_payment(
+            subscription_id,
+            "month end service",
+            30,
+            "2026-01-31",
+            "通讯",
+            "平台会员",
+            None,
+        )
+        subscription = self.raw.execute(
+            "SELECT last_payment_date, next_renewal_date FROM subscriptions WHERE id = ?",
+            (subscription_id,),
+        ).fetchone()
+        transaction = self.raw.execute(
+            "SELECT subscription_id FROM transactions WHERE id = ?", (transaction_id,)
+        ).fetchone()
+        self.assertEqual(subscription["last_payment_date"], "2026-01-31")
+        self.assertEqual(subscription["next_renewal_date"], "2026-02-28")
+        self.assertEqual(transaction["subscription_id"], subscription_id)
+
+        self.assertEqual(
+            subscription_db.next_renewal_date(
+                dict(self.raw.execute("SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)).fetchone()),
+                "2026-02-28",
+            ),
+            "2026-03-31",
+        )
+
+    def test_subscription_payment_supports_fixed_day_cycles(self):
+        subscription_id = subscription_db.add_subscription(
+            "thirty day service",
+            30,
+            "自定义",
+            category="通讯",
+            subcategory="平台会员",
+            renewal_mode=RENEWAL_MODE_FIXED_DAYS,
+            renewal_interval=30,
+        )
+
+        subscription_db.record_subscription_payment(
+            subscription_id,
+            "thirty day service",
+            30,
+            "2026-01-31",
+            "通讯",
+            "平台会员",
+            None,
+        )
+        next_date = self.raw.execute(
+            "SELECT next_renewal_date FROM subscriptions WHERE id = ?", (subscription_id,)
+        ).fetchone()["next_renewal_date"]
+        self.assertEqual(next_date, "2026-03-02")
+
+    def test_existing_transaction_can_atomically_create_subscription(self):
+        transaction_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "music service",
+            18,
+            "2026-07-24",
+            category="通讯",
+            subcategory="平台会员",
+        )
+
+        subscription_id = subscription_db.create_subscription_from_transaction(
+            transaction_id,
+            "music service",
+            "月付",
+            None,
+            "2026-08-24",
+            RENEWAL_MODE_SAME_DAY,
+            1,
+            24,
+        )
+
+        transaction = self.raw.execute(
+            "SELECT subscription_id FROM transactions WHERE id = ?",
+            (transaction_id,),
+        ).fetchone()
+        subscription = self.raw.execute(
+            """SELECT transaction_id, last_payment_date, next_renewal_date
+               FROM subscriptions WHERE id = ?""",
+            (subscription_id,),
+        ).fetchone()
+        self.assertEqual(transaction["subscription_id"], subscription_id)
+        self.assertEqual(subscription["transaction_id"], transaction_id)
+        self.assertEqual(subscription["last_payment_date"], "2026-07-24")
+        self.assertEqual(subscription["next_renewal_date"], "2026-08-24")
+
+        with self.assertRaises(ValueError):
+            subscription_db.create_subscription_from_transaction(
+                transaction_id,
+                "duplicate",
+                "月付",
+                None,
+                "2026-09-24",
+                RENEWAL_MODE_SAME_DAY,
+                1,
+                24,
+            )
+
+    def test_confirming_subscription_plan_links_the_payment_and_closes_plan(self):
+        subscription_id = subscription_db.add_subscription(
+            "video service",
+            30,
+            "月付",
+            category="通讯",
+            subcategory="平台会员",
+            renewal_mode=RENEWAL_MODE_SAME_DAY,
+            renewal_interval=1,
+            renewal_anchor_day=15,
+        )
+        plan_id = planned_expense_db.add_planned_expense(
+            "video service", 30, "2026-07-15", "通讯", "平台会员",
+            subscription_id=subscription_id,
+        )
+
+        transaction_id = subscription_db.record_subscription_payment(
+            subscription_id,
+            "video service",
+            31,
+            "2026-07-16",
+            "通讯",
+            "平台会员",
+            None,
+            planned_expense_id=plan_id,
+        )
+
+        plan = self.raw.execute(
+            "SELECT status, transaction_id FROM planned_expenses WHERE id = ?", (plan_id,)
+        ).fetchone()
+        subscription = self.raw.execute(
+            "SELECT next_renewal_date FROM subscriptions WHERE id = ?", (subscription_id,)
+        ).fetchone()
+        self.assertEqual(plan["status"], "completed")
+        self.assertEqual(plan["transaction_id"], transaction_id)
+        self.assertEqual(subscription["next_renewal_date"], "2026-08-15")
 
 
 if __name__ == "__main__":

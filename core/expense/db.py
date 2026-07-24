@@ -35,14 +35,15 @@ def add_transaction(
     refund_for_id: int | None = None,
     amortization_months: int | None = None,
     amortization_start: str | None = None,
+    subscription_id: int | None = None,
 ) -> int:
     amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO transactions
                (type, description, amount, amount_cents, date, category, subcategory, notes, confidence,
-                refund_for_id, amortization_months, amortization_start)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+                refund_for_id, amortization_months, amortization_start, subscription_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (
                 type_,
@@ -57,6 +58,7 @@ def add_transaction(
                 refund_for_id,
                 amortization_months,
                 amortization_start,
+                subscription_id,
             ),
         )
         record_id = inserted_id(cur)
@@ -143,6 +145,7 @@ def update_transaction(id_: int, **fields) -> None:
         "refund_for_id",
         "amortization_months",
         "amortization_start",
+        "subscription_id",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
