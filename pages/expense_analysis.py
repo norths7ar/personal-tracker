@@ -8,6 +8,7 @@ from core.expense.db import (
     get_active_months,
     get_active_years,
 )
+from core.budget.db import get_month_budget, save_month_budget
 
 st.title("开销分析")
 
@@ -44,8 +45,8 @@ def metrics_row(cur: dict, prev: dict, n_days: int):
     )
 
 
-def daily_bar(daily: list, all_dates: list):
-    """期内每日收支柱状图，所有日期都显示（无数据为 0）。"""
+def daily_line(daily: list, all_dates: list):
+    """期内每日收支走势；离群值保留为尖峰而不主导整个画面。"""
     date_map = {r["date"]: r for r in daily}
     dates, incomes, expenses = [], [], []
     for d in all_dates:
@@ -55,14 +56,27 @@ def daily_bar(daily: list, all_dates: list):
         expenses.append(r.get("支出", 0))
 
     fig = go.Figure()
-    fig.add_bar(x=dates, y=expenses, name="支出", marker_color="#5B9BD5")
-    fig.add_bar(x=dates, y=incomes, name="收入", marker_color="#70AD47")
+    fig.add_scatter(
+        x=dates,
+        y=expenses,
+        name="支出",
+        mode="lines+markers",
+        line=dict(color="#D9534F", width=2),
+        marker=dict(size=5),
+    )
+    fig.add_scatter(
+        x=dates,
+        y=incomes,
+        name="收入",
+        mode="lines+markers",
+        line=dict(color="#4C9F70", width=2),
+        marker=dict(size=5),
+    )
     fig.update_layout(
-        barmode="group",
         height=240,
         margin=dict(t=8, b=8, l=0, r=0),
         legend=dict(orientation="h", y=1.1),
-        xaxis=dict(tickangle=-45),
+        xaxis=dict(tickangle=-45, type="category"),
     )
     st.plotly_chart(fig, width="stretch")
 
@@ -99,6 +113,36 @@ def breakdown_table(breakdown: list, label: str, level: str):
     st.dataframe(df, hide_index=True, width="stretch")
 
 
+def breakdown_chart(breakdown: list, level: str):
+    if not breakdown:
+        st.caption("本期无支出记录")
+        return
+    rows = breakdown[:8][::-1]
+    labels = [
+        row["category"] if level == "一级分类" else f"{row['category']} / {row['subcategory']}"
+        for row in rows
+    ]
+    fig = go.Figure(
+        go.Bar(
+            x=[row["total"] for row in rows],
+            y=labels,
+            orientation="h",
+            marker_color="#5B9BD5",
+            text=[f"¥{row['total']:,.0f}" for row in rows],
+            textposition="outside",
+        )
+    )
+    fig.update_layout(
+        height=max(220, len(rows) * 34),
+        margin=dict(t=8, b=8, l=0, r=44),
+        xaxis=dict(title=None),
+        yaxis=dict(title=None),
+    )
+    st.plotly_chart(fig, width="stretch")
+    with st.expander("查看完整支出明细"):
+        breakdown_table(breakdown, "支出", level)
+
+
 def aggregate_breakdown(breakdown: list, level: str) -> list:
     if level == "二级分类" or not breakdown:
         return breakdown
@@ -112,6 +156,62 @@ def aggregate_breakdown(breakdown: list, level: str) -> list:
         current["total"] += row.get("total") or 0
         current["count"] += row.get("count") or 0
     return sorted(grouped.values(), key=lambda row: row["total"], reverse=True)
+
+
+def category_totals(breakdown: list) -> dict[str, float]:
+    totals: dict[str, float] = {}
+    for row in breakdown:
+        category = row.get("category") or "未分类"
+        totals[category] = totals.get(category, 0) + float(row.get("total") or 0)
+    return totals
+
+
+def trend_summary(current: dict, previous: dict, basis_label: str) -> str:
+    """Produce a traceable explanation from the same numbers shown on the page."""
+    delta = current["expense"] - previous["expense"]
+    if abs(delta) < 0.005:
+        return f"按{basis_label}口径，本期支出与上期基本持平。"
+
+    direction = "增加" if delta > 0 else "减少"
+    current_categories = category_totals(current["expense_breakdown"])
+    previous_categories = category_totals(previous["expense_breakdown"])
+    changes = [
+        (category, current_categories.get(category, 0) - previous_categories.get(category, 0))
+        for category in set(current_categories) | set(previous_categories)
+    ]
+    if not changes:
+        return f"按{basis_label}口径，本期支出较上期{direction} ¥{abs(delta):,.2f}，主要受退款影响。"
+    largest_category, largest_change = max(changes, key=lambda item: abs(item[1]))
+    category_direction = "增加" if largest_change > 0 else "减少"
+    return (
+        f"按{basis_label}口径，本期支出较上期{direction} ¥{abs(delta):,.2f}；"
+        f"变化最大的是{largest_category}，{category_direction} ¥{abs(largest_change):,.2f}。"
+    )
+
+
+def render_budget_status(
+    label: str,
+    actual: float,
+    budget: float | None,
+    projected: float | None = None,
+):
+    if budget is None:
+        st.caption(f"{label}尚未设置上限")
+        return
+
+    ratio = actual / budget if budget else 0
+    st.progress(
+        max(0.0, min(ratio, 1.0)),
+        text=f"{label}：¥{actual:,.2f} / ¥{budget:,.2f}（{ratio:.0%}）",
+    )
+    if ratio >= 1:
+        st.error(f"{label}已超出 ¥{actual - budget:,.2f}。")
+    elif projected is not None and projected > budget:
+        st.warning(f"按当前日均速度，月底预计 ¥{projected:,.2f}，可能超出 ¥{projected - budget:,.2f}。")
+    elif ratio >= 0.8:
+        st.warning(f"{label}已达到 80%，剩余 ¥{budget - actual:,.2f}。")
+    else:
+        st.caption(f"{label}剩余 ¥{budget - actual:,.2f}")
 
 
 # ── 页面主体 ────────────────────────────────────────────────────────────────
@@ -159,8 +259,62 @@ with tab_month:
         prev = get_period_data(prev_start, prev_end, basis=basis_key)
 
         metrics_row(cur, prev, n_days=n_days)
+        budget = get_month_budget(selected_ym)
+        cash_data = cur if basis_key == "cash" else get_period_data(start, end, "cash")
+        amortized_data = (
+            cur if basis_key == "amortized" else get_period_data(start, end, "amortized")
+        )
+        elapsed_days = today.day if selected_ym == cur_ym else None
+        cash_projection = (
+            cash_data["expense"] / elapsed_days * n_days if elapsed_days else None
+        )
+        amortized_projection = (
+            amortized_data["expense"] / elapsed_days * n_days if elapsed_days else None
+        )
+        budget_col, cash_col = st.columns(2)
+        with budget_col:
+            render_budget_status(
+                "摊销后成本上限",
+                amortized_data["expense"],
+                budget["amortized_total"],
+                amortized_projection,
+            )
+        with cash_col:
+            render_budget_status(
+                "现金流上限",
+                cash_data["expense"],
+                budget["cash_total"],
+                cash_projection,
+            )
+        with st.expander("设置本月预算"):
+            with st.form("month_budget_form"):
+                budget_col, cash_col = st.columns(2)
+                with budget_col:
+                    amortized_total = st.number_input(
+                        "摊销后成本上限（元）",
+                        min_value=0.0,
+                        value=float(budget["amortized_total"] or 0),
+                        format="%.2f",
+                        help="0 表示不设置该上限。",
+                    )
+                with cash_col:
+                    cash_total = st.number_input(
+                        "现金流上限（元）",
+                        min_value=0.0,
+                        value=float(budget["cash_total"] or 0),
+                        format="%.2f",
+                        help="0 表示不设置该上限。",
+                    )
+                if st.form_submit_button("保存预算", type="primary"):
+                    save_month_budget(
+                        selected_ym,
+                        amortized_total=amortized_total if amortized_total > 0 else None,
+                        cash_total=cash_total if cash_total > 0 else None,
+                    )
+                    st.rerun()
+        st.info(trend_summary(cur, prev, analysis_basis))
         st.caption("本月每日收支")
-        daily_bar(cur["daily"], all_dates)
+        daily_line(cur["daily"], all_dates)
 
         # 最近 12 个月对比
         st.caption("最近 12 个月对比")
@@ -186,18 +340,14 @@ with tab_month:
             key="month_breakdown_level",
         )
         st.subheader("支出明细")
-        breakdown_table(
-            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
-            "支出",
-            breakdown_level,
-        )
-        st.subheader("收入明细")
-        breakdown_table(
-            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
-            "收入",
-            breakdown_level,
-        )
-
+        expense_breakdown = aggregate_breakdown(cur["expense_breakdown"], breakdown_level)
+        breakdown_chart(expense_breakdown, breakdown_level)
+        with st.expander("查看收入明细"):
+            breakdown_table(
+                aggregate_breakdown(cur["income_breakdown"], breakdown_level),
+                "收入",
+                breakdown_level,
+            )
 
 # ════════════════════════════════════════════════════════════════════════════
 # 年视图
@@ -218,7 +368,7 @@ with tab_year:
 
         # 按月生成 all_dates（用月份标签，不是每天）
         all_months = [f"{selected_year}-{m:02d}" for m in range(1, 13)]
-        # 年视图的 daily_bar 改为按月聚合
+        # 年视图按月聚合。
         cur = get_period_data(start, end, basis=basis_key)
 
         # 上一年
@@ -264,14 +414,11 @@ with tab_year:
             key="year_breakdown_level",
         )
         st.subheader("支出明细")
-        breakdown_table(
-            aggregate_breakdown(cur["expense_breakdown"], breakdown_level),
-            "支出",
-            breakdown_level,
-        )
-        st.subheader("收入明细")
-        breakdown_table(
-            aggregate_breakdown(cur["income_breakdown"], breakdown_level),
-            "收入",
-            breakdown_level,
-        )
+        expense_breakdown = aggregate_breakdown(cur["expense_breakdown"], breakdown_level)
+        breakdown_chart(expense_breakdown, breakdown_level)
+        with st.expander("查看收入明细"):
+            breakdown_table(
+                aggregate_breakdown(cur["income_breakdown"], breakdown_level),
+                "收入",
+                breakdown_level,
+            )

@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import core.db as core_db
+import core.budget.db as budget_db
 import core.expense.db as expense_db
 import core.subscription.db as subscription_db
 from core.constants import (
@@ -29,6 +30,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
             patch.object(core_db, "_connect", return_value=self.conn),
             patch.object(core_db, "get_backend", return_value="sqlite"),
             patch.object(core_db, "is_postgres", return_value=False),
+            patch.object(budget_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "is_postgres", return_value=False),
             patch.object(subscription_db, "_connect", return_value=self.conn),
@@ -166,6 +168,96 @@ class DatabaseWorkflowTest(unittest.TestCase):
         ids = {row["id"] for row in rows}
         self.assertIn(pending_id, ids)
         self.assertNotIn(normal_id, ids)
+
+    def test_month_budget_replaces_only_the_selected_month(self):
+        budget_db.save_month_budget(
+            "2026-07",
+            amortized_total=8000,
+            cash_total=10000,
+        )
+        budget_db.save_month_budget(
+            "2026-08",
+            amortized_total=9000,
+            cash_total=None,
+        )
+        budget_db.save_month_budget(
+            "2026-07",
+            amortized_total=8500,
+            cash_total=None,
+        )
+
+        july = budget_db.get_month_budget("2026-07")
+        august = budget_db.get_month_budget("2026-08")
+        self.assertEqual(july["amortized_total"], 8500)
+        self.assertIsNone(july["cash_total"])
+        self.assertEqual(august["amortized_total"], 9000)
+
+        budget_db.save_month_budget(
+            "2026-07", amortized_total=None, cash_total=None
+        )
+        self.assertEqual(
+            budget_db.get_month_budget("2026-07"),
+            {"amortized_total": None, "cash_total": None},
+        )
+
+    def test_legacy_category_budget_table_preserves_monthly_totals(self):
+        self.raw.execute("DROP TABLE budgets")
+        self.raw.execute(
+            """CREATE TABLE budgets (
+                id INTEGER PRIMARY KEY,
+                month TEXT NOT NULL,
+                scope TEXT NOT NULL,
+                category TEXT NOT NULL,
+                amortized_budget_cents INTEGER,
+                cash_budget_cents INTEGER
+            )"""
+        )
+        self.raw.execute(
+            """INSERT INTO budgets
+               VALUES (1, '2026-07', 'overall', '', 800000, 1000000)"""
+        )
+        self.raw.execute(
+            """INSERT INTO budgets
+               VALUES (2, '2026-07', 'category', '餐饮', 200000, NULL)"""
+        )
+
+        core_db.init_db()
+
+        columns = {
+            row["name"] for row in self.raw.execute("PRAGMA table_info(budgets)")
+        }
+        self.assertEqual(
+            columns,
+            {"month", "amortized_budget_cents", "cash_budget_cents"},
+        )
+        self.assertEqual(budget_db.get_month_budget("2026-07"), {
+            "amortized_total": 8000,
+            "cash_total": 10000,
+        })
+
+    def test_budget_can_compare_cash_and_amortized_costs(self):
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "annual software",
+            120,
+            "2026-07-01",
+            category="通讯",
+            subcategory="订阅服务",
+            amortization_months=3,
+            amortization_start="2026-07-01",
+        )
+
+        july_cash = expense_db.get_period_data("2026-07-01", "2026-07-31", "cash")
+        july_amortized = expense_db.get_period_data(
+            "2026-07-01", "2026-07-31", "amortized"
+        )
+        august_amortized = expense_db.get_period_data(
+            "2026-08-01", "2026-08-31", "amortized"
+        )
+
+        self.assertEqual(july_cash["expense"], 120)
+        self.assertEqual(july_amortized["expense"], 40)
+        self.assertEqual(august_amortized["expense"], 40)
 
 
 if __name__ == "__main__":

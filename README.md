@@ -14,6 +14,8 @@
 - **开销分析**：按月 / 年查看收支、日均、与上期对比和分类明细
   - 支持现金流和摊销后两种统计口径
   - 明细支持一级/二级分类聚合切换
+  - 月分析提供基于分类变化的规则化趋势说明
+  - 月视图可设置摊销后成本上限和实际付款的现金流上限
 - **跨期费用**：统一管理订阅和预付摊销
   - 订阅用于记录自动续费、下次续费、支付方式和折合月成本
   - 预付用于记录一次付清、按月摊销的费用，并关联账目流水
@@ -61,8 +63,12 @@ personal-tracker/
 │   └── diet_ledger.py
 ├── tests/
 │   └── test_db_workflows.py
+├── scripts/
+│   ├── backup_cloud_to_sqlite.py  # 云端 PostgreSQL -> 本地 SQLite 滚动备份
+│   └── cleanup_2026_07_20.py      # 已执行过的历史清理脚本
 └── data/
-    └── expenses.db         # 本地 SQLite 数据库，不进版本控制
+    ├── expenses.db         # 本地 SQLite 数据库，不进版本控制
+    └── backups/            # 云端和本地快照，不进版本控制
 ```
 
 ## 快速开始
@@ -159,3 +165,19 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m unittest discover -
 - 旧摊销交易自动迁移为预付跨期费用
 - 删除预付跨期费用时同步清空关联交易的摊销字段
 - 金额写入和更新时同步维护 `amount_cents`
+- 月度预算的保存、替换及现金流/摊销后口径对比
+- 云端 SQLite 备份的本地 schema 初始化和滚动保留
+
+## 云端备份
+
+`scripts/backup_cloud_to_sqlite.py` 会从 `.env` 或环境变量读取现有 Supabase PostgreSQL 配置，生成可直接作为本地开发库使用的 SQLite 快照。快照位于已忽略的 `data/backups/cloud/`，默认保留最近 10 份。
+
+```powershell
+C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/backup_cloud_to_sqlite.py
+```
+
+确认快照成功后，以下命令会额外替换 `data/expenses.db`；原有本地库会先归档至 `data/backups/local/`：
+
+```powershell
+C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/backup_cloud_to_sqlite.py --refresh-local
+```

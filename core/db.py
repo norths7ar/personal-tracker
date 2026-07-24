@@ -133,6 +133,7 @@ def init_db():
         _ensure_transaction_workflow_columns(conn)
         _ensure_subscription_amount_cents(conn)
         _ensure_subscription_payment_type(conn)
+        _init_budgets(conn)
         _migrate_amortized_to_subscriptions(conn)
         conn.commit()
 
@@ -198,7 +199,6 @@ def _init_sqlite(conn):
     )
     """)
 
-
 def _init_postgres(conn):
     conn.execute(f"""
     CREATE TABLE IF NOT EXISTS transactions (
@@ -259,6 +259,16 @@ def _init_postgres(conn):
         created_at         TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     )
     """)
+
+def _create_budgets_table(conn):
+    """Store monthly targets separately from immutable transaction facts."""
+    conn.execute(
+        f"""CREATE TABLE IF NOT EXISTS budgets (
+            month                   TEXT PRIMARY KEY,
+            amortized_budget_cents  INTEGER,
+            cash_budget_cents       INTEGER
+        )"""
+    )
 
 
 def _ensure_transaction_amount_cents(conn):
@@ -367,3 +377,28 @@ def _ensure_subscription_amount_cents(conn):
            SET amount_cents = CAST(ROUND(amount * 100) AS INTEGER)
            WHERE amount_cents IS NULL AND amount IS NOT NULL"""
     )
+
+
+def _init_budgets(conn):
+    """Simplify the unshipped category-budget schema to monthly total targets."""
+    columns = _table_columns(conn, "budgets")
+    if "scope" in columns:
+        legacy_rows = conn.execute(
+            """SELECT month, amortized_budget_cents, cash_budget_cents
+               FROM budgets WHERE scope = 'overall'"""
+        ).fetchall()
+        conn.execute("DROP TABLE budgets")
+        _create_budgets_table(conn)
+        for row in legacy_rows:
+            conn.execute(
+                """INSERT INTO budgets
+                   (month, amortized_budget_cents, cash_budget_cents)
+                   VALUES (?, ?, ?)""",
+                (
+                    row["month"],
+                    row["amortized_budget_cents"],
+                    row["cash_budget_cents"],
+                ),
+            )
+        return
+    _create_budgets_table(conn)
