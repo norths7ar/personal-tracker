@@ -91,14 +91,13 @@ def _food_freq_bar(food_freq: list):
 def _daily_meals_line(daily_meals: list, all_dates: list):
     count_map = {r["date"]: r["count"] for r in daily_meals}
     counts = [count_map.get(d, 0) for d in all_dates]
-    x_labels = [d[5:] for d in all_dates]
     fig = go.Figure(go.Scatter(
-        x=x_labels, y=counts, mode="lines+markers",
+        x=all_dates, y=counts, mode="lines+markers",
         line=dict(color="#E67E22", width=2), marker=dict(size=5),
         fill="tozeroy", fillcolor="rgba(230,126,34,0.1)",
     ))
     fig.update_layout(height=200, margin=dict(t=8, b=8, l=0, r=0),
-                      xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+                      xaxis=dict(tickangle=-45, tickfont=dict(size=10), type="category"),
                       yaxis=dict(title="餐次数", dtick=1))
     return fig
 

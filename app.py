@@ -1,8 +1,10 @@
 import streamlit as st
 from core.auth import require_login
 from core.db import init_db
+from core.ui import apply_app_style
 
 st.set_page_config(layout="wide")
+apply_app_style()
 
 require_login()
 init_db()

@@ -266,15 +266,17 @@ def render_batch_tab():
     config = load_config()
     meal_types = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
 
-    with st.form("batch_parse_form"):
-        default_date = st.date_input("默认日期", value=date.today())
-        text = st.text_area(
-            "批量描述",
-            value=st.session_state.batch_source_text,
-            height=160,
-            placeholder="例：今天早餐豆浆包子，中午麦当劳 35，晚上超市买菜 86，打车 24",
-        )
-        submitted = st.form_submit_button("解析", type="primary", width="stretch")
+    _, input_col, _ = st.columns([1, 3, 1])
+    with input_col:
+        with st.form("batch_parse_form"):
+            default_date = st.date_input("默认日期", value=date.today())
+            text = st.text_area(
+                "批量描述",
+                value=st.session_state.batch_source_text,
+                height=160,
+                placeholder="例：今天早餐豆浆包子，中午麦当劳 35，晚上超市买菜 86，打车 24",
+            )
+            submitted = st.form_submit_button("解析", type="primary", width="stretch")
 
     if submitted:
         if not text.strip():
