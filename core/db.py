@@ -340,10 +340,13 @@ def _ensure_subscription_payment_type(conn):
     columns = _table_columns(conn, "subscriptions")
     if "payment_type" not in columns:
         conn.execute(
-            "ALTER TABLE subscriptions ADD COLUMN payment_type TEXT DEFAULT 'subscription'"
+            """ALTER TABLE subscriptions
+               ADD COLUMN payment_type TEXT DEFAULT 'subscription'"""
         )
         conn.execute(
-            "UPDATE subscriptions SET payment_type = 'subscription' WHERE payment_type IS NULL"
+            """UPDATE subscriptions
+               SET payment_type = 'subscription'
+               WHERE payment_type IS NULL"""
         )
     if "transaction_id" not in columns:
         conn.execute("ALTER TABLE subscriptions ADD COLUMN transaction_id INTEGER")
@@ -380,7 +383,9 @@ def _ensure_subscription_renewal_columns(conn):
     )
     conn.execute(
         """UPDATE subscriptions
-           SET renewal_anchor_day = CAST(SUBSTR(COALESCE(start_date, next_renewal_date), 9, 2) AS INTEGER)
+           SET renewal_anchor_day = CAST(
+               SUBSTR(COALESCE(start_date, next_renewal_date), 9, 2) AS INTEGER
+           )
            WHERE payment_type = 'subscription'
              AND renewal_anchor_day IS NULL
              AND COALESCE(start_date, next_renewal_date) IS NOT NULL"""

@@ -25,7 +25,8 @@ def add_meal(
     """
     with closing(_connect()) as conn:
         cur = conn.execute(
-            """INSERT INTO diet_meals (date, time, meal_type, description, notes, confidence)
+            """INSERT INTO diet_meals
+               (date, time, meal_type, description, notes, confidence)
                VALUES (?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (date, time, meal_type, description, notes, confidence),
@@ -70,7 +71,11 @@ def get_meals(
             return []
         meal_ids = [m["id"] for m in meals]
         food_rows = conn.execute(
-            f"SELECT * FROM diet_foods WHERE meal_id IN ({placeholders(len(meal_ids))}) ORDER BY id",
+            (
+                "SELECT * FROM diet_foods "
+                f"WHERE meal_id IN ({placeholders(len(meal_ids))}) "
+                "ORDER BY id"
+            ),
             meal_ids,
         ).fetchall()
 

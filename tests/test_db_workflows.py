@@ -142,9 +142,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
         rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
         self.assertEqual(rows, [])
 
-    def test_pending_transactions_include_pending_category_but_not_normal_null_subcategory(
-        self,
-    ):
+    def test_pending_category_excludes_normal_null_subcategory(self):
         pending_id = expense_db.add_transaction(
             TYPE_EXPENSE,
             "unknown expense",
@@ -310,7 +308,8 @@ class DatabaseWorkflowTest(unittest.TestCase):
             None,
         )
         subscription = self.raw.execute(
-            "SELECT last_payment_date, next_renewal_date FROM subscriptions WHERE id = ?",
+            """SELECT last_payment_date, next_renewal_date
+               FROM subscriptions WHERE id = ?""",
             (subscription_id,),
         ).fetchone()
         transaction = self.raw.execute(

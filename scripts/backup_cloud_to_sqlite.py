@@ -13,7 +13,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from core import db as core_db
+from core import db as core_db  # noqa: E402
 
 BACKUP_TABLES = (
     "transactions",
@@ -93,8 +93,9 @@ def copy_table(
         return 0
     missing_columns = set(local_columns) - set(remote_columns)
     if missing_columns:
+        missing_names = ", ".join(sorted(missing_columns))
         raise RuntimeError(
-            f"Cloud table {table_name} is missing local columns: {', '.join(sorted(missing_columns))}"
+            f"Cloud table {table_name} is missing local columns: {missing_names}"
         )
 
     column_sql = ", ".join(local_columns)
@@ -164,13 +165,15 @@ def create_backup(
     temporary_path = output_dir / f".cloud-{timestamp}.tmp"
 
     try:
-        with closing(core_db._connect_postgres()) as remote_connection:
-            with closing(initialize_snapshot(temporary_path)) as local_connection:
-                expected_counts = {
-                    table: copy_table(remote_connection, local_connection, table)
-                    for table in BACKUP_TABLES
-                }
-                local_connection.commit()
+        with (
+            closing(core_db._connect_postgres()) as remote_connection,
+            closing(initialize_snapshot(temporary_path)) as local_connection,
+        ):
+            expected_counts = {
+                table: copy_table(remote_connection, local_connection, table)
+                for table in BACKUP_TABLES
+            }
+            local_connection.commit()
 
         verify_snapshot(temporary_path, expected_counts)
         temporary_path.replace(snapshot_path)

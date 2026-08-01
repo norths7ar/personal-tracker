@@ -41,8 +41,9 @@ def add_transaction(
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO transactions
-               (type, description, amount, amount_cents, date, category, subcategory, notes, confidence,
-                refund_for_id, amortization_months, amortization_start, subscription_id)
+               (type, description, amount, amount_cents, date, category,
+                subcategory, notes, confidence, refund_for_id,
+                amortization_months, amortization_start, subscription_id)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (
@@ -98,7 +99,8 @@ def get_monthly_summary(year: int, month: int) -> dict:
 
     def breakdown_by_type(conn, type_):
         return conn.execute(
-            f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
+            f"""SELECT category, subcategory,
+                       SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date < ? AND type = ?
                GROUP BY category, subcategory
@@ -110,7 +112,8 @@ def get_monthly_summary(year: int, month: int) -> dict:
         totals_rows = conn.execute(
             f"""SELECT type, SUM({_amount_expr()}) as total
                FROM transactions
-               WHERE date >= ? AND date < ? AND type IN ('{TYPE_INCOME}', '{TYPE_EXPENSE}')
+               WHERE date >= ? AND date < ?
+                 AND type IN ('{TYPE_INCOME}', '{TYPE_EXPENSE}')
                GROUP BY type""",
             (start, end),
         ).fetchall()
@@ -247,7 +250,8 @@ def _week_start(value: str) -> str:
 def _cash_period_data(start_date: str, end_date: str) -> dict:
     def bd(conn, type_):
         return conn.execute(
-            f"""SELECT category, subcategory, SUM({_amount_expr()}) as total, COUNT(*) as count
+            f"""SELECT category, subcategory,
+                       SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date <= ? AND type = ?
                GROUP BY category, subcategory ORDER BY total DESC""",
@@ -256,15 +260,19 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
 
     with closing(_connect()) as conn:
         totals_rows = conn.execute(
-            f"""SELECT type, category, SUM({_amount_expr()}) as total FROM transactions
-               WHERE date >= ? AND date <= ? AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
+            f"""SELECT type, category, SUM({_amount_expr()}) as total
+               FROM transactions
+               WHERE date >= ? AND date <= ?
+                 AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
                GROUP BY type, category""",
             (start_date, end_date),
         ).fetchall()
 
         daily_rows = conn.execute(
-            f"""SELECT date, type, category, SUM({_amount_expr()}) as total FROM transactions
-               WHERE date >= ? AND date <= ? AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
+            f"""SELECT date, type, category, SUM({_amount_expr()}) as total
+               FROM transactions
+               WHERE date >= ? AND date <= ?
+                 AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
                GROUP BY date, type, category ORDER BY date""",
             (start_date, end_date),
         ).fetchall()
@@ -382,7 +390,13 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
 def get_active_weeks() -> list:
     if is_postgres():
         sql = """SELECT DISTINCT
-                    ((date::date - ((EXTRACT(ISODOW FROM date::date)::int - 1) * INTERVAL '1 day'))::date)::text
+                    (
+                        date::date
+                        - (
+                            (EXTRACT(ISODOW FROM date::date)::int - 1)
+                            * INTERVAL '1 day'
+                        )
+                    )::date::text
                     as week_start
                  FROM transactions
                  ORDER BY week_start DESC"""

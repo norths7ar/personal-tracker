@@ -9,8 +9,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME
-from core.db import get_database_url
+from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME  # noqa: E402
+from core.db import get_database_url  # noqa: E402
 
 
 def _fetch_one(cur, sql: str) -> dict:
@@ -37,13 +37,17 @@ def _print_plan(cur) -> dict:
     }
     counts = _fetch_one(
         cur,
-        "SELECT COUNT(*) AS legacy_one_time FROM subscriptions WHERE billing_cycle = 'one_time'",
+        """SELECT COUNT(*) AS legacy_one_time
+           FROM subscriptions
+           WHERE billing_cycle = 'one_time'""",
     )
     if columns["status"]:
         counts.update(
             _fetch_one(
                 cur,
-                "SELECT COUNT(*) AS status_voided FROM transactions WHERE status = 'voided'",
+                """SELECT COUNT(*) AS status_voided
+                   FROM transactions
+                   WHERE status = 'voided'""",
             )
         )
     else:
@@ -71,7 +75,8 @@ def _print_plan(cur) -> dict:
     print()
     print("Actions when --apply is set:")
     print(
-        f"- UPDATE subscriptions billing_cycle 'one_time' -> '{SUBSCRIPTION_CYCLE_ONE_TIME}'"
+        "- UPDATE subscriptions billing_cycle "
+        f"'one_time' -> '{SUBSCRIPTION_CYCLE_ONE_TIME}'"
     )
     print("- DROP transactions.status if present")
     print("- DROP transactions.void_reason if present")
@@ -82,7 +87,8 @@ def _print_plan(cur) -> dict:
 def _apply_cleanup(cur, plan: dict) -> None:
     if plan["status_voided"] or plan["void_reason_nonempty"]:
         raise RuntimeError(
-            "Refusing to drop transactions.status/void_reason because voided data still exists."
+            "Refusing to drop transactions.status/void_reason because "
+            "voided data still exists."
         )
 
     cur.execute(
@@ -97,7 +103,9 @@ def _apply_cleanup(cur, plan: dict) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="One-time cleanup for legacy subscription and transaction schema values."
+        description=(
+            "One-time cleanup for legacy subscription and transaction schema values."
+        )
     )
     parser.add_argument(
         "--apply",

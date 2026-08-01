@@ -141,7 +141,8 @@ def confirm_planned_expense(
 
         cur = conn.execute(
             """INSERT INTO transactions
-               (type, description, amount, amount_cents, date, category, subcategory, notes)
+               (type, description, amount, amount_cents, date, category,
+                subcategory, notes)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (

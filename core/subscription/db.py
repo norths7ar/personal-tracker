@@ -87,7 +87,8 @@ def add_subscription(
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO subscriptions
-               (name, vendor, amount, amount_cents, billing_cycle, billing_interval_months,
+               (name, vendor, amount, amount_cents, billing_cycle,
+                billing_interval_months,
                 start_date, next_renewal_date, end_date, category, subcategory,
                 payment_method, auto_renew, status, notes, payment_type, transaction_id,
                 renewal_mode, renewal_interval, renewal_anchor_day, last_payment_date)

@@ -1,3 +1,5 @@
+import contextlib
+
 from core.constants import DEFAULT_CATEGORY, DEFAULT_CONFIDENCE_THRESHOLD
 from core.llm import LLMClient
 from core.prompts import load_prompt
@@ -59,7 +61,7 @@ class Classifier:
 
         candidates = []
         for c in data.get("candidates", []):
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 candidates.append(
                     {
                         "category": c.get("category", DEFAULT_CATEGORY),
@@ -71,8 +73,6 @@ class Classifier:
                         ),
                     }
                 )
-            except (TypeError, ValueError):
-                pass
         data["candidates"] = candidates
 
         data.setdefault("category", DEFAULT_CATEGORY)
