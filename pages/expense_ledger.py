@@ -3,6 +3,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from core.auth import require_login
 from core.config import load_config
 from core.constants import (
     PENDING_CATEGORY,
@@ -26,6 +27,8 @@ from core.expense.db import (
 )
 from core.subscription.db import create_subscription_from_transaction
 from core.text import display_text, is_blank, optional_text
+
+require_login(show_logout=False)
 
 st.title("账目")
 

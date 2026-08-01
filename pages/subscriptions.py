@@ -3,6 +3,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from core.auth import require_login
 from core.config import load_config
 from core.constants import (
     RECURRING_PAYMENT_PREPAID,
@@ -33,6 +34,8 @@ from core.subscription.db import (
     update_subscription,
 )
 from core.text import display_text, is_blank, optional_text
+
+require_login(show_logout=False)
 
 st.title("跨期费用")
 

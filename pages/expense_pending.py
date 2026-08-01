@@ -3,10 +3,13 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
+from core.auth import require_login
 from core.config import load_config
 from core.constants import PENDING_CATEGORY, TYPE_EXPENSE
 from core.expense.db import get_pending_transactions, update_transaction
 from core.text import display_text, optional_text
+
+require_login(show_logout=False)
 
 st.title("待处理")
 

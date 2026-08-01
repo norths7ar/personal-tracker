@@ -3,6 +3,7 @@ from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
+from core.auth import require_login
 from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
 from core.constants import (
@@ -20,6 +21,8 @@ from core.diet.extractor import DietExtractor
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
 from core.text import display_text, optional_text
+
+require_login(show_logout=False)
 
 st.title("记录")
 
@@ -429,7 +432,10 @@ def render_expense_tab():
             confidence=confidence,
         )
         st.session_state.expense_pending = None
-        st.session_state.expense_flash = f"已保存（ID {record_id}）：{form['type']} / {form['description']} / ¥{form['amount']:.2f}"
+        st.session_state.expense_flash = (
+            f"已保存（ID {record_id}）：{form['type']} / "
+            f"{form['description']} / ¥{form['amount']:.2f}"
+        )
         st.rerun()
 
     if st.session_state.expense_processing:
@@ -448,7 +454,8 @@ def render_expense_tab():
                 notes=form["notes"],
             )
             st.session_state.expense_flash = (
-                f"已保存（ID {record_id}）：{result['category']} / {result['subcategory']}"
+                f"已保存（ID {record_id}）：{result['category']} / "
+                f"{result['subcategory']}"
                 f"（{result['confidence']:.0%}｜{result['reasoning']}）"
             )
             st.session_state.expense_processing = False
@@ -462,7 +469,8 @@ def render_expense_tab():
         form = st.session_state.expense_pending["form"]
         result = st.session_state.expense_pending["result"]
         st.caption(
-            f"**{form['type']}** {form['description']} ¥{form['amount']:.2f} {form['date']}"
+            f"**{form['type']}** {form['description']} "
+            f"¥{form['amount']:.2f} {form['date']}"
         )
         st.divider()
 
@@ -493,7 +501,8 @@ def render_expense_tab():
                 st.warning(f"置信度较低（{result['confidence']:.0%}），请确认分类")
             elif result["status"] == "new_category":
                 st.warning(
-                    f"LLM 建议了未知分类（{result['category']} / {result['subcategory']}），请从下方选择"
+                    f"LLM 建议了未知分类（{result['category']} / "
+                    f"{result['subcategory']}），请从下方选择"
                 )
             else:
                 st.error(f"自动分类失败：{result['reasoning']}")

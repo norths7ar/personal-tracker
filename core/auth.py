@@ -10,7 +10,7 @@ def _auth_enabled() -> bool:
     return value in {"1", "true", "yes", "on"}
 
 
-def require_login():
+def require_login(*, show_logout: bool = True) -> None:
     if not _auth_enabled():
         return
 
@@ -20,6 +20,8 @@ def require_login():
         st.stop()
 
     if st.session_state.get("authenticated"):
+        if not show_logout:
+            return
         with st.sidebar:
             if st.button("退出登录"):
                 st.session_state.authenticated = False

@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core.auth import require_login
 from core.config import load_config
 from core.constants import DEFAULT_MEAL_TYPES
 from core.diet.db import (
@@ -13,6 +14,8 @@ from core.diet.db import (
     update_meal_with_foods,
 )
 from core.text import display_text, optional_text
+
+require_login(show_logout=False)
 
 st.title("饮食")
 
@@ -259,7 +262,8 @@ def render_ledger_tab():
                     "time": display_text(m.get("time")),
                     "meal_type": display_text(m.get("meal_type")),
                     "foods": "、".join(
-                        f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
+                        f"{f['food_name']}"
+                        f"{'×' + f['quantity'] if f.get('quantity') else ''}"
                         for f in m["foods"]
                     ),
                     "notes": display_text(m.get("notes")),
@@ -277,7 +281,8 @@ def render_ledger_tab():
                     "time": display_text(m.get("time")),
                     "meal_type": display_text(m.get("meal_type")),
                     "foods": "、".join(
-                        f"{f['food_name']}{'×' + f['quantity'] if f.get('quantity') else ''}"
+                        f"{f['food_name']}"
+                        f"{'×' + f['quantity'] if f.get('quantity') else ''}"
                         for f in m["foods"]
                     ),
                     "description": display_text(m.get("description")),

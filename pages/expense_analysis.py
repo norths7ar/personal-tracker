@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from core.auth import require_login
 from core.budget.db import get_month_budget, save_month_budget
 from core.constants import RECURRING_PAYMENT_SUBSCRIPTION
 from core.expense.db import (
@@ -12,6 +13,8 @@ from core.expense.db import (
     get_period_data,
 )
 from core.subscription.db import get_subscriptions
+
+require_login(show_logout=False)
 
 st.title("开销分析")
 
@@ -189,12 +192,16 @@ def trend_summary(current: dict, previous: dict, basis_label: str) -> str:
         for category in set(current_categories) | set(previous_categories)
     ]
     if not changes:
-        return f"按{basis_label}口径，本期支出较上期{direction} ¥{abs(delta):,.2f}，主要受退款影响。"
+        return (
+            f"按{basis_label}口径，本期支出较上期{direction} "
+            f"¥{abs(delta):,.2f}，主要受退款影响。"
+        )
     largest_category, largest_change = max(changes, key=lambda item: abs(item[1]))
     category_direction = "增加" if largest_change > 0 else "减少"
     return (
         f"按{basis_label}口径，本期支出较上期{direction} ¥{abs(delta):,.2f}；"
-        f"变化最大的是{largest_category}，{category_direction} ¥{abs(largest_change):,.2f}。"
+        f"变化最大的是{largest_category}，{category_direction} "
+        f"¥{abs(largest_change):,.2f}。"
     )
 
 
@@ -202,7 +209,6 @@ def render_budget_status(
     label: str,
     actual: float,
     budget: float | None,
-    projected: float | None = None,
 ):
     if budget is None:
         st.caption(f"{label}尚未设置上限")
@@ -215,10 +221,6 @@ def render_budget_status(
     )
     if ratio >= 1:
         st.error(f"{label}已超出 ¥{actual - budget:,.2f}。")
-    elif projected is not None and projected > budget:
-        st.warning(
-            f"按当前日均速度，月底预计 ¥{projected:,.2f}，可能超出 ¥{projected - budget:,.2f}。"
-        )
     elif ratio >= 0.8:
         st.warning(f"{label}已达到 80%，剩余 ¥{budget - actual:,.2f}。")
     else:
@@ -246,10 +248,7 @@ with tab_month:
 
         y, m = int(selected_ym[:4]), int(selected_ym[5:])
         start = f"{y:04d}-{m:02d}-01"
-        if m == 12:
-            next_first = date(y + 1, 1, 1)
-        else:
-            next_first = date(y, m + 1, 1)
+        next_first = date(y + 1, 1, 1) if m == 12 else date(y, m + 1, 1)
         end = (next_first - timedelta(days=1)).isoformat()
         n_days = (next_first - date(y, m, 1)).days
 
@@ -287,27 +286,18 @@ with tab_month:
             if basis_key == "amortized"
             else get_period_data(start, end, "amortized")
         )
-        elapsed_days = today.day if selected_ym == cur_ym else None
-        cash_projection = (
-            cash_data["expense"] / elapsed_days * n_days if elapsed_days else None
-        )
-        amortized_projection = (
-            amortized_data["expense"] / elapsed_days * n_days if elapsed_days else None
-        )
         budget_col, cash_col = st.columns(2)
         with budget_col:
             render_budget_status(
                 "摊销后成本上限",
                 amortized_data["expense"],
                 budget["amortized_total"],
-                amortized_projection,
             )
         with cash_col:
             render_budget_status(
                 "现金流上限",
                 cash_data["expense"],
                 budget["cash_total"],
-                cash_projection,
             )
         with st.expander("设置本月预算"), st.form("month_budget_form"):
             budget_col, cash_col = st.columns(2)
