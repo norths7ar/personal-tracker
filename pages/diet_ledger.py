@@ -5,22 +5,18 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from core.auth import require_login
-from core.config import load_config
-from core.constants import DEFAULT_MEAL_TYPES
 from core.diet.db import (
     delete_meal,
     get_diet_stats,
     get_meals,
     update_meal_with_foods,
 )
+from core.diet.meal_time import normalize_meal_time, resolve_meal_type
 from core.text import display_text, optional_text
 
 require_login(show_logout=False)
 
 st.title("饮食")
-
-MEAL_TYPES = load_config().get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
-MAIN_MEAL_TYPES = list(DEFAULT_MEAL_TYPES[:3])
 
 # ── session state ─────────────────────────────────────────────────────────────
 
@@ -43,26 +39,35 @@ def _date_range_days(start_str: str, end_str: str) -> list[str]:
     ]
 
 
-def _coverage_heatmap(daily_coverage: list, all_dates: list):
-    covered = {(r["date"], r["meal_type"]) for r in daily_coverage}
-    z = [[1 if (d, mt) in covered else 0 for d in all_dates] for mt in MAIN_MEAL_TYPES]
-    x_labels = [d[5:] for d in all_dates]
+def _meal_time_scatter(meal_times: list):
+    points = []
+    for row in meal_times:
+        normalized = normalize_meal_time(row.get("time"))
+        if normalized is None:
+            continue
+        hour, minute = (int(part) for part in normalized.split(":"))
+        points.append((row["date"], hour * 60 + minute, normalized))
+
     fig = go.Figure(
-        go.Heatmap(
-            x=x_labels,
-            y=MAIN_MEAL_TYPES,
-            z=z,
-            colorscale=[[0, "#eeeeee"], [1, "#2ecc71"]],
-            showscale=False,
-            xgap=3,
-            ygap=3,
-            hovertemplate="%{y} %{x}: %{z}<extra></extra>",
+        go.Scatter(
+            x=[point[0] for point in points],
+            y=[point[1] for point in points],
+            text=[point[2] for point in points],
+            mode="markers",
+            marker={"color": "#5B9BD5", "size": 8},
+            hovertemplate="%{x} %{text}<extra></extra>",
         )
     )
     fig.update_layout(
-        height=160,
-        margin=dict(t=8, b=8, l=0, r=0),
-        xaxis=dict(tickangle=-45, tickfont=dict(size=10)),
+        height=240,
+        margin={"t": 8, "b": 8, "l": 0, "r": 0},
+        xaxis={"tickangle": -45, "type": "category"},
+        yaxis={
+            "title": "时间",
+            "range": [0, 24 * 60],
+            "tickvals": [0, 360, 720, 1080, 1440],
+            "ticktext": ["00:00", "06:00", "12:00", "18:00", "24:00"],
+        },
     )
     return fig
 
@@ -135,10 +140,7 @@ def _metrics_row(stats: dict, all_dates: list):
     days_with = len(stats["daily_meals"])
     days_total = len(all_dates)
     coverage_pct = days_with / days_total if days_total else 0
-    covered = {(r["date"], r["meal_type"]) for r in stats["daily_coverage"]}
-    full_days = sum(
-        1 for d in all_dates if all((d, mt) in covered for mt in MAIN_MEAL_TYPES)
-    )
+    average_meals = total_meals / days_total if days_total else 0
     top_food = stats["food_freq"][0]["food_name"] if stats["food_freq"] else "—"
 
     col1, col2, col3, col4 = st.columns(4)
@@ -146,7 +148,7 @@ def _metrics_row(stats: dict, all_dates: list):
         "记录天数", f"{days_with} / {days_total} 天", delta=f"{coverage_pct:.0%} 覆盖率"
     )
     col2.metric("总餐次", total_meals)
-    col3.metric("三餐齐全", full_days)
+    col3.metric("期间日均餐次", f"{average_meals:.1f}")
     col4.metric("最高频食物", top_food)
 
 
@@ -160,19 +162,17 @@ def render_analysis_period(start_date: str, end_date: str, key_prefix: str):
 
     _metrics_row(stats, all_dates)
 
-    st.caption("三餐覆盖情况")
-    st.plotly_chart(
-        _coverage_heatmap(stats["daily_coverage"], all_dates),
-        width="stretch",
-        key=f"{key_prefix}_heatmap",
-    )
-
     col1, col2 = st.columns(2)
     with col1:
-        st.caption("餐顿类型分布")
-        fig = _meal_type_bar(stats["meal_type_dist"])
-        if fig:
-            st.plotly_chart(fig, width="stretch", key=f"{key_prefix}_meal_type")
+        st.caption("用餐时间分布")
+        if stats["meal_times"]:
+            st.plotly_chart(
+                _meal_time_scatter(stats["meal_times"]),
+                width="stretch",
+                key=f"{key_prefix}_meal_times",
+            )
+        else:
+            st.info("该时间段的记录尚未填写用餐时间")
     with col2:
         st.caption("每日餐次趋势")
         st.plotly_chart(
@@ -180,6 +180,11 @@ def render_analysis_period(start_date: str, end_date: str, key_prefix: str):
             width="stretch",
             key=f"{key_prefix}_daily",
         )
+
+    fig = _meal_type_bar(stats["meal_type_dist"])
+    if fig:
+        st.caption("可选餐顿标签分布")
+        st.plotly_chart(fig, width="stretch", key=f"{key_prefix}_meal_type")
 
     st.caption("高频食物 Top 15")
     fig = _food_freq_bar(stats["food_freq"])
@@ -193,7 +198,7 @@ def render_analysis_period(start_date: str, end_date: str, key_prefix: str):
 
 
 def render_ledger_tab():
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     with col1:
         date_range = st.selectbox(
             "时间范围",
@@ -201,8 +206,6 @@ def render_ledger_tab():
             index=1,
         )
     with col2:
-        meal_type_filter = st.selectbox("餐顿类型", ["全部"] + MEAL_TYPES)
-    with col3:
         limit = st.number_input(
             "显示条数", min_value=10, max_value=500, value=100, step=10
         )
@@ -242,7 +245,6 @@ def render_ledger_tab():
         meals = get_meals(
             start_date=start_date,
             end_date=end_date,
-            meal_type=meal_type_filter if meal_type_filter != "全部" else None,
             limit=int(limit),
         )
     except Exception as e:
@@ -316,7 +318,7 @@ def render_ledger_tab():
             "id": st.column_config.NumberColumn("ID", width="small"),
             "date": st.column_config.TextColumn("日期"),
             "time": st.column_config.TextColumn("时间"),
-            "meal_type": st.column_config.TextColumn("餐顿"),
+            "meal_type": st.column_config.TextColumn("餐顿标签"),
             "foods": st.column_config.TextColumn("食物"),
             "notes": st.column_config.TextColumn("备注"),
         },
@@ -342,14 +344,16 @@ def render_ledger_tab():
                     "日期", value=date.fromisoformat(meal["date"])
                 )
             with col2:
-                edit_time = st.text_input("时间", value=display_text(meal.get("time")))
-            cur_meal = meal.get("meal_type") or MEAL_TYPES[-1]
-            meal_idx = (
-                MEAL_TYPES.index(cur_meal)
-                if cur_meal in MEAL_TYPES
-                else len(MEAL_TYPES) - 1
+                edit_time = st.text_input(
+                    "用餐时间",
+                    value=display_text(meal.get("time")),
+                    help="必填，使用 HH:MM；历史记录缺失时请补充",
+                )
+            edit_meal_type = st.text_input(
+                "餐顿标签（可选）",
+                value=display_text(meal.get("meal_type")),
+                placeholder="例如早餐、brunch、夜宵",
             )
-            edit_meal_type = st.selectbox("餐顿类型", MEAL_TYPES, index=meal_idx)
             edit_description = st.text_area(
                 "原始描述", value=display_text(meal.get("description")), height=68
             )
@@ -379,6 +383,7 @@ def render_ledger_tab():
                 st.form_submit_button("取消", width="stretch")
 
         if save:
+            normalized_time = normalize_meal_time(edit_time)
             new_foods = [
                 {
                     "food_name": str(row["food_name"]),
@@ -387,15 +392,17 @@ def render_ledger_tab():
                 for _, row in edited_foods.iterrows()
                 if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
             ]
-            if not new_foods:
+            if normalized_time is None:
+                st.error("请填写有效的用餐时间，格式为 HH:MM")
+            elif not new_foods:
                 st.error("请至少填写一种食物")
             else:
                 update_meal_with_foods(
                     meal_id,
                     new_foods,
                     date=edit_date.strftime("%Y-%m-%d"),
-                    time=optional_text(edit_time),
-                    meal_type=edit_meal_type,
+                    time=normalized_time,
+                    meal_type=resolve_meal_type(edit_meal_type, normalized_time),
                     description=edit_description,
                     notes=optional_text(edit_notes),
                 )
@@ -408,7 +415,11 @@ def render_ledger_tab():
         with col1:
             st.metric("日期", meal["date"])
         with col2:
-            st.metric("餐顿", meal.get("meal_type") or "未知")
+            label = display_text(meal.get("meal_type"))
+            value = meal.get("time") or "时间缺失"
+            if label:
+                value += f" · {label}"
+            st.metric("用餐时间", value)
         st.caption(f"食物：{'、'.join(f['food_name'] for f in meal['foods'])}")
         c1, c2 = st.columns(2)
         with c1:

@@ -63,3 +63,15 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
   secondary operations because they create a linked record or remove one.
 - Daily financial trends use line charts. A large single expense remains a
   visible peak without dominating the chart through bar area.
+
+## Meal Time And Labels
+
+- Meal time is a factual field and is required for new diet records in `HH:MM`
+  form. Existing records without a time remain valid until edited.
+- Meal labels are optional metadata rather than required categories. Explicit
+  labels such as breakfast, brunch or late-night snack are preserved.
+- When no label is supplied, the application infers breakfast, lunch or dinner
+  only inside conservative conventional time windows. Ambiguous times remain
+  unlabeled.
+- Diet analysis is based primarily on meal times, daily meal counts and foods.
+  Optional labels are shown only as a secondary distribution.

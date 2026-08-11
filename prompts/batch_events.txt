@@ -15,11 +15,11 @@
       "event_type": "支出",
       "text": "中午去老乡鸡花了45元",
       "date": "YYYY-MM-DD",
-      "time": "",
+      "time": "12:00",
       "amount": 45.0,
       "category_hint": "",
       "subcategory_hint": "",
-      "meal_type_hint": "午餐",
+      "meal_type_hint": "",
       "linked_group": "lunch_laoxiangji",
       "reasoning": "一句话说明"
     },
@@ -27,11 +27,11 @@
       "event_type": "饮食",
       "text": "中午吃了杂粮饭、一根卤鸡腿、黄瓜火腿炒蛋、西蓝花炒肉和蒜蓉粉丝虾",
       "date": "YYYY-MM-DD",
-      "time": "",
+      "time": "12:00",
       "amount": null,
       "category_hint": "",
       "subcategory_hint": "",
-      "meal_type_hint": "午餐",
+      "meal_type_hint": "",
       "linked_group": "lunch_laoxiangji",
       "reasoning": "一句话说明"
     }
@@ -48,7 +48,7 @@
 - 出现明确金额的财务事件，amount 必须是数字，单位元。
 - 饮食事件 amount 填 null。
 - 日期不明确时使用默认日期。
-- time 不明确时填空字符串。
-- meal_type_hint 只能是这些值之一或空字符串：${meal_types}
+- 饮食事件应尽量给出 HH:MM 时间。明确时刻直接使用；“早上/早餐、中午/午餐、下午、晚上/晚餐”可分别近似为 08:00/12:00/15:00/19:00；完全没有时间线索时填空字符串，交给用户补充。
+- meal_type_hint 只在原文明示餐顿标签时填写；不要根据时间强行填写。常见标签示例：${meal_types}
 - category_hint/subcategory_hint 只是提示，可以为空；后续 pipeline 会继续处理。
 - 保留所有语义事件，不要因为不确定分类就丢弃事件。

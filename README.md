@@ -22,7 +22,7 @@
   - 预计支出可以是一次性或周期性；确认后才创建真实流水
   - 一次性计划可不设日期，周期性付款支持同日续费和固定天数续费
   - 预付摊销创建即记账，并把同一笔付款分摊到指定月份
-- **饮食**：查看、编辑、删除、导出饮食记录，并按月查看覆盖率、餐顿分布和高频食物
+- **饮食**：查看、编辑、删除、导出饮食记录，并按月查看用餐时间、餐次数和高频食物
 
 开销记录支持：
 
@@ -32,7 +32,9 @@
 
 饮食记录支持：
 
-- 用自然语言记录一餐，LLM 提取餐顿类型和食物清单
+- 新饮食记录必须填写大概用餐时间（`HH:MM`）
+- 用自然语言记录一餐，LLM 提取食物清单和可选餐顿标签
+- 餐顿标签允许留空；未明确填写时仅在典型时段内保守推断早餐、午餐或晚餐
 - 低置信度时可手动确认
 
 ## 项目结构
@@ -158,10 +160,10 @@ LLM_API_KEY=your_llm_api_key
 
 ## 测试
 
-当前测试使用标准库 `unittest`，不需要额外安装 pytest：
+当前测试使用标准库 `unittest`，在项目 Python 环境中运行：
 
 ```powershell
-C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m unittest discover -s tests -v
+python -m unittest discover -s tests -v
 ```
 
 测试覆盖重点：
@@ -172,6 +174,7 @@ C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m unittest discover -
 - 金额写入和更新时同步维护 `amount_cents`
 - 月度预算的保存、替换及现金流/摊销后口径对比
 - 云端 SQLite 备份的本地 schema 初始化和滚动保留
+- 用餐时间规范化、必填校验和保守餐顿标签推断
 
 ## 云端备份
 

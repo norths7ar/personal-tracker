@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 
 import pandas as pd
 import streamlit as st
@@ -8,7 +8,6 @@ from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
 from core.constants import (
     BATCH_RECORD_TYPES,
-    DEFAULT_MEAL_TYPES,
     PENDING_CATEGORY,
     TRANSACTION_TYPES,
     TYPE_EXPENSE,
@@ -18,6 +17,7 @@ from core.constants import (
 )
 from core.diet.db import add_meal, get_meals
 from core.diet.extractor import DietExtractor
+from core.diet.meal_time import normalize_meal_time, resolve_meal_type
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
 from core.text import display_text, optional_text
@@ -88,7 +88,11 @@ with st.sidebar:
         if today_meals:
             for meal in today_meals:
                 foods_str = "、".join(f["food_name"] for f in meal["foods"])
-                st.caption(f"**{meal['meal_type']}** {foods_str}")
+                label = display_text(meal.get("meal_type"))
+                prefix = meal.get("time") or "--:--"
+                if label:
+                    prefix += f" · {label}"
+                st.caption(f"**{prefix}** {foods_str}")
         else:
             st.caption("今日暂无饮食记录")
     except Exception:
@@ -192,8 +196,8 @@ def _validate_row(row, idx, config):
     if not display_text(row.get("description")).strip():
         return f"第 {idx + 1} 行缺少描述"
     if record_type == TYPE_MEAL:
-        if not display_text(row.get("meal_type")).strip():
-            return f"第 {idx + 1} 行缺少餐顿类型"
+        if normalize_meal_time(row.get("time")) is None:
+            return f"第 {idx + 1} 行用餐时间必须是 HH:MM"
         if not _food_text_to_list(row.get("foods")):
             return f"第 {idx + 1} 行缺少食物清单"
     else:
@@ -226,10 +230,11 @@ def _save_rows(df, config):
         record_type = display_text(row["record_type"]).strip()
         try:
             if record_type == TYPE_MEAL:
+                meal_time = normalize_meal_time(row.get("time"))
                 add_meal(
                     date=display_text(row["date"]).strip(),
-                    time=optional_text(row.get("time")),
-                    meal_type=display_text(row["meal_type"]).strip(),
+                    time=meal_time,
+                    meal_type=resolve_meal_type(row.get("meal_type"), meal_time),
                     description=display_text(row["description"]).strip(),
                     notes=optional_text(row.get("notes")),
                     confidence=float(row.get("confidence") or 0),
@@ -280,7 +285,6 @@ def render_batch_tab():
         st.session_state.batch_flash = None
 
     config = load_config()
-    meal_types = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
 
     with st.form("batch_parse_form"):
         default_date = st.date_input("默认日期", value=date.today())
@@ -358,15 +362,17 @@ def render_batch_tab():
                 "类型", options=list(BATCH_RECORD_TYPES), required=True
             ),
             "date": st.column_config.TextColumn("日期", required=True),
-            "time": st.column_config.TextColumn("时间"),
+            "time": st.column_config.TextColumn(
+                "时间", help="饮食记录必填 HH:MM；财务记录可留空"
+            ),
             "description": st.column_config.TextColumn("描述", required=True),
             "amount": st.column_config.NumberColumn("金额", format="%.2f"),
             "category": st.column_config.SelectboxColumn(
                 "主类别", options=_all_categories(config)
             ),
             "subcategory": st.column_config.TextColumn("子类别"),
-            "meal_type": st.column_config.SelectboxColumn(
-                "餐顿", options=[""] + meal_types
+            "meal_type": st.column_config.TextColumn(
+                "餐顿标签", help="可选，例如早餐、brunch、夜宵"
             ),
             "foods": st.column_config.TextColumn("食物"),
             "notes": st.column_config.TextColumn("备注"),
@@ -588,10 +594,11 @@ def render_diet_tab():
     extractor = get_diet_extractor(config_version())
 
     def _save_and_done(form, meal_type, foods, confidence=None):
+        resolved_type = resolve_meal_type(meal_type, form["time"])
         meal_id = add_meal(
             date=form["date"],
             time=form["time"],
-            meal_type=meal_type,
+            meal_type=resolved_type,
             description=form["description"],
             notes=form["notes"],
             confidence=confidence,
@@ -599,28 +606,31 @@ def render_diet_tab():
         )
         foods_str = "、".join(f["food_name"] for f in foods)
         st.session_state.diet_pending = None
+        label = f" · {resolved_type}" if resolved_type else ""
         st.session_state.diet_flash = (
-            f"✅ 已保存（ID {meal_id}）：{meal_type} / {foods_str}"
+            f"✅ 已保存（ID {meal_id}）：{form['time']}{label} / {foods_str}"
         )
         st.rerun()
 
     if st.session_state.diet_processing:
         form = st.session_state.diet_processing_form
         with st.spinner("AI正在分析饮食描述..."):
-            result = extractor.extract(form["description"])
+            result = extractor.extract(form["description"], form["time"])
         if result["status"] == "confirmed":
             foods_str = "、".join(f["food_name"] for f in result["foods"])
+            meal_type = resolve_meal_type(result.get("meal_type"), form["time"])
             meal_id = add_meal(
                 date=form["date"],
                 time=form["time"],
-                meal_type=result["meal_type"],
+                meal_type=meal_type,
                 description=form["description"],
                 notes=form["notes"],
                 confidence=result["confidence"],
                 foods=result["foods"],
             )
+            label = f" · {meal_type}" if meal_type else ""
             st.session_state.diet_flash = (
-                f"✅ 已保存（ID {meal_id}）：{result['meal_type']} / {foods_str}"
+                f"✅ 已保存（ID {meal_id}）：{form['time']}{label} / {foods_str}"
                 f"（{result['confidence']:.0%}｜{result['reasoning']}）"
             )
             st.session_state.diet_processing = False
@@ -650,14 +660,12 @@ def render_diet_tab():
         if result.get("reasoning") and status != "error":
             st.caption(f"理由：{result['reasoning']}")
 
-        meal_types = extractor.meal_types
-        default_meal = result.get("meal_type", meal_types[-1])
-        default_idx = (
-            meal_types.index(default_meal)
-            if default_meal in meal_types
-            else len(meal_types) - 1
+        suggested_type = resolve_meal_type(result.get("meal_type"), form["time"])
+        meal_type = st.text_input(
+            "餐顿标签（可选）",
+            value=suggested_type or "",
+            placeholder="例如早餐、brunch、夜宵",
         )
-        meal_type = st.selectbox("餐顿类型", meal_types, index=default_idx)
 
         st.caption("食物清单（可编辑、增删行）")
         foods_df = pd.DataFrame(
@@ -704,13 +712,15 @@ def render_diet_tab():
             entry_date = st.date_input("日期", value=date.today())
         with col2:
             time_str = st.text_input(
-                "时间（可选）", placeholder="如：12:30", help="24小时制"
+                "用餐时间",
+                placeholder="如：12:30",
+                help="必填，使用 24 小时制 HH:MM；大概时间即可",
             )
         description = st.text_area(
             "饮食描述",
             placeholder="例：早上喝了一杯豆浆，两个包子\n或：中午吃了麦当劳巨无霸套餐",
             height=100,
-            help="用自然语言描述你吃了什么，AI会自动提取餐顿和每种食物",
+            help="用自然语言描述你吃了什么，AI会提取食物并给出可选餐顿标签",
         )
         notes = st.text_area(
             "备注（可选）", height=68, placeholder="可记录心情、地点、特殊说明等"
@@ -721,14 +731,10 @@ def render_diet_tab():
         if not description.strip():
             st.error("请填写饮食描述")
             return
-        time_value = None
-        if time_str.strip():
-            try:
-                datetime.strptime(time_str.strip(), "%H:%M")
-                time_value = time_str.strip()
-            except ValueError:
-                st.warning(f"时间格式可能不正确，将保存为文本：{time_str}")
-                time_value = time_str.strip()
+        time_value = normalize_meal_time(time_str)
+        if time_value is None:
+            st.error("请填写有效的用餐时间，格式为 HH:MM")
+            return
         st.session_state.diet_processing_form = {
             "date": entry_date.strftime("%Y-%m-%d"),
             "time": time_value,

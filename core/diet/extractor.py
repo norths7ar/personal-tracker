@@ -1,8 +1,8 @@
 from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
-    DEFAULT_MEAL_TYPE,
     DEFAULT_MEAL_TYPES,
 )
+from core.diet.meal_time import resolve_meal_type
 from core.llm import LLMClient
 from core.prompts import load_prompt
 from core.text import display_text
@@ -20,22 +20,24 @@ class DietExtractor:
         )
         self._llm = LLMClient(config.get("llm", {}))
 
-    def extract(self, description: str) -> dict:
+    def extract(self, description: str, meal_time: str) -> dict:
         """
         返回：
         {
             "status":     "confirmed" | "low_confidence" | "error",
-            "meal_type":  str,
+            "meal_type":  str | None,
             "foods":      [{"food_name": str, "quantity": str}, ...],
             "confidence": float,
             "reasoning":  str,
         }
         """
         try:
-            raw = self._llm.invoke(self._build_prompt(), f"饮食描述：{description}")
-            result = self._normalize(raw)
+            raw = self._llm.invoke(
+                self._build_prompt(meal_time), f"饮食描述：{description}"
+            )
+            result = self._normalize(raw, meal_time)
         except Exception as e:
-            return self._fallback(str(e))
+            return self._fallback(str(e), meal_time)
 
         status = (
             "confirmed" if result["confidence"] >= self.threshold else "low_confidence"
@@ -44,18 +46,22 @@ class DietExtractor:
 
     # ------------------------------------------------------------------
 
-    def _build_prompt(self) -> str:
+    def _build_prompt(self, meal_time: str) -> str:
         meal_types_str = "、".join(self.meal_types)
-        return load_prompt("diet_extractor.txt", meal_types=meal_types_str)
+        return load_prompt(
+            "diet_extractor.txt",
+            meal_types=meal_types_str,
+            meal_time=meal_time,
+        )
 
     @staticmethod
-    def _normalize(data: dict) -> dict:
+    def _normalize(data: dict, meal_time: str) -> dict:
         try:
             data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0.0))))
         except (TypeError, ValueError):
             data["confidence"] = 0.0
 
-        data.setdefault("meal_type", DEFAULT_MEAL_TYPE)
+        data["meal_type"] = resolve_meal_type(data.get("meal_type"), meal_time)
         data.setdefault("reasoning", "")
 
         raw_foods = data.get("foods", [])
@@ -73,10 +79,10 @@ class DietExtractor:
         return data
 
     @staticmethod
-    def _fallback(reason: str) -> dict:
+    def _fallback(reason: str, meal_time: str) -> dict:
         return {
             "status": "error",
-            "meal_type": DEFAULT_MEAL_TYPE,
+            "meal_type": resolve_meal_type(None, meal_time),
             "foods": [{"food_name": "", "quantity": ""}],
             "confidence": 0.0,
             "reasoning": f"提取失败: {reason}",

@@ -3,7 +3,6 @@ from datetime import date
 
 from core.constants import (
     DEFAULT_CATEGORY,
-    DEFAULT_MEAL_TYPE,
     DEFAULT_MEAL_TYPES,
     PENDING_CATEGORY,
     TRANSACTION_TYPES,
@@ -13,6 +12,7 @@ from core.constants import (
     TYPE_TRANSFER,
 )
 from core.diet.extractor import DietExtractor
+from core.diet.meal_time import normalize_meal_time, resolve_meal_type
 from core.expense.classifier import Classifier
 from core.llm import LLMClient
 from core.prompts import load_prompt
@@ -109,16 +109,19 @@ class BatchExtractor:
         )
 
     def _meal_event_to_record(self, event: dict) -> dict:
-        result = self._diet_extractor.extract(event["text"])
-        meal_type = (
-            result.get("meal_type") or event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
+        result = self._diet_extractor.extract(event["text"], event.get("time", ""))
+        meal_type = resolve_meal_type(
+            result.get("meal_type") or event.get("meal_type_hint"),
+            event.get("time"),
         )
         foods = result.get("foods") or []
         confidence = result.get("confidence", 0.0)
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
-            meal_type = event.get("meal_type_hint") or DEFAULT_MEAL_TYPE
+            meal_type = resolve_meal_type(
+                event.get("meal_type_hint"), event.get("time")
+            )
             foods = [{"food_name": event["text"], "quantity": ""}]
 
         return self._record(
@@ -163,7 +166,7 @@ class BatchExtractor:
         amount,
         category: str,
         subcategory: str,
-        meal_type: str,
+        meal_type: str | None,
         foods: list[dict],
         confidence: float,
         reasoning: str,
@@ -257,7 +260,7 @@ class BatchExtractor:
                     "event_type": event_type,
                     "text": text,
                     "date": event_date,
-                    "time": str(item.get("time") or "").strip(),
+                    "time": normalize_meal_time(item.get("time")) or "",
                     "amount": amount,
                     "category_hint": str(item.get("category_hint") or "").strip(),
                     "subcategory_hint": str(item.get("subcategory_hint") or "").strip(),

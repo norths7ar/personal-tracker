@@ -7,12 +7,13 @@ from core.db import (
     placeholders,
     returning_id_clause,
 )
+from core.diet.meal_time import require_meal_time
 
 
 def add_meal(
     date: str,
-    time: str | None,
-    meal_type: str,
+    time: str,
+    meal_type: str | None,
     description: str,
     notes: str | None,
     confidence: float | None,
@@ -23,13 +24,22 @@ def add_meal(
     foods: [{"food_name": str, "quantity": str}, ...]
     Returns meal_id.
     """
+    normalized_time = require_meal_time(time)
+    normalized_meal_type = str(meal_type or "").strip() or None
     with closing(_connect()) as conn:
         cur = conn.execute(
             """INSERT INTO diet_meals
                (date, time, meal_type, description, notes, confidence)
                VALUES (?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
-            (date, time, meal_type, description, notes, confidence),
+            (
+                date,
+                normalized_time,
+                normalized_meal_type,
+                description,
+                notes,
+                confidence,
+            ),
         )
         meal_id = inserted_id(cur)
         conn.executemany(
@@ -93,6 +103,10 @@ def update_meal_with_foods(meal_id: int, foods: list, **fields):
     """Update meal metadata and replace food items atomically in one transaction."""
     allowed = {"date", "time", "meal_type", "description", "notes", "confidence"}
     updates = {k: v for k, v in fields.items() if k in allowed}
+    if "time" in updates:
+        updates["time"] = require_meal_time(updates["time"])
+    if "meal_type" in updates:
+        updates["meal_type"] = str(updates["meal_type"] or "").strip() or None
     with closing(_connect()) as conn:
         if updates:
             set_clause = ", ".join(f"{k} = ?" for k in updates)
@@ -121,6 +135,7 @@ def get_diet_summary(start_date: str, end_date: str) -> dict:
             """SELECT meal_type, COUNT(*) as count
                FROM diet_meals
                WHERE date >= ? AND date <= ?
+                 AND meal_type IS NOT NULL AND meal_type <> ''
                GROUP BY meal_type ORDER BY count DESC""",
             (start_date, end_date),
         ).fetchall()
@@ -162,11 +177,11 @@ def get_diet_dates() -> list:
 def get_diet_stats(start_date, end_date) -> dict:
     """Data for the analysis page."""
     with closing(_connect()) as conn:
-        # Which meal_types were recorded on each date (for coverage heatmap)
-        daily_coverage = conn.execute(
-            """SELECT date, meal_type FROM diet_meals
+        meal_times = conn.execute(
+            """SELECT date, time FROM diet_meals
                WHERE date >= ? AND date <= ?
-               ORDER BY date""",
+                 AND time IS NOT NULL AND time <> ''
+               ORDER BY date, time""",
             (start_date, end_date),
         ).fetchall()
 
@@ -196,12 +211,13 @@ def get_diet_stats(start_date, end_date) -> dict:
             """SELECT meal_type, COUNT(*) as count
                FROM diet_meals
                WHERE date >= ? AND date <= ?
+                 AND meal_type IS NOT NULL AND meal_type <> ''
                GROUP BY meal_type ORDER BY count DESC""",
             (start_date, end_date),
         ).fetchall()
 
     return {
-        "daily_coverage": [dict(r) for r in daily_coverage],
+        "meal_times": [dict(r) for r in meal_times],
         "food_freq": [dict(r) for r in food_freq],
         "daily_meals": [dict(r) for r in daily_meals],
         "meal_type_dist": [dict(r) for r in meal_type_dist],
