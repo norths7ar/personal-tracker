@@ -46,8 +46,8 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
   cash outflow.
 - They are shown in the monthly analysis view, not as a separate budget page.
 - Personal budgeting is monthly; there is no annual or category budget plan.
-- Monthly analysis shows active recurring payments as a separate fixed-cost
-  reference. It excludes one-time plans and prepaid amortization.
+- Monthly analysis shows active recurring payments and prepaid amortization as
+  a separate fixed-cost reference. It excludes one-time plans.
 
 ## Interface Principles
 

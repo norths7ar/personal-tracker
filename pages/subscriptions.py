@@ -171,7 +171,7 @@ def _add_expected_dialog() -> None:
     renewal_interval = None
     if recurring:
         renewal_mode, renewal_interval = _render_recurrence_fields("add_expected")
-        due_date = st.date_input("下次付款日", value=today)
+        due_date = st.date_input("付款日", value=today)
     else:
         has_date = st.checkbox("设置预计日期", value=False)
         due_date = st.date_input("预计日期", value=today) if has_date else None
@@ -246,7 +246,7 @@ def _edit_expected_dialog(record: dict) -> None:
             _positive_int(record.get("renewal_interval")),
         )
         next_date = st.date_input(
-            "下次付款日",
+            "付款日",
             value=_optional_date(record.get("next_date")) or today,
         )
     else:
@@ -603,7 +603,7 @@ with expected_tab:
                 {
                     "描述": record["description"],
                     "金额": f"¥{float(record.get('amount') or 0):,.2f}",
-                    "下次日期": display_text(record.get("next_date")) or "—",
+                    "付款日": display_text(record.get("next_date")) or "—",
                     "周期": _cycle_label(record),
                     "主类别": display_text(record.get("category")),
                     "状态": _due_state(record),
@@ -620,7 +620,7 @@ with expected_tab:
             column_config={
                 "描述": st.column_config.TextColumn("描述", width="large"),
                 "金额": st.column_config.TextColumn("金额", width="small"),
-                "下次日期": st.column_config.TextColumn("下次日期", width="small"),
+                "付款日": st.column_config.TextColumn("付款日", width="small"),
                 "周期": st.column_config.TextColumn("周期", width="small"),
                 "主类别": st.column_config.TextColumn("主类别", width="small"),
                 "状态": st.column_config.TextColumn("状态", width="small"),

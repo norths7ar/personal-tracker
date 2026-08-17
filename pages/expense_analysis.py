@@ -6,7 +6,6 @@ import streamlit as st
 
 from core.auth import require_login
 from core.budget.db import get_month_budget, save_month_budget
-from core.constants import RECURRING_PAYMENT_SUBSCRIPTION
 from core.expense.db import (
     get_active_months,
     get_active_years,
@@ -31,21 +30,21 @@ basis_key = "amortized" if analysis_basis == "摊销后" else "cash"
 
 
 def metrics_row(cur: dict, prev: dict, n_days: int):
-    """Render period totals."""
+    """Render cash-flow period totals."""
     col1, col2, col3, col4 = st.columns(4)
     for col, label, cur_val, prev_val in [
-        (col1, "支出", cur["expense"], prev["expense"]),
-        (col2, "收入", cur["income"], prev["income"]),
+        (col1, "现金流支出", cur["expense"], prev["expense"]),
+        (col2, "现金流收入", cur["income"], prev["income"]),
     ]:
         delta = cur_val - prev_val
         col.metric(
             label,
             f"¥{cur_val:,.2f}",
             delta=f"¥{delta:+,.2f}" if prev_val else None,
-            delta_color="inverse" if label == "支出" else "normal",
+            delta_color="inverse" if label == "现金流支出" else "normal",
         )
 
-    col3.metric("日均支出", f"¥{cur['expense'] / n_days:,.2f}" if n_days else "—")
+    col3.metric("日均现金流支出", f"¥{cur['expense'] / n_days:,.2f}" if n_days else "—")
     balance = cur["balance"]
     col4.metric(
         "收支结余", f"¥{balance:,.2f}", delta=f"¥{balance:,.2f}", delta_color="normal"
@@ -257,6 +256,7 @@ with tab_month:
         ]
 
         cur = get_period_data(start, end, basis=basis_key)
+        cash_cur = get_period_data(start, end, "cash")
 
         # 上个月
         if m == 1:
@@ -267,17 +267,18 @@ with tab_month:
             prev_start = f"{y:04d}-{m - 1:02d}-01"
             prev_end = (date(y, m, 1) - timedelta(days=1)).isoformat()
         prev = get_period_data(prev_start, prev_end, basis=basis_key)
+        cash_prev = get_period_data(prev_start, prev_end, "cash")
 
         recurring_monthly_cost = sum(
             float(record.get("monthly_equivalent") or 0)
-            for record in get_subscriptions(payment_type=RECURRING_PAYMENT_SUBSCRIPTION)
+            for record in get_subscriptions()
         )
-        metrics_row(cur, prev, n_days=n_days)
+        metrics_row(cash_cur, cash_prev, n_days=n_days)
         fixed_cost_col, _ = st.columns([1, 3])
         fixed_cost_col.metric(
-            "月固定支出",
+            "固定支出",
             f"¥{recurring_monthly_cost:,.2f}",
-            help="活跃周期性付款折算后的月均金额；不计入本月支出总额。",
+            help="活跃订阅与预付摊销折算后的月均固定成本。",
         )
         budget = get_month_budget(selected_ym)
         cash_data = cur if basis_key == "cash" else get_period_data(start, end, "cash")
@@ -384,15 +385,17 @@ with tab_year:
         all_months = [f"{selected_year}-{m:02d}" for m in range(1, 13)]
         # 年视图按月聚合。
         cur = get_period_data(start, end, basis=basis_key)
+        cash_cur = get_period_data(start, end, "cash")
 
         # 上一年
         prev_year = str(int(selected_year) - 1)
         prev = get_period_data(
             f"{prev_year}-01-01", f"{prev_year}-12-31", basis=basis_key
         )
+        cash_prev = get_period_data(f"{prev_year}-01-01", f"{prev_year}-12-31", "cash")
         n_days = 366 if int(selected_year) % 4 == 0 else 365
 
-        metrics_row(cur, prev, n_days=n_days)
+        metrics_row(cash_cur, cash_prev, n_days=n_days)
 
         # 年视图：按月聚合柱状图
         st.caption("本年各月收支")
