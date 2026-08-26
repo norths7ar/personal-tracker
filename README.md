@@ -26,9 +26,9 @@
 
 开销记录支持：
 
-  - 支出描述自动调用 LLM 分类；低置信度或未知类别时进入手动确认
-  - 收入和迁移从 `config.yaml` 选择分类
-  - 迁移记录保存到流水，但不参与收支结余计算
+- 支出描述自动调用 LLM 分类；低置信度或未知类别时进入手动确认
+- 收入和迁移从 `config.yaml` 选择分类
+- 迁移记录保存到流水，但不参与收支结余计算
 
 饮食记录支持：
 
@@ -44,7 +44,9 @@ personal-tracker/
 ├── app.py                  # Streamlit 入口和页面导航
 ├── config.yaml             # 开销分类、饮食配置和公开 LLM 参数
 ├── .env.example            # 环境变量示例
-├── requirements.txt        # Python 依赖
+├── pyproject.toml          # 项目元数据和直接依赖
+├── uv.lock                 # 完整、可复现的依赖锁定
+├── requirements.txt        # 由 uv 生成，供 Streamlit Cloud 部署
 ├── core/
 │   ├── config.py           # 配置加载
 │   ├── db.py               # SQLite/PostgreSQL 连接和表初始化
@@ -70,12 +72,8 @@ personal-tracker/
 │   └── diet_ledger.py
 ├── tests/
 │   └── test_db_workflows.py
-├── scripts/
-│   ├── backup_cloud_to_sqlite.py  # 云端 PostgreSQL -> 本地 SQLite 滚动备份
-│   └── cleanup_2026_07_20.py      # 已执行过的历史清理脚本
 └── data/
-    ├── expenses.db         # 本地 SQLite 数据库，不进版本控制
-    └── backups/            # 云端和本地快照，不进版本控制
+    └── expenses.db         # 本地 SQLite 数据库，不进版本控制
 ```
 
 ## 快速开始
@@ -83,21 +81,13 @@ personal-tracker/
 ### 本地 SQLite
 
 ```powershell
-conda create -n expense-tracker python=3.12
-conda activate expense-tracker
-pip install -r requirements.txt
+uv sync
 
 Copy-Item .env.example .env
 # 编辑 .env，填入 LLM_API_KEY
 # DB_BACKEND 保持 sqlite
 
-streamlit run app.py
-```
-
-如果 Python 不在 PATH 中，可以使用完整解释器路径启动：
-
-```powershell
-C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe -m streamlit run app.py
+uv run streamlit run app.py
 ```
 
 ### Supabase PostgreSQL / Streamlit Cloud
@@ -160,10 +150,10 @@ LLM_API_KEY=your_llm_api_key
 
 ## 测试
 
-当前测试使用标准库 `unittest`，在项目 Python 环境中运行：
+当前测试使用标准库 `unittest`：
 
 ```powershell
-python -m unittest discover -s tests -v
+uv run python -m unittest discover -s tests -v
 ```
 
 测试覆盖重点：
@@ -173,19 +163,14 @@ python -m unittest discover -s tests -v
 - 删除预付跨期费用时同步清空关联交易的摊销字段
 - 金额写入和更新时同步维护 `amount_cents`
 - 月度预算的保存、替换及现金流/摊销后口径对比
-- 云端 SQLite 备份的本地 schema 初始化和滚动保留
 - 用餐时间规范化、必填校验和保守餐顿标签推断
 
-## 云端备份
+## 后续方向
 
-`scripts/backup_cloud_to_sqlite.py` 会从 `.env` 或环境变量读取现有 Supabase PostgreSQL 配置，生成可直接作为本地开发库使用的 SQLite 快照。快照位于已忽略的 `data/backups/cloud/`，默认保留最近 10 份。
+当前优先保持开销和饮食两条主线，不急于增加新的 tracker。
 
-```powershell
-C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/backup_cloud_to_sqlite.py
-```
+- 在首页显示到期预计支出、即将续费项目和待分类记录的简洁提醒。
+- 标准化饮食记录中的菜品与食材，同时保留原始描述，支持人工修正和别名合并。
+- 观察真实使用中反复出现的问题，再决定是否增加更具体的分析能力。
 
-确认快照成功后，以下命令会额外替换 `data/expenses.db`；原有本地库会先归档至 `data/backups/local/`：
-
-```powershell
-C:/Users/jnkyl/miniconda3/envs/expense-tracker/python.exe scripts/backup_cloud_to_sqlite.py --refresh-local
-```
+复杂的会计语义、续费规则和界面边界记录在 `DECISIONS.md`。
