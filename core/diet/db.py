@@ -7,7 +7,42 @@ from core.db import (
     placeholders,
     returning_id_clause,
 )
+from core.diet.ingredients import normalize_ingredients
 from core.diet.meal_time import require_meal_time
+
+
+def _normalize_foods(foods: list[dict]) -> list[dict]:
+    normalized = []
+    for food in foods:
+        food_name = str(food.get("food_name") or "").strip()
+        if not food_name:
+            continue
+        normalized.append(
+            {
+                "food_name": food_name,
+                "quantity": str(food.get("quantity") or "").strip(),
+                "ingredients": normalize_ingredients(food.get("ingredients")),
+            }
+        )
+    if not normalized:
+        raise ValueError("请至少填写一种食物")
+    return normalized
+
+
+def _insert_foods(conn, meal_id: int, foods: list[dict]) -> None:
+    for food in _normalize_foods(foods):
+        cur = conn.execute(
+            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)"
+            + returning_id_clause(),
+            (meal_id, food["food_name"], food["quantity"]),
+        )
+        food_id = inserted_id(cur)
+        if food["ingredients"]:
+            conn.executemany(
+                """INSERT INTO diet_ingredients (food_id, ingredient_name)
+                   VALUES (?, ?)""",
+                [(food_id, ingredient) for ingredient in food["ingredients"]],
+            )
 
 
 def add_meal(
@@ -21,7 +56,7 @@ def add_meal(
 ) -> int:
     """
     Insert one meal + its food items atomically.
-    foods: [{"food_name": str, "quantity": str}, ...]
+    foods: [{"food_name": str, "quantity": str, "ingredients": [str, ...]}, ...]
     Returns meal_id.
     """
     normalized_time = require_meal_time(time)
@@ -42,10 +77,7 @@ def add_meal(
             ),
         )
         meal_id = inserted_id(cur)
-        conn.executemany(
-            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
-            [(meal_id, f["food_name"], f.get("quantity") or "") for f in foods],
-        )
+        _insert_foods(conn, meal_id, foods)
         conn.commit()
     return meal_id
 
@@ -59,7 +91,7 @@ def get_meals(
     """
     Return list of meal dicts, each with a 'foods' key:
     [{"id", "date", "time", "meal_type", "description", "notes", "confidence",
-      "created_at", "foods": [{"food_name", "quantity"}, ...]}, ...]
+      "created_at", "foods": [{"food_name", "quantity", "ingredients"}, ...]}, ...]
     """
     query = "SELECT * FROM diet_meals WHERE 1=1"
     params = []
@@ -88,11 +120,33 @@ def get_meals(
             ),
             meal_ids,
         ).fetchall()
+        food_ids = [food["id"] for food in food_rows]
+        ingredient_rows = (
+            conn.execute(
+                (
+                    "SELECT * FROM diet_ingredients "
+                    f"WHERE food_id IN ({placeholders(len(food_ids))}) "
+                    "ORDER BY id"
+                ),
+                food_ids,
+            ).fetchall()
+            if food_ids
+            else []
+        )
 
+    ingredients_by_food: dict[int, list[str]] = {}
+    for ingredient in ingredient_rows:
+        ingredients_by_food.setdefault(ingredient["food_id"], []).append(
+            ingredient["ingredient_name"]
+        )
     foods_by_meal: dict = {}
     for f in food_rows:
         foods_by_meal.setdefault(f["meal_id"], []).append(
-            {"food_name": f["food_name"], "quantity": f["quantity"] or ""}
+            {
+                "food_name": f["food_name"],
+                "quantity": f["quantity"] or "",
+                "ingredients": ingredients_by_food.get(f["id"], []),
+            }
         )
     for meal in meals:
         meal["foods"] = foods_by_meal.get(meal["id"], [])
@@ -115,10 +169,7 @@ def update_meal_with_foods(meal_id: int, foods: list, **fields):
                 [*updates.values(), meal_id],
             )
         conn.execute("DELETE FROM diet_foods WHERE meal_id = ?", (meal_id,))
-        conn.executemany(
-            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
-            [(meal_id, f["food_name"], f.get("quantity") or "") for f in foods],
-        )
+        _insert_foods(conn, meal_id, foods)
         conn.commit()
 
 

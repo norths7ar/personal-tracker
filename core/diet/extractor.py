@@ -2,6 +2,7 @@ from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     DEFAULT_MEAL_TYPES,
 )
+from core.diet.ingredients import normalize_ingredients
 from core.diet.meal_time import resolve_meal_type
 from core.llm import LLMClient
 from core.prompts import load_prompt
@@ -26,7 +27,8 @@ class DietExtractor:
         {
             "status":     "confirmed" | "low_confidence" | "error",
             "meal_type":  str | None,
-            "foods":      [{"food_name": str, "quantity": str}, ...],
+            "foods":      [{"food_name": str, "quantity": str,
+                              "ingredients": [str, ...]}, ...],
             "confidence": float,
             "reasoning":  str,
         }
@@ -71,11 +73,14 @@ class DietExtractor:
             {
                 "food_name": str(f["food_name"]),
                 "quantity": display_text(f.get("quantity")),
+                "ingredients": normalize_ingredients(f.get("ingredients")),
             }
             for f in raw_foods
             if isinstance(f, dict) and f.get("food_name")
         ]
-        data["foods"] = foods if foods else [{"food_name": "", "quantity": ""}]
+        data["foods"] = (
+            foods if foods else [{"food_name": "", "quantity": "", "ingredients": []}]
+        )
         return data
 
     @staticmethod
@@ -83,7 +88,7 @@ class DietExtractor:
         return {
             "status": "error",
             "meal_type": resolve_meal_type(None, meal_time),
-            "foods": [{"food_name": "", "quantity": ""}],
+            "foods": [{"food_name": "", "quantity": "", "ingredients": []}],
             "confidence": 0.0,
             "reasoning": f"提取失败: {reason}",
         }

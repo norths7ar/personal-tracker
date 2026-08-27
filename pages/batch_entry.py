@@ -17,9 +17,11 @@ from core.constants import (
 )
 from core.diet.db import add_meal, get_meals
 from core.diet.extractor import DietExtractor
+from core.diet.ingredients import ingredients_to_text, normalize_ingredients
 from core.diet.meal_time import normalize_meal_time, resolve_meal_type
 from core.expense.classifier import Classifier
 from core.expense.db import add_transaction, get_transactions
+from core.reminders import get_home_reminders
 from core.text import display_text, optional_text
 
 require_login(show_logout=False)
@@ -63,6 +65,42 @@ for key, default in [
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
+
+
+def _due_label(days_until_due: int) -> str:
+    if days_until_due < 0:
+        return f"逾期 {-days_until_due} 天"
+    if days_until_due == 0:
+        return "今天"
+    return f"{days_until_due} 天后"
+
+
+def _render_home_reminders() -> None:
+    reminders = get_home_reminders()
+    items = reminders["items"]
+    pending_count = reminders["pending_count"]
+    if not items and not pending_count:
+        return
+
+    with st.container(border=True):
+        st.markdown("**待办提醒**")
+        for item in items[:4]:
+            amount = f" · ¥{item['amount']:,.2f}" if item["amount"] else ""
+            due_label = _due_label(item["days_until_due"])
+            st.markdown(f"- {item['description']} · {due_label}{amount}")
+        if len(items) > 4:
+            st.caption(f"另有 {len(items) - 4} 项付款提醒")
+        if pending_count:
+            st.markdown(f"- 待分类支出 · {pending_count} 笔")
+
+        action_columns = st.columns([1, 1, 4])
+        if items:
+            action_columns[0].page_link("pages/subscriptions.py", label="处理跨期费用")
+        if pending_count:
+            action_columns[1].page_link("pages/expense_pending.py", label="处理待分类")
+
+
+_render_home_reminders()
 
 
 # ── 侧边栏：今日概览 ──────────────────────────────────────────────────────────
@@ -135,9 +173,13 @@ def _food_list_to_text(foods):
     for food in foods or []:
         name = display_text(food.get("food_name")).strip()
         quantity = display_text(food.get("quantity")).strip()
+        ingredients = ingredients_to_text(food.get("ingredients"))
         if not name:
             continue
-        parts.append(f"{name}:{quantity}" if quantity else name)
+        value = f"{name}:{quantity}" if quantity else name
+        if ingredients:
+            value += f"【{ingredients}】"
+        parts.append(value)
     return "；".join(parts)
 
 
@@ -147,6 +189,10 @@ def _food_text_to_list(text):
         part = part.strip()
         if not part:
             continue
+        ingredients = []
+        if part.endswith("】") and "【" in part:
+            part, ingredient_text = part.rsplit("【", 1)
+            ingredients = normalize_ingredients(ingredient_text[:-1])
         if ":" in part:
             name, quantity = part.split(":", 1)
         elif "：" in part:
@@ -155,7 +201,13 @@ def _food_text_to_list(text):
             name, quantity = part, ""
         name = name.strip()
         if name:
-            foods.append({"food_name": name, "quantity": quantity.strip()})
+            foods.append(
+                {
+                    "food_name": name,
+                    "quantity": quantity.strip(),
+                    "ingredients": ingredients,
+                }
+            )
     return foods
 
 
@@ -374,7 +426,10 @@ def render_batch_tab():
             "meal_type": st.column_config.TextColumn(
                 "餐顿标签", help="可选，例如早餐、brunch、夜宵"
             ),
-            "foods": st.column_config.TextColumn("食物"),
+            "foods": st.column_config.TextColumn(
+                "菜品与食材",
+                help="格式：菜品:份量【食材1、食材2】；多个菜品用分号分隔",
+            ),
             "notes": st.column_config.TextColumn("备注"),
             "confidence": st.column_config.NumberColumn(
                 "置信度", min_value=0.0, max_value=1.0, format="%.2f"
@@ -669,7 +724,17 @@ def render_diet_tab():
 
         st.caption("食物清单（可编辑、增删行）")
         foods_df = pd.DataFrame(
-            result.get("foods", [{"food_name": "", "quantity": ""}])
+            [
+                {
+                    "food_name": food.get("food_name", ""),
+                    "quantity": food.get("quantity", ""),
+                    "ingredients": ingredients_to_text(food.get("ingredients")),
+                }
+                for food in result.get(
+                    "foods",
+                    [{"food_name": "", "quantity": "", "ingredients": []}],
+                )
+            ]
         )
         edited_df = st.data_editor(
             foods_df,
@@ -677,6 +742,9 @@ def render_diet_tab():
             column_config={
                 "food_name": st.column_config.TextColumn("食物名称", required=True),
                 "quantity": st.column_config.TextColumn("份量"),
+                "ingredients": st.column_config.TextColumn(
+                    "主要食材", help="使用顿号、逗号或分号分隔"
+                ),
             },
             hide_index=True,
             width="stretch",
@@ -691,6 +759,7 @@ def render_diet_tab():
                     {
                         "food_name": str(row["food_name"]),
                         "quantity": display_text(row.get("quantity")),
+                        "ingredients": normalize_ingredients(row.get("ingredients")),
                     }
                     for _, row in edited_df.iterrows()
                     if pd.notna(row["food_name"]) and str(row["food_name"]).strip()

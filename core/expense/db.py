@@ -189,6 +189,21 @@ def get_pending_transactions(limit: int = 200) -> list[dict]:
     return [_normalize_transaction(r) for r in rows]
 
 
+def get_pending_transaction_count() -> int:
+    query = f"""SELECT COUNT(*) AS count FROM transactions
+                WHERE type = '{TYPE_EXPENSE}'
+                  AND (
+                     category = '{PENDING_CATEGORY}'
+                     OR subcategory = '{PENDING_CATEGORY}'
+                     OR category IS NULL
+                     OR category = ''
+                     OR COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
+                  )"""
+    with closing(_connect()) as conn:
+        row = conn.execute(query).fetchone()
+    return int(row["count"])
+
+
 def get_refunds_for(transaction_id: int) -> list[dict]:
     with closing(_connect()) as conn:
         rows = conn.execute(

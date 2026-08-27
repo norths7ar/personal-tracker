@@ -11,6 +11,7 @@ from core.diet.db import (
     get_meals,
     update_meal_with_foods,
 )
+from core.diet.ingredients import ingredients_to_text, normalize_ingredients
 from core.diet.meal_time import normalize_meal_time, resolve_meal_type
 from core.text import display_text, optional_text
 
@@ -37,6 +38,16 @@ def _date_range_days(start_str: str, end_str: str) -> list[str]:
     return [
         (start + timedelta(days=i)).isoformat() for i in range((end - start).days + 1)
     ]
+
+
+def _food_display(food: dict) -> str:
+    value = food["food_name"]
+    if food.get("quantity"):
+        value += f"×{food['quantity']}"
+    ingredients = ingredients_to_text(food.get("ingredients"))
+    if ingredients:
+        value += f"（{ingredients}）"
+    return value
 
 
 def _meal_time_scatter(meal_times: list):
@@ -263,11 +274,7 @@ def render_ledger_tab():
                     "date": m["date"],
                     "time": display_text(m.get("time")),
                     "meal_type": display_text(m.get("meal_type")),
-                    "foods": "、".join(
-                        f"{f['food_name']}"
-                        f"{'×' + f['quantity'] if f.get('quantity') else ''}"
-                        for f in m["foods"]
-                    ),
+                    "foods": "、".join(_food_display(food) for food in m["foods"]),
                     "notes": display_text(m.get("notes")),
                 }
                 for m in meals_list
@@ -282,10 +289,13 @@ def render_ledger_tab():
                     "date": m["date"],
                     "time": display_text(m.get("time")),
                     "meal_type": display_text(m.get("meal_type")),
-                    "foods": "、".join(
-                        f"{f['food_name']}"
-                        f"{'×' + f['quantity'] if f.get('quantity') else ''}"
-                        for f in m["foods"]
+                    "foods": "、".join(_food_display(food) for food in m["foods"]),
+                    "ingredients": ingredients_to_text(
+                        [
+                            ingredient
+                            for food in m["foods"]
+                            for ingredient in food.get("ingredients", [])
+                        ]
                     ),
                     "description": display_text(m.get("description")),
                     "notes": display_text(m.get("notes")),
@@ -362,7 +372,15 @@ def render_ledger_tab():
             )
             st.caption("食物清单（可编辑、增删行）")
             foods_df = pd.DataFrame(
-                meal["foods"] or [{"food_name": "", "quantity": ""}]
+                [
+                    {
+                        "food_name": food.get("food_name", ""),
+                        "quantity": food.get("quantity", ""),
+                        "ingredients": ingredients_to_text(food.get("ingredients")),
+                    }
+                    for food in meal["foods"]
+                ]
+                or [{"food_name": "", "quantity": "", "ingredients": ""}]
             )
             edited_foods = st.data_editor(
                 foods_df,
@@ -370,6 +388,9 @@ def render_ledger_tab():
                 column_config={
                     "food_name": st.column_config.TextColumn("食物名称", required=True),
                     "quantity": st.column_config.TextColumn("份量"),
+                    "ingredients": st.column_config.TextColumn(
+                        "主要食材", help="使用顿号、逗号或分号分隔"
+                    ),
                 },
                 hide_index=True,
                 width="stretch",
@@ -388,6 +409,7 @@ def render_ledger_tab():
                 {
                     "food_name": str(row["food_name"]),
                     "quantity": display_text(row.get("quantity")),
+                    "ingredients": normalize_ingredients(row.get("ingredients")),
                 }
                 for _, row in edited_foods.iterrows()
                 if pd.notna(row["food_name"]) and str(row["food_name"]).strip()
@@ -420,7 +442,7 @@ def render_ledger_tab():
             if label:
                 value += f" · {label}"
             st.metric("用餐时间", value)
-        st.caption(f"食物：{'、'.join(f['food_name'] for f in meal['foods'])}")
+        st.caption(f"食物：{'、'.join(_food_display(food) for food in meal['foods'])}")
         c1, c2 = st.columns(2)
         with c1:
             if st.button("确认删除", type="primary", width="stretch"):

@@ -63,6 +63,9 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
   secondary operations because they create a linked record or remove one.
 - Daily financial trends use line charts. A large single expense remains a
   visible peak without dominating the chart through bar area.
+- The record page shows a compact reminder only when action is needed. Reminders
+  never create transactions; linked subscription plans are deduplicated against
+  the recurring payment shown for the same action.
 
 ## Meal Time And Labels
 
@@ -75,3 +78,7 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
   unlabeled.
 - Diet analysis is based primarily on meal times, daily meal counts and foods.
   Optional labels are shown only as a secondary distribution.
+- A meal description preserves the user's original wording. Each extracted food
+  is a dish or standalone food, and may have separately stored major ingredients.
+  Ingredients are editable facts used for later aggregation, not nutritional
+  categories or inferred nutrient claims.

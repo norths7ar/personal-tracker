@@ -5,15 +5,18 @@
 
 请从描述中提取以下信息：
 1. meal_type（可选餐顿标签）：原文明确出现早餐、午餐、晚餐、brunch、夜宵等标签时填写，否则留空字符串
-2. foods（食物列表）：将描述中提到的每种食物单独列出，每项包含 food_name 和 quantity
+2. foods（菜品列表）：将描述中提到的每种菜品或食物单独列出，每项包含：
+   - food_name：简洁、稳定的菜品名称，去掉数量和商户等无关修饰，但保留烹饪方式，例如“3根烤鸡腿”写成“烤鸡腿”
+   - quantity：原文中的份量
+   - ingredients：该菜品能从名称或原文明确认出的主要食材，使用通用食材名
 
 只输出纯 JSON 对象，不要有任何其他内容，格式如下：
 {
     "meal_type": "",
     "foods": [
-        {"food_name": "豆浆", "quantity": "1杯"},
-        {"food_name": "包子", "quantity": "2个"},
-        {"food_name": "煮鸡蛋", "quantity": "1个"}
+        {"food_name": "豆浆", "quantity": "1杯", "ingredients": ["黄豆"]},
+        {"food_name": "包子", "quantity": "2个", "ingredients": []},
+        {"food_name": "煮鸡蛋", "quantity": "1个", "ingredients": ["鸡蛋"]}
     ],
     "confidence": 0.92,
     "reasoning": "一句话说明提取理由"
@@ -23,4 +26,7 @@
 - 不要仅为了填满字段而猜测餐顿标签；系统会根据时间另行做保守推断
 - 如果无法确定某食物的份量，quantity 留空字符串
 - foods 必须是列表，每种食物单独一项，不要合并
+- ingredients 只记录能够确认的主要食材，不猜测馅料，不记录盐、油、酱油等普通调料
+- 复合菜应拆出明确食材，例如“黄瓜火腿炒蛋”的 ingredients 是 ["黄瓜", "火腿", "鸡蛋"]
+- 简单食物也记录其核心食材，例如“烤鸡腿”的 ingredients 是 ["鸡腿"]
 - confidence 是0.0-1.0的置信度
