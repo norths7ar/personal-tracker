@@ -135,6 +135,7 @@ def init_db():
         _ensure_subscription_payment_type(conn)
         _ensure_subscription_renewal_columns(conn)
         _ensure_planned_expense_columns(conn)
+        _ensure_batch_submission_schema(conn)
         _init_budgets(conn)
         _migrate_amortized_to_subscriptions(conn)
         conn.commit()
@@ -428,6 +429,22 @@ def _ensure_planned_expense_columns(conn):
             subscription_id INTEGER,
             transaction_id  INTEGER,
             status       TEXT NOT NULL DEFAULT 'open',
+            created_at   {created_at}
+        )"""
+    )
+
+
+def _ensure_batch_submission_schema(conn):
+    if conn.backend == "postgres":
+        created_at = "TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')"
+    else:
+        created_at = "TEXT DEFAULT (datetime('now', 'localtime'))"
+
+    conn.execute(
+        f"""CREATE TABLE IF NOT EXISTS batch_submissions (
+            submission_id TEXT PRIMARY KEY,
+            payload_hash TEXT NOT NULL,
+            record_count INTEGER NOT NULL,
             created_at   {created_at}
         )"""
     )

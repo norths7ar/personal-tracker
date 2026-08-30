@@ -2,8 +2,10 @@ import sqlite3
 import unittest
 from unittest.mock import patch
 
+import core.batch.db as batch_db
 import core.budget.db as budget_db
 import core.db as core_db
+import core.diet.db as diet_db
 import core.expense.db as expense_db
 import core.planned_expense.db as planned_expense_db
 import core.subscription.db as subscription_db
@@ -34,6 +36,8 @@ class DatabaseWorkflowTest(unittest.TestCase):
             patch.object(core_db, "get_backend", return_value="sqlite"),
             patch.object(core_db, "is_postgres", return_value=False),
             patch.object(budget_db, "_connect", return_value=self.conn),
+            patch.object(batch_db, "_connect", return_value=self.conn),
+            patch.object(diet_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "is_postgres", return_value=False),
             patch.object(subscription_db, "_connect", return_value=self.conn),
@@ -73,6 +77,108 @@ class DatabaseWorkflowTest(unittest.TestCase):
         ).fetchone()
         self.assertEqual(row["amount_cents"], 4568)
         self.assertEqual(row["amount"], 45.68)
+
+    def test_batch_save_is_atomic_and_idempotent(self):
+        records = [
+            {
+                "record_type": TYPE_EXPENSE,
+                "date": "2026-08-30",
+                "description": "train ticket",
+                "amount": 120,
+                "category": "旅行",
+                "subcategory": "旅行交通",
+                "notes": None,
+                "confidence": 0.9,
+            },
+            {
+                "record_type": "饮食",
+                "date": "2026-08-30",
+                "time": "12:30",
+                "meal_type": "午餐",
+                "description": "noodles",
+                "notes": None,
+                "confidence": 0.95,
+                "foods": [
+                    {
+                        "food_name": "noodles",
+                        "quantity": "1 bowl",
+                        "ingredients": ["wheat"],
+                    }
+                ],
+            },
+        ]
+
+        first = batch_db.save_batch("batch-1", records)
+        second = batch_db.save_batch("batch-1", records)
+
+        self.assertEqual(first, {"saved_count": 2, "duplicate": False})
+        self.assertEqual(second, {"saved_count": 2, "duplicate": True})
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 1
+        )
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM diet_meals").fetchone()[0], 1
+        )
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM diet_foods").fetchone()[0], 1
+        )
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM diet_ingredients").fetchone()[0], 1
+        )
+
+    def test_batch_failure_rolls_back_and_can_retry_same_submission(self):
+        invalid_records = [
+            {
+                "record_type": TYPE_EXPENSE,
+                "date": "2026-08-30",
+                "description": "taxi",
+                "amount": 20,
+                "category": "旅行",
+                "subcategory": "旅行交通",
+            },
+            {
+                "record_type": "饮食",
+                "date": "2026-08-30",
+                "time": "12:30",
+                "description": "invalid meal",
+                "foods": [],
+            },
+        ]
+
+        with self.assertRaises(ValueError):
+            batch_db.save_batch("batch-retry", invalid_records)
+
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM batch_submissions").fetchone()[0],
+            0,
+        )
+        self.assertEqual(
+            self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 0
+        )
+
+        valid_records = [invalid_records[0]]
+        result = batch_db.save_batch("batch-retry", valid_records)
+        self.assertEqual(result, {"saved_count": 1, "duplicate": False})
+
+    def test_batch_rejects_reusing_submission_id_for_different_payload(self):
+        first = [
+            {
+                "record_type": TYPE_EXPENSE,
+                "date": "2026-08-30",
+                "description": "taxi",
+                "amount": 20,
+            }
+        ]
+        second = [{**first[0], "amount": 30}]
+        batch_db.save_batch("batch-conflict", first)
+
+        with self.assertRaises(batch_db.BatchSubmissionConflict):
+            batch_db.save_batch("batch-conflict", second)
+
+        amount = self.raw.execute(
+            "SELECT amount_cents FROM transactions WHERE description = 'taxi'"
+        ).fetchone()["amount_cents"]
+        self.assertEqual(amount, 2000)
 
     def test_existing_amortized_transactions_migrate_to_prepaid_subscriptions(self):
         tx_id = expense_db.add_transaction(

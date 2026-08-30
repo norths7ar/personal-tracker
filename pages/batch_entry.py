@@ -1,9 +1,11 @@
 from datetime import date
+from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
 
 from core.auth import require_login
+from core.batch.db import save_batch
 from core.batch.extractor import BatchExtractor
 from core.config import config_version, load_config
 from core.constants import (
@@ -53,6 +55,7 @@ for key, default in [
     ("batch_records", None),
     ("batch_diagnostics", None),
     ("batch_source_text", ""),
+    ("batch_submission_id", None),
     ("batch_flash", None),
     ("expense_pending", None),
     ("expense_flash", None),
@@ -270,47 +273,45 @@ def _validate_row(row, idx, config):
     return None
 
 
-def _save_rows(df, config):
-    saved, errors = 0, []
+def _save_rows(df, config, submission_id: str):
+    records = []
     for idx, row in df.iterrows():
         if not bool(row.get("include")):
             continue
         error = _validate_row(row, idx, config)
         if error:
-            errors.append(error)
-            continue
+            raise ValueError(error)
         record_type = display_text(row["record_type"]).strip()
-        try:
-            if record_type == TYPE_MEAL:
-                meal_time = normalize_meal_time(row.get("time"))
-                add_meal(
-                    date=display_text(row["date"]).strip(),
-                    time=meal_time,
-                    meal_type=resolve_meal_type(row.get("meal_type"), meal_time),
-                    description=display_text(row["description"]).strip(),
-                    notes=optional_text(row.get("notes")),
-                    confidence=float(row.get("confidence") or 0),
-                    foods=_food_text_to_list(row.get("foods")),
-                )
-            else:
-                category = optional_text(row.get("category"))
-                subcategory = optional_text(row.get("subcategory"))
-                if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
-                    subcategory = PENDING_CATEGORY
-                add_transaction(
-                    record_type,
-                    display_text(row["description"]).strip(),
-                    float(row["amount"]),
-                    display_text(row["date"]).strip(),
-                    category=category,
-                    subcategory=subcategory,
-                    notes=optional_text(row.get("notes")),
-                    confidence=float(row.get("confidence") or 0),
-                )
-            saved += 1
-        except Exception as e:
-            errors.append(f"第 {idx + 1} 行写入失败：{e}")
-    return saved, errors
+        record = {
+            "record_type": record_type,
+            "date": display_text(row["date"]).strip(),
+            "description": display_text(row["description"]).strip(),
+            "notes": optional_text(row.get("notes")),
+            "confidence": float(row.get("confidence") or 0),
+        }
+        if record_type == TYPE_MEAL:
+            meal_time = normalize_meal_time(row.get("time"))
+            record.update(
+                {
+                    "time": meal_time,
+                    "meal_type": resolve_meal_type(row.get("meal_type"), meal_time),
+                    "foods": _food_text_to_list(row.get("foods")),
+                }
+            )
+        else:
+            category = optional_text(row.get("category"))
+            subcategory = optional_text(row.get("subcategory"))
+            if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
+                subcategory = PENDING_CATEGORY
+            record.update(
+                {
+                    "amount": float(row["amount"]),
+                    "category": category,
+                    "subcategory": subcategory,
+                }
+            )
+        records.append(record)
+    return save_batch(submission_id, records)
 
 
 def _render_diagnostics(diagnostics):
@@ -372,6 +373,7 @@ def render_batch_tab():
             return
         st.session_state.batch_source_text = text.strip()
         st.session_state.batch_records = result["records"]
+        st.session_state.batch_submission_id = uuid4().hex
         st.session_state.batch_diagnostics = {
             "raw_count": len(result.get("raw_records", [])),
             "kept_count": len(result["records"]),
@@ -383,6 +385,9 @@ def render_batch_tab():
     if not st.session_state.batch_records:
         st.info("输入一段自然语言后，系统会拆分为开销、收入、迁移和饮食记录。")
         return
+
+    if not st.session_state.batch_submission_id:
+        st.session_state.batch_submission_id = uuid4().hex
 
     st.subheader("确认记录")
     st.caption("取消勾选可跳过该行。食物清单格式：食物:份量；食物。")
@@ -451,28 +456,35 @@ def render_batch_tab():
             if val_errors:
                 st.error("；".join(val_errors))
             else:
-                saved, db_errors = _save_rows(edited_df, config)
-                if db_errors:
-                    st.error("；".join(db_errors))
-                    if saved:
-                        st.session_state.batch_records = None
-                        st.session_state.batch_diagnostics = None
-                        st.session_state.batch_source_text = ""
-                        st.warning(
-                            f"已写入 {saved} 条，失败行已丢弃，请重新录入失败记录"
-                        )
-                        st.rerun()
-                elif saved:
+                try:
+                    result = _save_rows(
+                        edited_df,
+                        config,
+                        st.session_state.batch_submission_id,
+                    )
+                except Exception as exc:
+                    st.error(f"保存失败，当前批次已保留，可重试：{exc}")
+                else:
                     st.session_state.batch_records = None
                     st.session_state.batch_diagnostics = None
                     st.session_state.batch_source_text = ""
-                    st.session_state.batch_flash = f"已保存 {saved} 条记录。"
+                    st.session_state.batch_submission_id = None
+                    if result["duplicate"]:
+                        st.session_state.batch_flash = (
+                            "该批次已保存，重复提交已忽略"
+                            f"（{result['saved_count']} 条）。"
+                        )
+                    else:
+                        st.session_state.batch_flash = (
+                            f"已保存 {result['saved_count']} 条记录。"
+                        )
                     st.rerun()
     with c2:
         if st.button("清空", width="stretch"):
             st.session_state.batch_records = None
             st.session_state.batch_diagnostics = None
             st.session_state.batch_source_text = ""
+            st.session_state.batch_submission_id = None
             st.rerun()
 
 

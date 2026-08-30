@@ -37,34 +37,66 @@ def add_transaction(
     amortization_start: str | None = None,
     subscription_id: int | None = None,
 ) -> int:
-    amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
-        cur = conn.execute(
-            """INSERT INTO transactions
-               (type, description, amount, amount_cents, date, category,
-                subcategory, notes, confidence, refund_for_id,
-                amortization_months, amortization_start, subscription_id)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-            + returning_id_clause(),
-            (
-                type_,
-                description,
-                amount_cents / 100,
-                amount_cents,
-                date_,
-                category,
-                subcategory,
-                notes,
-                confidence,
-                refund_for_id,
-                amortization_months,
-                amortization_start,
-                subscription_id,
-            ),
+        record_id = _insert_transaction(
+            conn,
+            type_,
+            description,
+            amount,
+            date_,
+            category=category,
+            subcategory=subcategory,
+            notes=notes,
+            confidence=confidence,
+            refund_for_id=refund_for_id,
+            amortization_months=amortization_months,
+            amortization_start=amortization_start,
+            subscription_id=subscription_id,
         )
-        record_id = inserted_id(cur)
         conn.commit()
         return record_id
+
+
+def _insert_transaction(
+    conn,
+    type_: str,
+    description: str,
+    amount: float,
+    date_: str,
+    category: str | None = None,
+    subcategory: str | None = None,
+    notes: str | None = None,
+    confidence: float | None = None,
+    refund_for_id: int | None = None,
+    amortization_months: int | None = None,
+    amortization_start: str | None = None,
+    subscription_id: int | None = None,
+) -> int:
+    amount_cents = to_cents(amount)
+    cur = conn.execute(
+        """INSERT INTO transactions
+           (type, description, amount, amount_cents, date, category,
+            subcategory, notes, confidence, refund_for_id,
+            amortization_months, amortization_start, subscription_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        + returning_id_clause(),
+        (
+            type_,
+            description,
+            amount_cents / 100,
+            amount_cents,
+            date_,
+            category,
+            subcategory,
+            notes,
+            confidence,
+            refund_for_id,
+            amortization_months,
+            amortization_start,
+            subscription_id,
+        ),
+    )
+    return inserted_id(cur)
 
 
 def get_transactions(

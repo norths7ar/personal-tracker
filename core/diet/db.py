@@ -59,26 +59,49 @@ def add_meal(
     foods: [{"food_name": str, "quantity": str, "ingredients": [str, ...]}, ...]
     Returns meal_id.
     """
+    with closing(_connect()) as conn:
+        meal_id = _insert_meal(
+            conn,
+            date,
+            time,
+            meal_type,
+            description,
+            notes,
+            confidence,
+            foods,
+        )
+        conn.commit()
+    return meal_id
+
+
+def _insert_meal(
+    conn,
+    date: str,
+    time: str,
+    meal_type: str | None,
+    description: str,
+    notes: str | None,
+    confidence: float | None,
+    foods: list[dict],
+) -> int:
     normalized_time = require_meal_time(time)
     normalized_meal_type = str(meal_type or "").strip() or None
-    with closing(_connect()) as conn:
-        cur = conn.execute(
-            """INSERT INTO diet_meals
-               (date, time, meal_type, description, notes, confidence)
-               VALUES (?, ?, ?, ?, ?, ?)"""
-            + returning_id_clause(),
-            (
-                date,
-                normalized_time,
-                normalized_meal_type,
-                description,
-                notes,
-                confidence,
-            ),
-        )
-        meal_id = inserted_id(cur)
-        _insert_foods(conn, meal_id, foods)
-        conn.commit()
+    cur = conn.execute(
+        """INSERT INTO diet_meals
+           (date, time, meal_type, description, notes, confidence)
+           VALUES (?, ?, ?, ?, ?, ?)"""
+        + returning_id_clause(),
+        (
+            date,
+            normalized_time,
+            normalized_meal_type,
+            description,
+            notes,
+            confidence,
+        ),
+    )
+    meal_id = inserted_id(cur)
+    _insert_foods(conn, meal_id, foods)
     return meal_id
 
 
