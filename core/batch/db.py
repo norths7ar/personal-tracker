@@ -89,4 +89,5 @@ def _insert_record(conn, record: dict) -> int:
         subcategory=record.get("subcategory"),
         notes=record.get("notes"),
         confidence=record.get("confidence"),
+        reviewed=bool(record.get("reviewed")),
     )

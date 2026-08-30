@@ -80,9 +80,7 @@ def _render_category_form(record: dict) -> None:
             category=category,
             subcategory=subcategory,
             notes=optional_text(notes),
-            confidence=1.0
-            if category != PENDING_CATEGORY
-            else record.get("confidence"),
+            reviewed=category != PENDING_CATEGORY,
         )
         st.rerun()
 

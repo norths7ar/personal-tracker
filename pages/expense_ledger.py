@@ -7,7 +7,6 @@ from core.auth import require_login
 from core.config import load_config
 from core.constants import (
     PENDING_CATEGORY,
-    REFUND_CATEGORY,
     RENEWAL_MODE_FIXED_DAYS,
     RENEWAL_MODE_SAME_DAY,
     SUBSCRIPTION_CYCLE_CUSTOM,
@@ -16,10 +15,9 @@ from core.constants import (
     SUBSCRIPTION_CYCLE_YEARLY,
     TRANSACTION_TYPES,
     TYPE_EXPENSE,
-    TYPE_INCOME,
 )
 from core.expense.db import (
-    add_transaction,
+    add_refund,
     delete_transaction,
     get_transactions,
     refund_total_for,
@@ -220,7 +218,11 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
             st.caption(f"已关联退款 ¥{refunded:,.2f}，剩余可退 ¥{default_refund:,.2f}")
             with st.form(f"refund_form_{record_id}"):
                 refund_amount = st.number_input(
-                    "退款金额", min_value=0.0, value=default_refund, format="%.2f"
+                    "退款金额",
+                    min_value=0.0,
+                    max_value=default_refund,
+                    value=default_refund,
+                    format="%.2f",
                 )
                 refund_date = st.date_input("退款日期", value=date.today())
                 refund_description = st.text_input(
@@ -231,15 +233,12 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                 if refund_amount <= 0:
                     st.error("退款金额须大于 0。")
                 else:
-                    add_transaction(
-                        TYPE_INCOME,
+                    add_refund(
+                        record_id,
                         refund_description.strip()
                         or f"{display_text(record['description'])} 退款",
                         refund_amount,
                         refund_date.isoformat(),
-                        category=REFUND_CATEGORY,
-                        notes=f"关联支出 #{record_id}",
-                        refund_for_id=record_id,
                     )
                     st.rerun()
 

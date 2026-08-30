@@ -36,6 +36,7 @@ def add_transaction(
     amortization_months: int | None = None,
     amortization_start: str | None = None,
     subscription_id: int | None = None,
+    reviewed: bool = False,
 ) -> int:
     with closing(_connect()) as conn:
         record_id = _insert_transaction(
@@ -52,6 +53,7 @@ def add_transaction(
             amortization_months=amortization_months,
             amortization_start=amortization_start,
             subscription_id=subscription_id,
+            reviewed=reviewed,
         )
         conn.commit()
         return record_id
@@ -71,14 +73,15 @@ def _insert_transaction(
     amortization_months: int | None = None,
     amortization_start: str | None = None,
     subscription_id: int | None = None,
+    reviewed: bool = False,
 ) -> int:
     amount_cents = to_cents(amount)
     cur = conn.execute(
         """INSERT INTO transactions
            (type, description, amount, amount_cents, date, category,
             subcategory, notes, confidence, refund_for_id,
-            amortization_months, amortization_start, subscription_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+            amortization_months, amortization_start, subscription_id, reviewed)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
         + returning_id_clause(),
         (
             type_,
@@ -94,6 +97,7 @@ def _insert_transaction(
             amortization_months,
             amortization_start,
             subscription_id,
+            1 if reviewed else 0,
         ),
     )
     return inserted_id(cur)
@@ -181,6 +185,7 @@ def update_transaction(id_: int, **fields) -> None:
         "amortization_months",
         "amortization_start",
         "subscription_id",
+        "reviewed",
     }
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
@@ -189,6 +194,8 @@ def update_transaction(id_: int, **fields) -> None:
         amount_cents = to_cents(updates["amount"])
         updates["amount"] = amount_cents / 100
         updates["amount_cents"] = amount_cents
+    if "reviewed" in updates:
+        updates["reviewed"] = 1 if updates["reviewed"] else 0
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     with closing(_connect()) as conn:
         conn.execute(
@@ -212,7 +219,10 @@ def get_pending_transactions(limit: int = 200) -> list[dict]:
                     OR subcategory = '{PENDING_CATEGORY}'
                     OR category IS NULL
                     OR category = ''
-                    OR COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
+                    OR (
+                        COALESCE(reviewed, 0) = 0
+                        AND COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
+                    )
                  )
                ORDER BY date DESC, created_at DESC
                LIMIT ?"""
@@ -229,7 +239,10 @@ def get_pending_transaction_count() -> int:
                      OR subcategory = '{PENDING_CATEGORY}'
                      OR category IS NULL
                      OR category = ''
-                     OR COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
+                     OR (
+                         COALESCE(reviewed, 0) = 0
+                         AND COALESCE(confidence, 1) < {DEFAULT_CONFIDENCE_THRESHOLD}
+                     )
                   )"""
     with closing(_connect()) as conn:
         row = conn.execute(query).fetchone()
@@ -250,6 +263,59 @@ def get_refunds_for(transaction_id: int) -> list[dict]:
 def refund_total_for(transaction_id: int) -> float:
     refunds = get_refunds_for(transaction_id)
     return sum(float(r.get("amount") or 0) for r in refunds)
+
+
+def add_refund(
+    transaction_id: int,
+    description: str,
+    amount: float,
+    refund_date: str,
+) -> int:
+    """Create a linked refund without exceeding the original expense."""
+    amount_cents = to_cents(amount)
+    if amount_cents <= 0:
+        raise ValueError("退款金额须大于 0")
+
+    with closing(_connect()) as conn:
+        try:
+            lock_clause = " FOR UPDATE" if conn.backend == "postgres" else ""
+            original = conn.execute(
+                "SELECT * FROM transactions WHERE id = ?" + lock_clause,
+                (transaction_id,),
+            ).fetchone()
+            if original is None or original["type"] != TYPE_EXPENSE:
+                raise ValueError("关联支出不存在")
+
+            original_cents = original["amount_cents"]
+            if original_cents is None:
+                original_cents = to_cents(original["amount"])
+            refunded_row = conn.execute(
+                """SELECT COALESCE(SUM(amount_cents), 0) AS refunded_cents
+                   FROM transactions WHERE refund_for_id = ?""",
+                (transaction_id,),
+            ).fetchone()
+            remaining_cents = int(original_cents) - int(
+                refunded_row["refunded_cents"] or 0
+            )
+            if amount_cents > remaining_cents:
+                raise ValueError(f"退款金额超过剩余可退 ¥{remaining_cents / 100:.2f}")
+
+            refund_id = _insert_transaction(
+                conn,
+                TYPE_INCOME,
+                description,
+                amount_cents / 100,
+                refund_date,
+                category=REFUND_CATEGORY,
+                notes=f"关联支出 #{transaction_id}",
+                refund_for_id=transaction_id,
+                reviewed=True,
+            )
+            conn.commit()
+            return refund_id
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def _next_month(month_start: date) -> date:

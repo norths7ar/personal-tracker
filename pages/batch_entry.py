@@ -312,6 +312,7 @@ def _save_rows(df, config, submission_id: str):
                     "amount": float(row["amount"]),
                     "category": category,
                     "subcategory": subcategory,
+                    "reviewed": True,
                 }
             )
         records.append(record)
@@ -499,7 +500,13 @@ def render_expense_tab():
         st.success(st.session_state.expense_flash)
         st.session_state.expense_flash = None
 
-    def _save_and_done(form, category, subcategory, confidence=None):
+    def _save_and_done(
+        form,
+        category,
+        subcategory,
+        confidence=None,
+        reviewed=False,
+    ):
         record_id = add_transaction(
             form["type"],
             form["description"],
@@ -509,6 +516,7 @@ def render_expense_tab():
             subcategory=subcategory,
             notes=form["notes"],
             confidence=confidence,
+            reviewed=reviewed,
         )
         st.session_state.expense_pending = None
         st.session_state.expense_flash = (
@@ -605,7 +613,11 @@ def render_expense_tab():
             with c1:
                 if st.button("确认保存", type="primary", width="stretch"):
                     _save_and_done(
-                        form, category, subcategory, confidence=result.get("confidence")
+                        form,
+                        category,
+                        subcategory,
+                        confidence=result.get("confidence"),
+                        reviewed=True,
                     )
             with c2:
                 if st.button("取消", width="stretch"):

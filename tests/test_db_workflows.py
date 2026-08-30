@@ -273,6 +273,48 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertIn(pending_id, ids)
         self.assertNotIn(normal_id, ids)
 
+    def test_manual_review_resolves_low_confidence_without_overwriting_it(self):
+        transaction_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "ambiguous expense",
+            30,
+            "2026-08-30",
+            category="其他",
+            subcategory="其他",
+            confidence=0.4,
+        )
+        self.assertEqual(
+            [row["id"] for row in expense_db.get_pending_transactions()],
+            [transaction_id],
+        )
+
+        expense_db.update_transaction(transaction_id, reviewed=True)
+
+        self.assertEqual(expense_db.get_pending_transactions(), [])
+        row = self.raw.execute(
+            "SELECT confidence, reviewed FROM transactions WHERE id = ?",
+            (transaction_id,),
+        ).fetchone()
+        self.assertEqual(row["confidence"], 0.4)
+        self.assertEqual(row["reviewed"], 1)
+
+    def test_refunds_cannot_exceed_remaining_expense(self):
+        transaction_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "hotel",
+            100,
+            "2026-08-30",
+            category="旅行",
+            subcategory="酒店住宿",
+        )
+        expense_db.add_refund(transaction_id, "partial refund", 60, "2026-08-31")
+
+        with self.assertRaisesRegex(ValueError, "剩余可退"):
+            expense_db.add_refund(transaction_id, "excess refund", 50, "2026-09-01")
+
+        expense_db.add_refund(transaction_id, "final refund", 40, "2026-09-01")
+        self.assertEqual(expense_db.refund_total_for(transaction_id), 100)
+
     def test_month_budget_replaces_only_the_selected_month(self):
         budget_db.save_month_budget(
             "2026-07",

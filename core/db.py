@@ -154,6 +154,7 @@ def _init_sqlite(conn):
         subcategory TEXT,
         notes       TEXT,
         confidence  REAL,
+        reviewed    INTEGER DEFAULT 0,
         subscription_id INTEGER,
         created_at  TEXT DEFAULT (datetime('now', 'localtime'))
     )
@@ -229,6 +230,7 @@ def _init_postgres(conn):
         subcategory TEXT,
         notes       TEXT,
         confidence  DOUBLE PRECISION,
+        reviewed    INTEGER DEFAULT 0,
         subscription_id INTEGER,
         created_at  TEXT DEFAULT to_char(now(), 'YYYY-MM-DD HH24:MI:SS')
     )
@@ -347,6 +349,7 @@ def _ensure_transaction_workflow_columns(conn):
         "amortization_months": "INTEGER",
         "amortization_start": "TEXT",
         "subscription_id": "INTEGER",
+        "reviewed": "INTEGER DEFAULT 0",
     }
     for name, definition in additions.items():
         if name not in columns:
