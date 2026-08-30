@@ -16,6 +16,7 @@ from core.constants import (
     SUBSCRIPTION_CYCLE_QUARTERLY,
     SUBSCRIPTION_CYCLE_YEARLY,
     SUBSCRIPTION_STATUS_ACTIVE,
+    TYPE_EXPENSE,
 )
 from core.db import _connect, inserted_id, returning_id_clause, to_cents
 from core.expense.db import _insert_transaction
@@ -346,7 +347,7 @@ def create_prepaid_with_transaction(
         try:
             transaction_id = _insert_transaction(
                 conn,
-                "支出",
+                TYPE_EXPENSE,
                 description,
                 amount,
                 payment_date,
@@ -479,9 +480,10 @@ def record_subscription_payment(
             """INSERT INTO transactions
                (type, description, amount, amount_cents, date, category, subcategory,
                 notes, subscription_id)
-               VALUES ('支出', ?, ?, ?, ?, ?, ?, ?, ?)"""
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
             + returning_id_clause(),
             (
+                TYPE_EXPENSE,
                 description,
                 amount_cents / 100,
                 amount_cents,
@@ -537,7 +539,7 @@ def link_existing_transaction(
         if subscription_row is None or transaction is None:
             raise ValueError("订阅或账目不存在")
         transaction_data = dict(transaction)
-        if transaction_data.get("type") != "支出":
+        if transaction_data.get("type") != TYPE_EXPENSE:
             raise ValueError("只能关联支出流水")
         paid = payment_date or transaction_data["date"]
         subscription = _normalize_subscription(subscription_row)
@@ -574,7 +576,7 @@ def create_subscription_from_transaction(
         if transaction is None:
             raise ValueError("账目不存在")
         item = dict(transaction)
-        if item.get("type") != "支出":
+        if item.get("type") != TYPE_EXPENSE:
             raise ValueError("只有支出可以设为周期性付款")
         if item.get("subscription_id") is not None:
             raise ValueError("这笔支出已经关联周期性付款")

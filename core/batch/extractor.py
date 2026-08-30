@@ -204,7 +204,8 @@ class BatchExtractor:
             meal_type = resolve_meal_type(
                 event.get("meal_type_hint"), event.get("time")
             )
-            foods = [{"food_name": event["text"], "quantity": ""}]
+            foods = []
+            reasoning = result.get("reasoning") or "饮食提取失败，请人工填写食物清单"
 
         return self._record(
             record_type=TYPE_MEAL,

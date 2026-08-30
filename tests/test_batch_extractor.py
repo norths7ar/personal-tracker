@@ -1,6 +1,7 @@
 import unittest
 
 from core.batch.extractor import BatchExtractor
+from core.expense.classifier import Classifier
 
 
 class ScriptedLLM:
@@ -37,6 +38,17 @@ class StubDietExtractor:
             "foods": [{"food_name": description, "quantity": ""}],
             "confidence": 0.9,
             "reasoning": "meal block",
+        }
+
+
+class FailingDietExtractor:
+    def extract(self, description, meal_time):
+        return {
+            "status": "error",
+            "meal_type": None,
+            "foods": [{"food_name": "", "quantity": ""}],
+            "confidence": 0.0,
+            "reasoning": "model unavailable",
         }
 
 
@@ -147,6 +159,49 @@ class BatchExtractorTest(unittest.TestCase):
         self.assertEqual(
             result["records"][1]["foods"][0]["food_name"], "中午吃了杂粮饭和鸡腿"
         )
+
+    def test_failed_meal_extraction_requires_manual_food_entry(self):
+        blocks = {
+            "blocks": [
+                {
+                    "block_type": "饮食",
+                    "text": "吃了一些东西",
+                    "date": "2026-08-30",
+                    "time": "12:00",
+                }
+            ]
+        }
+        extractor = BatchExtractor(self.config)
+        extractor._llm = ScriptedLLM(blocks)
+        extractor._diet_extractor = FailingDietExtractor()
+
+        result = extractor.extract("吃了一些东西")
+
+        self.assertEqual(result["records"][0]["foods"], [])
+        self.assertEqual(result["records"][0]["confidence"], 0.0)
+        self.assertIn("model unavailable", result["records"][0]["reasoning"])
+
+    def test_category_without_subcategories_normalizes_to_blank(self):
+        classifier = Classifier(
+            {
+                "支出": {"保险": []},
+                "llm": {"confidence_threshold": 0.75},
+            }
+        )
+        classifier._llm = ScriptedLLM(
+            {
+                "category": "保险",
+                "subcategory": "保险",
+                "confidence": 0.9,
+                "reasoning": "insurance payment",
+                "candidates": [],
+            }
+        )
+
+        result = classifier.classify("车险")
+
+        self.assertEqual(result["status"], "confirmed")
+        self.assertEqual(result["subcategory"], "")
 
 
 if __name__ == "__main__":

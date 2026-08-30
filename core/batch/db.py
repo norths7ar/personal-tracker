@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 from contextlib import closing
 
 from core.constants import TRANSACTION_TYPES, TYPE_MEAL
@@ -10,6 +11,9 @@ from core.expense.db import _insert_transaction
 
 class BatchSubmissionConflict(ValueError):
     pass
+
+
+logger = logging.getLogger(__name__)
 
 
 def save_batch(submission_id: str, records: list[dict]) -> dict:
@@ -37,7 +41,15 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
                     (submission_id,),
                 ).fetchone()
                 if existing is None or existing["payload_hash"] != payload_hash:
+                    logger.warning(
+                        "batch submission conflict submission_id=%s", submission_id
+                    )
                     raise BatchSubmissionConflict("同一批次已使用不同内容保存")
+                logger.info(
+                    "batch duplicate ignored submission_id=%s record_count=%s",
+                    submission_id,
+                    existing["record_count"],
+                )
                 return {
                     "saved_count": int(existing["record_count"]),
                     "duplicate": True,
@@ -46,6 +58,11 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
             for record in records:
                 _insert_record(conn, record)
             conn.commit()
+            logger.info(
+                "batch saved submission_id=%s record_count=%s",
+                submission_id,
+                len(records),
+            )
         except Exception:
             conn.rollback()
             raise

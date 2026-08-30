@@ -38,6 +38,10 @@ class Classifier:
 
         if forced_category:
             result["category"] = forced_category
+        if result.get("category") in self.categories:
+            subcategories = self.categories[result["category"]] or []
+            if not subcategories:
+                result["subcategory"] = ""
 
         confidence = result["confidence"]
 

@@ -1,3 +1,4 @@
+from calendar import isleap
 from datetime import date, timedelta
 
 import pandas as pd
@@ -390,7 +391,7 @@ with tab_year:
             f"{prev_year}-01-01", f"{prev_year}-12-31", basis=basis_key
         )
         cash_prev = get_period_data(f"{prev_year}-01-01", f"{prev_year}-12-31", "cash")
-        n_days = 366 if int(selected_year) % 4 == 0 else 365
+        n_days = 366 if isleap(int(selected_year)) else 365
 
         metrics_row(cash_cur, cash_prev, n_days=n_days)
 

@@ -316,6 +316,10 @@ def _save_rows(df, config, submission_id: str):
             subcategory = optional_text(row.get("subcategory"))
             if record_type == TYPE_EXPENSE and category == PENDING_CATEGORY:
                 subcategory = PENDING_CATEGORY
+            elif category in config.get(record_type, {}) and not config[
+                record_type
+            ].get(category):
+                subcategory = None
             record.update(
                 {
                     "amount": float(row["amount"]),
@@ -333,7 +337,8 @@ def _render_diagnostics(diagnostics):
         return
     with st.expander("解析诊断"):
         st.caption(
-            f"事件拆分返回 {diagnostics.get('raw_count', 0)} 条；"
+            f"第一阶段保留 {diagnostics.get('block_count', 0)} 个语义块；"
+            f"第二阶段返回 {diagnostics.get('raw_count', 0)} 条事件；"
             f"保留 {diagnostics.get('kept_count', 0)} 条；"
             f"过滤 {len(diagnostics.get('rejected_records', []))} 条。"
         )
@@ -379,6 +384,7 @@ def render_batch_tab():
             _render_diagnostics(
                 {
                     "raw_count": len(result.get("raw_records", [])),
+                    "block_count": len(result.get("raw_blocks", [])),
                     "kept_count": 0,
                     "rejected_records": result.get("rejected_records", []),
                     "reasoning": result.get("reasoning", ""),
@@ -391,6 +397,7 @@ def render_batch_tab():
             records=result["records"],
             diagnostics={
                 "raw_count": len(result.get("raw_records", [])),
+                "block_count": len(result.get("raw_blocks", [])),
                 "kept_count": len(result["records"]),
                 "rejected_records": result.get("rejected_records", []),
                 "reasoning": result.get("reasoning", ""),

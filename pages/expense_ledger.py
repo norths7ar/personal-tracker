@@ -147,7 +147,8 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                     ),
                 )
             else:
-                subcategory = st.text_input("子类别（可选）", value=current_subcategory)
+                subcategory = None
+                st.caption("该主类别无子类别")
 
             notes = st.text_area(
                 "备注", value=display_text(record.get("notes")), height=68
