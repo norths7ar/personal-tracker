@@ -1,5 +1,4 @@
 from datetime import date
-from uuid import uuid4
 
 import pandas as pd
 import streamlit as st
@@ -7,6 +6,13 @@ import streamlit as st
 from core.auth import require_login
 from core.batch.db import save_batch
 from core.batch.extractor import BatchExtractor
+from core.batch.state import (
+    ensure_batch_state,
+    mark_batch_error,
+    mark_batch_saving,
+    reset_batch_draft,
+    start_batch_review,
+)
 from core.config import config_version, load_config
 from core.constants import (
     BATCH_RECORD_TYPES,
@@ -51,11 +57,9 @@ def get_diet_extractor(version: int):
 
 # ── session state ─────────────────────────────────────────────────────────────
 
+ensure_batch_state(st.session_state)
+
 for key, default in [
-    ("batch_records", None),
-    ("batch_diagnostics", None),
-    ("batch_source_text", ""),
-    ("batch_submission_id", None),
     ("batch_flash", None),
     ("expense_pending", None),
     ("expense_flash", None),
@@ -371,30 +375,35 @@ def render_batch_tab():
                 }
             )
             return
-        st.session_state.batch_source_text = text.strip()
-        st.session_state.batch_records = result["records"]
-        st.session_state.batch_submission_id = uuid4().hex
-        st.session_state.batch_diagnostics = {
-            "raw_count": len(result.get("raw_records", [])),
-            "kept_count": len(result["records"]),
-            "rejected_records": result.get("rejected_records", []),
-            "reasoning": result.get("reasoning", ""),
-        }
+        start_batch_review(
+            st.session_state,
+            source_text=text.strip(),
+            records=result["records"],
+            diagnostics={
+                "raw_count": len(result.get("raw_records", [])),
+                "kept_count": len(result["records"]),
+                "rejected_records": result.get("rejected_records", []),
+                "reasoning": result.get("reasoning", ""),
+            },
+        )
         st.rerun()
 
     if not st.session_state.batch_records:
         st.info("输入一段自然语言后，系统会拆分为开销、收入、迁移和饮食记录。")
         return
 
-    if not st.session_state.batch_submission_id:
-        st.session_state.batch_submission_id = uuid4().hex
-
     st.subheader("确认记录")
-    st.caption("取消勾选可跳过该行。食物清单格式：食物:份量；食物。")
+    st.caption(
+        "当前草稿会在页面切换后保留，保存或放弃后清除。"
+        "取消勾选可跳过该行。食物清单格式：食物:份量；食物。"
+    )
+    if st.session_state.batch_status == "error" and st.session_state.batch_error:
+        st.error(st.session_state.batch_error)
     _render_diagnostics(st.session_state.get("batch_diagnostics") or {})
 
     edited_df = st.data_editor(
         _records_to_df(st.session_state.batch_records),
+        key=f"batch_editor_{st.session_state.batch_editor_version}",
         hide_index=True,
         num_rows="dynamic",
         width="stretch",
@@ -456,6 +465,7 @@ def render_batch_tab():
             if val_errors:
                 st.error("；".join(val_errors))
             else:
+                mark_batch_saving(st.session_state)
                 try:
                     result = _save_rows(
                         edited_df,
@@ -463,12 +473,10 @@ def render_batch_tab():
                         st.session_state.batch_submission_id,
                     )
                 except Exception as exc:
-                    st.error(f"保存失败，当前批次已保留，可重试：{exc}")
+                    message = f"保存失败，当前批次已保留，可重试：{exc}"
+                    mark_batch_error(st.session_state, message)
+                    st.error(message)
                 else:
-                    st.session_state.batch_records = None
-                    st.session_state.batch_diagnostics = None
-                    st.session_state.batch_source_text = ""
-                    st.session_state.batch_submission_id = None
                     if result["duplicate"]:
                         st.session_state.batch_flash = (
                             "该批次已保存，重复提交已忽略"
@@ -478,13 +486,11 @@ def render_batch_tab():
                         st.session_state.batch_flash = (
                             f"已保存 {result['saved_count']} 条记录。"
                         )
+                    reset_batch_draft(st.session_state)
                     st.rerun()
     with c2:
-        if st.button("清空", width="stretch"):
-            st.session_state.batch_records = None
-            st.session_state.batch_diagnostics = None
-            st.session_state.batch_source_text = ""
-            st.session_state.batch_submission_id = None
+        if st.button("放弃批次", width="stretch"):
+            reset_batch_draft(st.session_state)
             st.rerun()
 
 
