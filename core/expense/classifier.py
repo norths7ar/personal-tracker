@@ -13,7 +13,7 @@ class Classifier:
         )
         self._llm = LLMClient(config.get("llm", {}))
 
-    def classify(self, description: str) -> dict:
+    def classify(self, description: str, category_hint: str | None = None) -> dict:
         """
         调用 LLM 分类，返回：
         {
@@ -26,11 +26,18 @@ class Classifier:
         }
         未知类别视为 low_confidence，由用户从 selectbox 中确认。
         """
+        forced_category = category_hint if category_hint in self.categories else None
         try:
-            raw = self._llm.invoke(self._build_prompt(), f"消费描述：{description}")
+            raw = self._llm.invoke(
+                self._build_prompt(forced_category),
+                f"消费描述：{description}",
+            )
             result = self._normalize(raw)
         except Exception as e:
             return self._fallback(str(e))
+
+        if forced_category:
+            result["category"] = forced_category
 
         confidence = result["confidence"]
 
@@ -45,9 +52,14 @@ class Classifier:
 
     # ------------------------------------------------------------------
 
-    def _build_prompt(self) -> str:
+    def _build_prompt(self, category_hint: str | None = None) -> str:
         lines = []
-        for main, subs in self.categories.items():
+        categories = (
+            {category_hint: self.categories[category_hint]}
+            if category_hint
+            else self.categories
+        )
+        for main, subs in categories.items():
             lines.append(f"- {main}：{'、'.join(subs)}" if subs else f"- {main}")
         cats = "\n".join(lines)
         return load_prompt("expense_classifier.txt", categories=cats)

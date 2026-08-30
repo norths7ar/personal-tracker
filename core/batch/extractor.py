@@ -21,10 +21,14 @@ logger = logging.getLogger(__name__)
 
 
 class BatchExtractor:
-    """Turn one natural-language note into records via event extraction + pipelines."""
+    """Turn a note into records via contextual blocks and domain pipelines."""
 
+    BLOCK_FINANCE = "财务"
+    BLOCK_MEAL = TYPE_MEAL
+    BLOCK_TYPES = {BLOCK_FINANCE, BLOCK_MEAL}
     FINANCE_TYPES = set(TRANSACTION_TYPES)
     RECORD_TYPES = FINANCE_TYPES | {TYPE_MEAL}
+    EXPENSE_CATEGORY_ALIASES = {"旅游": "旅行"}
 
     def __init__(self, config: dict):
         self.config = config
@@ -41,28 +45,90 @@ class BatchExtractor:
     def extract(self, text: str, default_date: str | None = None) -> dict:
         default_date = default_date or date.today().isoformat()
         try:
-            raw = self._llm.invoke(self._build_event_prompt(default_date), text)
-            events, rejected_events = self._normalize_events(raw, default_date)
+            raw = self._llm.invoke(self._build_block_prompt(default_date), text)
+            blocks, rejected_blocks = self._normalize_blocks(raw, default_date)
         except Exception as e:
             logger.exception("BatchExtractor.extract failed")
             return {"status": "error", "records": [], "reasoning": str(e)}
 
+        events = []
+        raw_events = []
+        rejected_events = []
+        for block in blocks:
+            if block["block_type"] == self.BLOCK_MEAL:
+                events.append(self._meal_block_to_event(block))
+                raw_events.append(block)
+                continue
+            try:
+                finance_raw = self._llm.invoke(
+                    self._build_finance_prompt(block), block["text"]
+                )
+                block_events, block_rejected = self._normalize_events(
+                    finance_raw,
+                    block["date"],
+                    defaults=block,
+                )
+                events.extend(block_events)
+                raw_events.extend(
+                    finance_raw.get("events", [])
+                    if isinstance(finance_raw, dict)
+                    else []
+                )
+                rejected_events.extend(block_rejected)
+            except Exception as e:
+                rejected_events.append(
+                    {"reason": f"财务块拆分失败：{e}", "record": block}
+                )
+
         records, rejected_records = self._events_to_records(events)
-        rejected = [*rejected_events, *rejected_records]
+        rejected = [*rejected_blocks, *rejected_events, *rejected_records]
 
         return {
             "status": "confirmed" if records else "empty",
             "records": records,
-            "raw_records": raw.get("events", []) if isinstance(raw, dict) else [],
+            "raw_records": raw_events,
+            "raw_blocks": raw.get("blocks", []) if isinstance(raw, dict) else [],
             "rejected_records": rejected,
             "reasoning": raw.get("reasoning", "") if isinstance(raw, dict) else "",
         }
 
-    def _build_event_prompt(self, default_date: str) -> str:
+    def _build_block_prompt(self, default_date: str) -> str:
         meal_types_str = "、".join(self.meal_types)
         return load_prompt(
-            "batch_events.txt", default_date=default_date, meal_types=meal_types_str
+            "batch_blocks.txt", default_date=default_date, meal_types=meal_types_str
         )
+
+    def _build_finance_prompt(self, block: dict) -> str:
+        category_lines = []
+        for type_ in TRANSACTION_TYPES:
+            categories = self.config.get(type_, {})
+            rendered = "、".join(
+                f"{main}（{'、'.join(subs)}）" if subs else main
+                for main, subs in categories.items()
+            )
+            category_lines.append(f"- {type_}：{rendered}")
+        context = block.get("category_hint") or block.get("context") or "未指定"
+        return load_prompt(
+            "batch_finance_events.txt",
+            default_date=block["date"],
+            category_context=context,
+            categories="\n".join(category_lines),
+        )
+
+    def _meal_block_to_event(self, block: dict) -> dict:
+        return {
+            "event_type": TYPE_MEAL,
+            "text": block["text"],
+            "date": block["date"],
+            "time": block.get("time", ""),
+            "amount": None,
+            "category_hint": "",
+            "subcategory_hint": "",
+            "meal_type_hint": block.get("meal_type_hint", ""),
+            "linked_group": block.get("linked_group", ""),
+            "confidence": 0.0,
+            "reasoning": block.get("reasoning", ""),
+        }
 
     def _events_to_records(self, events: list[dict]) -> tuple[list[dict], list[dict]]:
         records = []
@@ -86,7 +152,10 @@ class BatchExtractor:
         return records, rejected
 
     def _expense_event_to_record(self, event: dict) -> dict:
-        result = self._classifier.classify(event["text"])
+        category_hint = self._resolve_expense_category_hint(
+            event.get("category_hint", "")
+        )
+        result = self._classifier.classify(event["text"], category_hint=category_hint)
         if result.get("status") == "confirmed":
             category = result["category"]
             subcategory = result["subcategory"]
@@ -206,9 +275,61 @@ class BatchExtractor:
             return first, subs[0] if subs else ""
         return DEFAULT_CATEGORY, ""
 
-    def _normalize_events(
+    def _resolve_expense_category_hint(self, value: str) -> str:
+        hint = str(value or "").strip()
+        hint = self.EXPENSE_CATEGORY_ALIASES.get(hint, hint)
+        return hint if hint in self.expense_categories else ""
+
+    def _normalize_blocks(
         self, raw: dict, default_date: str
     ) -> tuple[list[dict], list[dict]]:
+        if not isinstance(raw, dict):
+            return [], [{"reason": "LLM 输出不是 JSON 对象", "record": raw}]
+        raw_blocks = raw.get("blocks", [])
+        if not isinstance(raw_blocks, list):
+            return [], [{"reason": "blocks 不是列表", "record": raw_blocks}]
+
+        blocks = []
+        rejected = []
+        for item in raw_blocks:
+            if not isinstance(item, dict):
+                rejected.append({"reason": "语义块不是 JSON 对象", "record": item})
+                continue
+            block_type = str(item.get("block_type") or "").strip()
+            if block_type not in self.BLOCK_TYPES:
+                rejected.append(
+                    {"reason": f"未知语义块类型：{block_type}", "record": item}
+                )
+                continue
+            text = str(item.get("text") or "").strip()
+            if not text:
+                rejected.append({"reason": "语义块缺少 text", "record": item})
+                continue
+            block_date = str(item.get("date") or default_date).strip()[:10]
+            try:
+                date.fromisoformat(block_date)
+            except ValueError:
+                block_date = default_date
+            context = str(item.get("context") or "").strip()
+            blocks.append(
+                {
+                    "block_type": block_type,
+                    "text": text,
+                    "date": block_date,
+                    "time": normalize_meal_time(item.get("time")) or "",
+                    "context": context,
+                    "category_hint": self._resolve_expense_category_hint(context),
+                    "meal_type_hint": str(item.get("meal_type_hint") or "").strip(),
+                    "linked_group": str(item.get("linked_group") or "").strip(),
+                    "reasoning": str(item.get("reasoning") or "").strip(),
+                }
+            )
+        return blocks, rejected
+
+    def _normalize_events(
+        self, raw: dict, default_date: str, defaults: dict | None = None
+    ) -> tuple[list[dict], list[dict]]:
+        defaults = defaults or {}
         if not isinstance(raw, dict):
             return [], [{"reason": "LLM 输出不是 JSON 对象", "record": raw}]
         raw_events = raw.get("events", [])
@@ -249,7 +370,9 @@ class BatchExtractor:
             else:
                 amount = None
 
-            event_date = str(item.get("date") or default_date).strip()[:10]
+            event_date = str(
+                item.get("date") or defaults.get("date") or default_date
+            ).strip()[:10]
             try:
                 date.fromisoformat(event_date)
             except ValueError:
@@ -260,12 +383,23 @@ class BatchExtractor:
                     "event_type": event_type,
                     "text": text,
                     "date": event_date,
-                    "time": normalize_meal_time(item.get("time")) or "",
+                    "time": normalize_meal_time(
+                        item.get("time") or defaults.get("time")
+                    )
+                    or "",
                     "amount": amount,
-                    "category_hint": str(item.get("category_hint") or "").strip(),
+                    "category_hint": str(
+                        item.get("category_hint") or defaults.get("category_hint") or ""
+                    ).strip(),
                     "subcategory_hint": str(item.get("subcategory_hint") or "").strip(),
-                    "meal_type_hint": str(item.get("meal_type_hint") or "").strip(),
-                    "linked_group": str(item.get("linked_group") or "").strip(),
+                    "meal_type_hint": str(
+                        item.get("meal_type_hint")
+                        or defaults.get("meal_type_hint")
+                        or ""
+                    ).strip(),
+                    "linked_group": str(
+                        item.get("linked_group") or defaults.get("linked_group") or ""
+                    ).strip(),
                     "confidence": 0.0,
                     "reasoning": str(item.get("reasoning") or "").strip(),
                 }
