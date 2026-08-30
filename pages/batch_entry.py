@@ -241,6 +241,15 @@ def _records_to_df(records):
     )
 
 
+def _split_review_frames(records):
+    records_df = _records_to_df(records)
+    finance_df = records_df[records_df["record_type"] != TYPE_MEAL].reset_index(
+        drop=True
+    )
+    meal_df = records_df[records_df["record_type"] == TYPE_MEAL].reset_index(drop=True)
+    return finance_df, meal_df
+
+
 def _validate_row(row, idx, config):
     record_type = display_text(row.get("record_type")).strip()
     if record_type not in BATCH_RECORD_TYPES:
@@ -394,64 +403,95 @@ def render_batch_tab():
         return
 
     st.subheader("确认记录")
-    st.caption(
-        "当前草稿会在页面切换后保留，保存或放弃后清除。"
-        "取消勾选可跳过该行。食物清单格式：食物:份量；食物。"
-    )
+    st.caption("当前草稿会在页面切换后保留，保存或放弃后清除。取消勾选可跳过该行。")
     if st.session_state.batch_status == "error" and st.session_state.batch_error:
         st.error(st.session_state.batch_error)
     _render_diagnostics(st.session_state.get("batch_diagnostics") or {})
 
-    edited_df = st.data_editor(
-        _records_to_df(st.session_state.batch_records),
-        key=f"batch_editor_{st.session_state.batch_editor_version}",
-        hide_index=True,
-        num_rows="dynamic",
-        width="stretch",
-        column_order=[
-            "include",
-            "record_type",
-            "date",
-            "time",
-            "description",
-            "amount",
-            "category",
-            "subcategory",
-            "meal_type",
-            "foods",
-            "notes",
-            "confidence",
-            "reasoning",
-        ],
-        column_config={
-            "include": st.column_config.CheckboxColumn("保存"),
-            "record_type": st.column_config.SelectboxColumn(
-                "类型", options=list(BATCH_RECORD_TYPES), required=True
-            ),
-            "date": st.column_config.TextColumn("日期", required=True),
-            "time": st.column_config.TextColumn(
-                "时间", help="饮食记录必填 HH:MM；财务记录可留空"
-            ),
-            "description": st.column_config.TextColumn("描述", required=True),
-            "amount": st.column_config.NumberColumn("金额", format="%.2f"),
-            "category": st.column_config.SelectboxColumn(
-                "主类别", options=_all_categories(config)
-            ),
-            "subcategory": st.column_config.TextColumn("子类别"),
-            "meal_type": st.column_config.TextColumn(
-                "餐顿标签", help="可选，例如早餐、brunch、夜宵"
-            ),
-            "foods": st.column_config.TextColumn(
-                "菜品与食材",
-                help="格式：菜品:份量【食材1、食材2】；多个菜品用分号分隔",
-            ),
-            "notes": st.column_config.TextColumn("备注"),
-            "confidence": st.column_config.NumberColumn(
-                "置信度", min_value=0.0, max_value=1.0, format="%.2f"
-            ),
-            "reasoning": st.column_config.TextColumn("理由"),
-        },
-    )
+    finance_df, meal_df = _split_review_frames(st.session_state.batch_records)
+    edited_frames = []
+
+    if not finance_df.empty:
+        st.markdown("#### 账目")
+        edited_finance_df = st.data_editor(
+            finance_df,
+            key=f"batch_finance_editor_{st.session_state.batch_editor_version}",
+            hide_index=True,
+            num_rows="dynamic",
+            width="stretch",
+            column_order=[
+                "include",
+                "record_type",
+                "date",
+                "description",
+                "amount",
+                "category",
+                "subcategory",
+                "notes",
+                "confidence",
+                "reasoning",
+            ],
+            column_config={
+                "include": st.column_config.CheckboxColumn("保存"),
+                "record_type": st.column_config.SelectboxColumn(
+                    "类型", options=list(TRANSACTION_TYPES), required=True
+                ),
+                "date": st.column_config.TextColumn("日期", required=True),
+                "description": st.column_config.TextColumn("描述", required=True),
+                "amount": st.column_config.NumberColumn("金额", format="%.2f"),
+                "category": st.column_config.SelectboxColumn(
+                    "主类别", options=_all_categories(config)
+                ),
+                "subcategory": st.column_config.TextColumn("子类别"),
+                "notes": st.column_config.TextColumn("备注"),
+                "confidence": st.column_config.NumberColumn(
+                    "置信度", min_value=0.0, max_value=1.0, format="%.2f"
+                ),
+                "reasoning": st.column_config.TextColumn("理由"),
+            },
+        )
+        edited_frames.append(edited_finance_df)
+
+    if not meal_df.empty:
+        st.markdown("#### 饮食")
+        st.caption("食物格式：菜品:份量【食材1、食材2】；多个菜品用分号分隔。")
+        edited_meal_df = st.data_editor(
+            meal_df,
+            key=f"batch_meal_editor_{st.session_state.batch_editor_version}",
+            hide_index=True,
+            num_rows="dynamic",
+            width="stretch",
+            column_order=[
+                "include",
+                "date",
+                "time",
+                "description",
+                "meal_type",
+                "foods",
+                "notes",
+                "confidence",
+                "reasoning",
+            ],
+            column_config={
+                "include": st.column_config.CheckboxColumn("保存"),
+                "date": st.column_config.TextColumn("日期", required=True),
+                "time": st.column_config.TextColumn("时间", help="必填，格式 HH:MM"),
+                "description": st.column_config.TextColumn("描述", required=True),
+                "meal_type": st.column_config.TextColumn(
+                    "餐顿标签", help="可选，例如早餐、brunch、夜宵"
+                ),
+                "foods": st.column_config.TextColumn("菜品与食材"),
+                "notes": st.column_config.TextColumn("备注"),
+                "confidence": st.column_config.NumberColumn(
+                    "置信度", min_value=0.0, max_value=1.0, format="%.2f"
+                ),
+                "reasoning": st.column_config.TextColumn("理由"),
+            },
+        )
+        edited_meal_df["record_type"] = TYPE_MEAL
+        edited_frames.append(edited_meal_df)
+
+    edited_df = pd.concat(edited_frames, ignore_index=True)
 
     c1, c2 = st.columns(2)
     with c1:

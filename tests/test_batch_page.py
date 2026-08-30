@@ -46,12 +46,26 @@ class BatchPageTest(unittest.TestCase):
                 "category": "旅行",
                 "subcategory": "旅行交通",
                 "confidence": 1.0,
-            }
+            },
+            {
+                "record_type": "饮食",
+                "date": "2026-08-30",
+                "time": "12:00",
+                "description": "noodles",
+                "meal_type": "午餐",
+                "foods": [{"food_name": "noodles", "quantity": "1 bowl"}],
+                "confidence": 1.0,
+            },
         ]
         app.session_state["batch_source_text"] = "train 120"
         app.session_state["batch_submission_id"] = "draft-1"
         app.session_state["batch_status"] = "review"
         app.run()
+
+        headings = [markdown.value for markdown in app.markdown]
+        self.assertIn("#### 账目", headings)
+        self.assertIn("#### 饮食", headings)
+        self.assertEqual(len(app.get("dataframe")), 2)
 
         discard = next(button for button in app.button if button.label == "放弃批次")
         discard.click().run()
