@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     PENDING_CATEGORY,
+    RECURRING_PAYMENT_PREPAID,
     REFUND_CATEGORY,
     TYPE_EXPENSE,
     TYPE_INCOME,
@@ -198,17 +199,82 @@ def update_transaction(id_: int, **fields) -> None:
         updates["reviewed"] = 1 if updates["reviewed"] else 0
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     with closing(_connect()) as conn:
-        conn.execute(
-            f"UPDATE transactions SET {set_clause} WHERE id = ?",
-            [*updates.values(), id_],
-        )
-        conn.commit()
+        try:
+            prepaid = conn.execute(
+                """SELECT id FROM subscriptions
+                   WHERE transaction_id = ? AND payment_type = ?""",
+                (id_, RECURRING_PAYMENT_PREPAID),
+            ).fetchone()
+            if (
+                prepaid is not None
+                and updates.get("type", TYPE_EXPENSE) != TYPE_EXPENSE
+            ):
+                raise ValueError("预付摊销关联流水必须保持为支出")
+
+            conn.execute(
+                f"UPDATE transactions SET {set_clause} WHERE id = ?",
+                [*updates.values(), id_],
+            )
+
+            if prepaid is not None:
+                subscription_fields = {
+                    "description": "name",
+                    "amount": "amount",
+                    "amount_cents": "amount_cents",
+                    "category": "category",
+                    "subcategory": "subcategory",
+                    "notes": "notes",
+                    "amortization_months": "billing_interval_months",
+                    "amortization_start": "start_date",
+                }
+                subscription_updates = {
+                    target: updates[source]
+                    for source, target in subscription_fields.items()
+                    if source in updates
+                }
+                if subscription_updates:
+                    subscription_set = ", ".join(
+                        f"{key} = ?" for key in subscription_updates
+                    )
+                    conn.execute(
+                        f"UPDATE subscriptions SET {subscription_set} WHERE id = ?",
+                        [*subscription_updates.values(), prepaid["id"]],
+                    )
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def delete_transaction(id_: int) -> None:
     with closing(_connect()) as conn:
-        conn.execute("DELETE FROM transactions WHERE id = ?", (id_,))
-        conn.commit()
+        try:
+            transaction = conn.execute(
+                "SELECT subscription_id FROM transactions WHERE id = ?", (id_,)
+            ).fetchone()
+            if transaction is None:
+                return
+            refund = conn.execute(
+                "SELECT 1 FROM transactions WHERE refund_for_id = ? LIMIT 1", (id_,)
+            ).fetchone()
+            if refund is not None:
+                raise ValueError("请先删除这笔支出的关联退款")
+            prepaid = conn.execute(
+                "SELECT 1 FROM subscriptions WHERE transaction_id = ? LIMIT 1", (id_,)
+            ).fetchone()
+            if transaction["subscription_id"] is not None or prepaid is not None:
+                raise ValueError("请先删除或解除关联的跨期费用")
+            planned = conn.execute(
+                "SELECT 1 FROM planned_expenses WHERE transaction_id = ? LIMIT 1",
+                (id_,),
+            ).fetchone()
+            if planned is not None:
+                raise ValueError("预计支出的历史入账记录不能直接删除")
+            conn.execute("DELETE FROM transactions WHERE id = ?", (id_,))
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
 
 
 def get_pending_transactions(limit: int = 200) -> list[dict]:

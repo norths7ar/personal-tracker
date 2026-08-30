@@ -12,12 +12,10 @@ from core.constants import (
     RENEWAL_MODE_SAME_DAY,
     SUBSCRIPTION_CYCLE_CUSTOM,
     SUBSCRIPTION_CYCLE_MONTHLY,
-    SUBSCRIPTION_CYCLE_ONE_TIME,
     SUBSCRIPTION_CYCLE_QUARTERLY,
     SUBSCRIPTION_CYCLE_YEARLY,
     TYPE_EXPENSE,
 )
-from core.expense.db import add_transaction, delete_transaction, update_transaction
 from core.planned_expense.db import (
     add_planned_expense,
     confirm_planned_expense,
@@ -27,10 +25,12 @@ from core.planned_expense.db import (
 )
 from core.subscription.db import (
     add_subscription,
+    create_prepaid_with_transaction,
     delete_prepaid_subscription,
     delete_subscription,
     get_subscriptions,
     record_subscription_payment,
+    update_prepaid_with_transaction,
     update_subscription,
 )
 from core.text import display_text, is_blank, optional_text
@@ -434,34 +434,16 @@ def _add_prepaid_dialog() -> None:
         st.error("摊销开始月份必须是 YYYY-MM。")
         return
 
-    transaction_id = add_transaction(
-        TYPE_EXPENSE,
+    create_prepaid_with_transaction(
         description.strip(),
         amount,
         payment_date.isoformat(),
-        category=category,
-        subcategory=optional_text(subcategory),
-        notes=optional_text(notes),
-        amortization_months=int(months),
-        amortization_start=amortization_start,
+        int(months),
+        amortization_start,
+        category,
+        optional_text(subcategory),
+        optional_text(notes),
     )
-    try:
-        add_subscription(
-            name=description.strip(),
-            amount=amount,
-            billing_cycle=SUBSCRIPTION_CYCLE_ONE_TIME,
-            billing_interval_months=int(months),
-            start_date=amortization_start,
-            category=category,
-            subcategory=optional_text(subcategory),
-            auto_renew=False,
-            notes=optional_text(notes),
-            payment_type=RECURRING_PAYMENT_PREPAID,
-            transaction_id=transaction_id,
-        )
-    except Exception:
-        delete_transaction(transaction_id)
-        raise
     st.rerun()
 
 
@@ -518,23 +500,15 @@ def _edit_prepaid_dialog(record: dict) -> None:
         st.error("摊销开始月份必须是 YYYY-MM。")
         return
 
-    update_subscription(
+    update_prepaid_with_transaction(
         int(record["id"]),
-        name=description.strip(),
-        billing_interval_months=int(months),
-        start_date=amortization_start,
-        category=category,
-        subcategory=optional_text(subcategory),
-        notes=optional_text(notes),
-    )
-    update_transaction(
         transaction_id,
-        description=description.strip(),
-        category=category,
-        subcategory=optional_text(subcategory),
-        notes=optional_text(notes),
-        amortization_months=int(months),
-        amortization_start=amortization_start,
+        description.strip(),
+        int(months),
+        amortization_start,
+        category,
+        optional_text(subcategory),
+        optional_text(notes),
     )
     st.rerun()
 

@@ -333,9 +333,13 @@ def _show_editor_dialog(record: dict, config: dict) -> None:
                     st.rerun()
             with confirm_col:
                 if st.button("确认删除", type="primary"):
-                    delete_transaction(record_id)
-                    st.session_state.pop(delete_key, None)
-                    st.rerun()
+                    try:
+                        delete_transaction(record_id)
+                    except ValueError as exc:
+                        st.error(str(exc))
+                    else:
+                        st.session_state.pop(delete_key, None)
+                        st.rerun()
 
 
 config = load_config()

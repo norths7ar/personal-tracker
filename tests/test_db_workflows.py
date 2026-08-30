@@ -248,6 +248,163 @@ class DatabaseWorkflowTest(unittest.TestCase):
         rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
         self.assertEqual(rows, [])
 
+    def test_prepaid_creation_is_atomic_and_ledger_edits_stay_in_sync(self):
+        transaction_id, subscription_id = (
+            subscription_db.create_prepaid_with_transaction(
+                "annual software",
+                120,
+                "2026-07-01",
+                12,
+                "2026-07-01",
+                "通讯",
+                "订阅服务",
+                "work tool",
+            )
+        )
+
+        transaction = self.raw.execute(
+            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
+        ).fetchone()
+        subscription = self.raw.execute(
+            "SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)
+        ).fetchone()
+        self.assertEqual(transaction["amortization_months"], 12)
+        self.assertEqual(subscription["transaction_id"], transaction_id)
+
+        expense_db.update_transaction(
+            transaction_id,
+            description="renamed software",
+            amount=150,
+            category="工作",
+        )
+        subscription = self.raw.execute(
+            "SELECT name, amount_cents, category FROM subscriptions WHERE id = ?",
+            (subscription_id,),
+        ).fetchone()
+        self.assertEqual(subscription["name"], "renamed software")
+        self.assertEqual(subscription["amount_cents"], 15000)
+        self.assertEqual(subscription["category"], "工作")
+
+        before = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+        with patch.object(
+            subscription_db,
+            "_insert_subscription",
+            side_effect=RuntimeError("insert failed"),
+        ), self.assertRaisesRegex(RuntimeError, "insert failed"):
+            subscription_db.create_prepaid_with_transaction(
+                "broken prepaid",
+                50,
+                "2026-08-01",
+                2,
+                "2026-08-01",
+                "其他",
+                None,
+                None,
+            )
+        after = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+        self.assertEqual(after, before)
+
+    def test_prepaid_metadata_update_is_atomic(self):
+        transaction_id, subscription_id = (
+            subscription_db.create_prepaid_with_transaction(
+                "quarterly rent",
+                3000,
+                "2026-07-01",
+                3,
+                "2026-07-01",
+                "居住",
+                "房租",
+                None,
+            )
+        )
+
+        subscription_db.update_prepaid_with_transaction(
+            subscription_id,
+            transaction_id,
+            "four month rent",
+            4,
+            "2026-08-01",
+            "居住",
+            "房租",
+            "renewed",
+        )
+
+        transaction = self.raw.execute(
+            """SELECT description, amortization_months, amortization_start, notes
+               FROM transactions WHERE id = ?""",
+            (transaction_id,),
+        ).fetchone()
+        subscription = self.raw.execute(
+            """SELECT name, billing_interval_months, start_date, notes
+               FROM subscriptions WHERE id = ?""",
+            (subscription_id,),
+        ).fetchone()
+        self.assertEqual(transaction["description"], subscription["name"])
+        self.assertEqual(
+            transaction["amortization_months"],
+            subscription["billing_interval_months"],
+        )
+        self.assertEqual(transaction["amortization_start"], subscription["start_date"])
+        self.assertEqual(transaction["notes"], subscription["notes"])
+
+    def test_linked_transactions_cannot_be_deleted_out_of_order(self):
+        original_id = expense_db.add_transaction(
+            TYPE_EXPENSE, "hotel", 100, "2026-08-01", category="旅行"
+        )
+        refund_id = expense_db.add_refund(original_id, "hotel refund", 20, "2026-08-02")
+        with self.assertRaisesRegex(ValueError, "关联退款"):
+            expense_db.delete_transaction(original_id)
+        expense_db.delete_transaction(refund_id)
+        expense_db.delete_transaction(original_id)
+
+        prepaid_tx, prepaid_id = subscription_db.create_prepaid_with_transaction(
+            "annual service",
+            120,
+            "2026-08-01",
+            12,
+            "2026-08-01",
+            "通讯",
+            "订阅服务",
+            None,
+        )
+        with self.assertRaisesRegex(ValueError, "跨期费用"):
+            expense_db.delete_transaction(prepaid_tx)
+        subscription_db.delete_prepaid_subscription(prepaid_id, prepaid_tx)
+        expense_db.delete_transaction(prepaid_tx)
+
+    def test_deleting_subscription_detaches_related_history(self):
+        subscription_id = subscription_db.add_subscription(
+            "video service",
+            30,
+            "月付",
+            category="通讯",
+            subcategory="平台会员",
+        )
+        transaction_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "video service",
+            30,
+            "2026-08-01",
+            subscription_id=subscription_id,
+        )
+        planned_id = planned_expense_db.add_planned_expense(
+            "video service",
+            30,
+            "2026-09-01",
+            subscription_id=subscription_id,
+        )
+
+        subscription_db.delete_subscription(subscription_id)
+
+        transaction = self.raw.execute(
+            "SELECT subscription_id FROM transactions WHERE id = ?", (transaction_id,)
+        ).fetchone()
+        planned = self.raw.execute(
+            "SELECT subscription_id FROM planned_expenses WHERE id = ?", (planned_id,)
+        ).fetchone()
+        self.assertIsNone(transaction["subscription_id"])
+        self.assertIsNone(planned["subscription_id"])
+
     def test_pending_category_excludes_normal_null_subcategory(self):
         pending_id = expense_db.add_transaction(
             TYPE_EXPENSE,
