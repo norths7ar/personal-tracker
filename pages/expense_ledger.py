@@ -20,6 +20,7 @@ from core.expense.db import (
     add_refund,
     count_transactions,
     delete_transaction,
+    delete_transactions,
     get_transactions,
     refund_total_for,
     update_transaction,
@@ -30,6 +31,9 @@ from core.text import display_text, is_blank, optional_text
 require_login(show_logout=False)
 
 st.title("账目")
+
+if message := st.session_state.pop("expense_ledger_flash", None):
+    st.success(message)
 
 
 def _unique(values: list[str]) -> list[str]:
@@ -74,6 +78,38 @@ def _cycle_from_months(months: int) -> tuple[str, int | None]:
     if months == 12:
         return SUBSCRIPTION_CYCLE_YEARLY, None
     return SUBSCRIPTION_CYCLE_CUSTOM, months
+
+
+@st.dialog("删除账目", width="medium")
+def _show_bulk_delete_dialog(records: list[dict]) -> None:
+    count = len(records)
+    st.warning(f"将永久删除所选 {count} 条记录。此操作无法撤销。")
+    preview = pd.DataFrame(
+        [
+            {
+                "ID": int(record["id"]),
+                "日期": display_text(record.get("date")),
+                "类型": display_text(record.get("type")),
+                "描述": display_text(record.get("description")),
+                "金额": f"¥{float(record.get('amount') or 0):.2f}",
+            }
+            for record in records
+        ]
+    )
+    st.dataframe(preview, hide_index=True, width="stretch", height=245)
+    cancel_col, confirm_col = st.columns(2)
+    with cancel_col:
+        if st.button("取消", width="stretch"):
+            st.rerun()
+    with confirm_col:
+        if st.button(f"确认删除 {count} 条", type="primary", width="stretch"):
+            try:
+                deleted = delete_transactions([int(record["id"]) for record in records])
+            except ValueError as exc:
+                st.error(str(exc))
+            else:
+                st.session_state.expense_ledger_flash = f"已删除 {deleted} 条账目"
+                st.rerun()
 
 
 @st.dialog("编辑账目", width="small")
@@ -368,11 +404,13 @@ query_filters = {
 total_count = count_transactions(**query_filters)
 page_size = 100
 page_count = max(1, (total_count + page_size - 1) // page_size)
-page = st.selectbox(
-    "页码",
-    range(1, page_count + 1),
-    format_func=lambda value: f"第 {value} / {page_count} 页",
-)
+page_col, export_col, count_col = st.columns([2, 1, 5], vertical_alignment="bottom")
+with page_col:
+    page = st.selectbox(
+        "页码",
+        range(1, page_count + 1),
+        format_func=lambda value: f"第 {value} / {page_count} 页",
+    )
 rows = get_transactions(
     **query_filters,
     limit=page_size,
@@ -400,14 +438,17 @@ display_df = df[
 display_df["amount"] = display_df["amount"].map(lambda value: f"¥{float(value):.2f}")
 for column in ("category", "subcategory"):
     display_df[column] = display_df[column].map(display_text)
+display_df["amortization_months"] = display_df["amortization_months"].map(
+    lambda value: "" if is_blank(value) else str(int(float(value)))
+)
 
-export_col, count_col = st.columns([1, 4])
 with export_col:
     st.download_button(
         "导出 CSV",
         data=export_df.to_csv(index=False, encoding="utf-8-sig"),
         file_name=f"流水_{date.today():%Y%m%d}.csv",
         mime="text/csv",
+        width="stretch",
     )
 with count_col:
     st.caption(f"共 {total_count} 条；当前显示 {len(rows)} 条")
@@ -416,7 +457,7 @@ event = st.dataframe(
     display_df,
     hide_index=True,
     width="stretch",
-    selection_mode="single-row",
+    selection_mode="multi-row",
     on_select="rerun",
     column_config={
         "id": st.column_config.NumberColumn("ID", width="small"),
@@ -426,11 +467,23 @@ event = st.dataframe(
         "amount": st.column_config.TextColumn("金额", width="small"),
         "category": st.column_config.TextColumn("主类别", width="medium"),
         "subcategory": st.column_config.TextColumn("子类别", width="medium"),
-        "amortization_months": st.column_config.NumberColumn("摊销月", width="small"),
+        "amortization_months": st.column_config.TextColumn("摊销月", width="small"),
     },
 )
 
-if event.selection.rows:
-    selected_record = df.iloc[event.selection.rows[0]].to_dict()
-    if st.button("编辑所选记录", type="primary"):
-        _show_editor_dialog(selected_record, config)
+selected_rows = event.selection.rows
+if not selected_rows:
+    st.caption("可勾选多条记录；选择 1 条可编辑，选择多条可批量删除。")
+else:
+    selected_records = [df.iloc[index].to_dict() for index in selected_rows]
+    st.caption(f"已选择 {len(selected_records)} 条记录")
+    if len(selected_records) == 1:
+        edit_col, delete_col, _ = st.columns([1, 1, 4])
+        with edit_col:
+            if st.button("编辑所选记录", type="primary", width="stretch"):
+                _show_editor_dialog(selected_records[0], config)
+        with delete_col:
+            if st.button("删除所选记录", width="stretch"):
+                _show_bulk_delete_dialog(selected_records)
+    elif st.button(f"删除所选 {len(selected_records)} 条", type="primary"):
+        _show_bulk_delete_dialog(selected_records)

@@ -412,6 +412,28 @@ class DatabaseWorkflowTest(unittest.TestCase):
         subscription_db.delete_prepaid_subscription(prepaid_id, prepaid_tx)
         expense_db.delete_transaction(prepaid_tx)
 
+    def test_bulk_delete_is_atomic_when_one_record_is_protected(self):
+        standalone_id = expense_db.add_transaction(
+            TYPE_EXPENSE, "duplicate", 20, "2026-08-01", category="旅行"
+        )
+        original_id = expense_db.add_transaction(
+            TYPE_EXPENSE, "hotel", 100, "2026-08-01", category="旅行"
+        )
+        refund_id = expense_db.add_refund(original_id, "hotel refund", 20, "2026-08-02")
+
+        with self.assertRaisesRegex(ValueError, f"记录 #{original_id}.*关联退款"):
+            expense_db.delete_transactions([standalone_id, original_id])
+
+        remaining = self.raw.execute(
+            "SELECT id FROM transactions WHERE id IN (?, ?)",
+            (standalone_id, original_id),
+        ).fetchall()
+        self.assertEqual({row["id"] for row in remaining}, {standalone_id, original_id})
+
+        expense_db.delete_transaction(refund_id)
+        deleted = expense_db.delete_transactions([standalone_id, original_id])
+        self.assertEqual(deleted, 2)
+
     def test_deleting_subscription_detaches_related_history(self):
         subscription_id = subscription_db.add_subscription(
             "video service",

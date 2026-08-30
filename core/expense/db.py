@@ -290,34 +290,53 @@ def update_transaction(id_: int, **fields) -> None:
 
 
 def delete_transaction(id_: int) -> None:
+    delete_transactions([id_])
+
+
+def delete_transactions(ids: list[int]) -> int:
+    """Delete several transactions atomically after validating every record."""
+    transaction_ids = list(dict.fromkeys(int(id_) for id_ in ids))
+    if not transaction_ids:
+        return 0
+
     with closing(_connect()) as conn:
         try:
-            transaction = conn.execute(
-                "SELECT subscription_id FROM transactions WHERE id = ?", (id_,)
-            ).fetchone()
-            if transaction is None:
-                return
-            refund = conn.execute(
-                "SELECT 1 FROM transactions WHERE refund_for_id = ? LIMIT 1", (id_,)
-            ).fetchone()
-            if refund is not None:
-                raise ValueError("请先删除这笔支出的关联退款")
-            prepaid = conn.execute(
-                "SELECT 1 FROM subscriptions WHERE transaction_id = ? LIMIT 1", (id_,)
-            ).fetchone()
-            if transaction["subscription_id"] is not None or prepaid is not None:
-                raise ValueError("请先删除或解除关联的跨期费用")
-            planned = conn.execute(
-                "SELECT 1 FROM planned_expenses WHERE transaction_id = ? LIMIT 1",
-                (id_,),
-            ).fetchone()
-            if planned is not None:
-                raise ValueError("预计支出的历史入账记录不能直接删除")
-            conn.execute("DELETE FROM transactions WHERE id = ?", (id_,))
+            for transaction_id in transaction_ids:
+                _validate_transaction_deletion(conn, transaction_id)
+
+            placeholders = ", ".join("?" for _ in transaction_ids)
+            deleted = conn.execute(
+                f"DELETE FROM transactions WHERE id IN ({placeholders})",
+                transaction_ids,
+            ).rowcount
             conn.commit()
+            return deleted
         except Exception:
             conn.rollback()
             raise
+
+
+def _validate_transaction_deletion(conn, id_: int) -> None:
+    transaction = conn.execute(
+        "SELECT subscription_id FROM transactions WHERE id = ?", (id_,)
+    ).fetchone()
+    if transaction is None:
+        return
+    refund = conn.execute(
+        "SELECT 1 FROM transactions WHERE refund_for_id = ? LIMIT 1", (id_,)
+    ).fetchone()
+    if refund is not None:
+        raise ValueError(f"记录 #{id_} 存在关联退款，请先删除退款")
+    prepaid = conn.execute(
+        "SELECT 1 FROM subscriptions WHERE transaction_id = ? LIMIT 1", (id_,)
+    ).fetchone()
+    if transaction["subscription_id"] is not None or prepaid is not None:
+        raise ValueError(f"记录 #{id_} 已关联跨期费用，请先删除或解除关联")
+    planned = conn.execute(
+        "SELECT 1 FROM planned_expenses WHERE transaction_id = ? LIMIT 1", (id_,)
+    ).fetchone()
+    if planned is not None:
+        raise ValueError(f"记录 #{id_} 是预计支出的历史入账，不能直接删除")
 
 
 def get_pending_transactions(limit: int = 200) -> list[dict]:
