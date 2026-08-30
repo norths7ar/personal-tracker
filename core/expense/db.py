@@ -132,44 +132,20 @@ def get_transactions(
 def get_monthly_summary(year: int, month: int) -> dict:
     """返回指定月份的收支结余及三类明细。迁移不参与收支计算。"""
     start = f"{year:04d}-{month:02d}-01"
-    end = f"{year + 1:04d}-01-01" if month == 12 else f"{year:04d}-{month + 1:02d}-01"
-
-    def breakdown_by_type(conn, type_):
-        return conn.execute(
-            f"""SELECT category, subcategory,
-                       SUM({_amount_expr()}) as total, COUNT(*) as count
-               FROM transactions
-               WHERE date >= ? AND date < ? AND type = ?
-               GROUP BY category, subcategory
-               ORDER BY total DESC""",
-            (start, end, type_),
-        ).fetchall()
+    next_first = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
+    end = (next_first - timedelta(days=1)).isoformat()
+    summary = _cash_period_data(start, end)
 
     with closing(_connect()) as conn:
-        totals_rows = conn.execute(
-            f"""SELECT type, SUM({_amount_expr()}) as total
-               FROM transactions
-               WHERE date >= ? AND date < ?
-                 AND type IN ('{TYPE_INCOME}', '{TYPE_EXPENSE}')
-               GROUP BY type""",
-            (start, end),
+        transfer_rows = conn.execute(
+            f"""SELECT category, subcategory,
+                       SUM({_amount_expr()}) as total, COUNT(*) as count
+                FROM transactions
+                WHERE date >= ? AND date <= ? AND type = ?
+                GROUP BY category, subcategory ORDER BY total DESC""",
+            (start, end, TYPE_TRANSFER),
         ).fetchall()
-        totals = {r["type"]: r["total"] for r in totals_rows}
-
-        expense_bd = breakdown_by_type(conn, TYPE_EXPENSE)
-        income_bd = breakdown_by_type(conn, TYPE_INCOME)
-        transfer_bd = breakdown_by_type(conn, TYPE_TRANSFER)
-
-    income = totals.get(TYPE_INCOME, 0) or 0
-    expense = totals.get(TYPE_EXPENSE, 0) or 0
-    return {
-        "income": income,
-        "expense": expense,
-        "balance": income - expense,
-        "expense_breakdown": [dict(r) for r in expense_bd],
-        "income_breakdown": [dict(r) for r in income_bd],
-        "transfer_breakdown": [dict(r) for r in transfer_bd],
-    }
+    return {**summary, "transfer_breakdown": [dict(row) for row in transfer_rows]}
 
 
 def update_transaction(id_: int, **fields) -> None:
@@ -428,13 +404,52 @@ def _week_start(value: str) -> str:
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
     def bd(conn, type_):
+        refund_filter = (
+            " AND COALESCE(category, '') <> ?" if type_ == TYPE_INCOME else ""
+        )
+        params = [start_date, end_date, type_]
+        if type_ == TYPE_INCOME:
+            params.append(REFUND_CATEGORY)
         return conn.execute(
             f"""SELECT category, subcategory,
                        SUM({_amount_expr()}) as total, COUNT(*) as count
                FROM transactions
                WHERE date >= ? AND date <= ? AND type = ?
+               {refund_filter}
                GROUP BY category, subcategory ORDER BY total DESC""",
-            (start_date, end_date, type_),
+            params,
+        ).fetchall()
+
+    def expense_bd(conn):
+        amount = "COALESCE(t.amount_cents / 100.0, t.amount)"
+        refund_amount = "COALESCE(r.amount_cents / 100.0, r.amount)"
+        return conn.execute(
+            f"""SELECT category, subcategory,
+                       SUM(total) AS total, SUM(count) AS count
+                FROM (
+                    SELECT t.category, t.subcategory, {amount} AS total, 1 AS count
+                    FROM transactions t
+                    WHERE t.date >= ? AND t.date <= ? AND t.type = ?
+                    UNION ALL
+                    SELECT original.category, original.subcategory,
+                           -{refund_amount} AS total, 0 AS count
+                    FROM transactions r
+                    JOIN transactions original ON original.id = r.refund_for_id
+                    WHERE r.date >= ? AND r.date <= ?
+                      AND r.type = ? AND r.category = ?
+                ) entries
+                GROUP BY category, subcategory
+                HAVING ABS(SUM(total)) >= 0.005
+                ORDER BY total DESC""",
+            (
+                start_date,
+                end_date,
+                TYPE_EXPENSE,
+                start_date,
+                end_date,
+                TYPE_INCOME,
+                REFUND_CATEGORY,
+            ),
         ).fetchall()
 
     with closing(_connect()) as conn:
@@ -456,7 +471,7 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
             (start_date, end_date),
         ).fetchall()
 
-        expense_bd = bd(conn, TYPE_EXPENSE)
+        expense_breakdown = expense_bd(conn)
         income_bd = bd(conn, TYPE_INCOME)
 
     income = 0.0
@@ -487,7 +502,7 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
         "expense": expense,
         "balance": income - expense,
         "daily": list(daily.values()),
-        "expense_breakdown": [dict(r) for r in expense_bd],
+        "expense_breakdown": [dict(r) for r in expense_breakdown],
         "income_breakdown": [dict(r) for r in income_bd],
     }
 
@@ -506,13 +521,14 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
                ORDER BY date""",
         ).fetchall()
 
+    normalized_rows = [_normalize_transaction(raw) for raw in rows]
+    rows_by_id = {row["id"]: row for row in normalized_rows}
     daily: dict = {}
     breakdown: dict[tuple[str, str], dict] = {}
     income = 0.0
     expense = 0.0
 
-    for raw in rows:
-        row = _normalize_transaction(raw)
+    for row in normalized_rows:
         type_ = row.get("type")
         amount = float(row.get("amount") or 0)
         if type_ == TYPE_EXPENSE and int(row.get("amortization_months") or 0) > 1:
@@ -534,6 +550,21 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
             if type_ == TYPE_INCOME and row.get("category") == REFUND_CATEGORY:
                 day[TYPE_EXPENSE] -= entry_amount
                 expense -= entry_amount
+                original = rows_by_id.get(row.get("refund_for_id")) or {}
+                key = (
+                    original.get("category") or "",
+                    original.get("subcategory") or "",
+                )
+                current = breakdown.setdefault(
+                    key,
+                    {
+                        "category": key[0],
+                        "subcategory": key[1],
+                        "total": 0.0,
+                        "count": 0,
+                    },
+                )
+                current["total"] -= entry_amount
             elif type_ == TYPE_INCOME:
                 day[TYPE_INCOME] += entry_amount
                 income += entry_amount
@@ -560,7 +591,9 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
         "balance": income - expense,
         "daily": sorted(daily.values(), key=lambda r: r["date"]),
         "expense_breakdown": sorted(
-            breakdown.values(), key=lambda r: r["total"], reverse=True
+            (row for row in breakdown.values() if abs(float(row["total"])) >= 0.005),
+            key=lambda r: r["total"],
+            reverse=True,
         ),
         "income_breakdown": income_breakdown,
     }

@@ -62,6 +62,48 @@ def monthly_equivalent(item: dict) -> float:
     return 0.0
 
 
+def fixed_cost_for_month(month: str) -> float:
+    """Return recurring and prepaid monthly cost effective in YYYY-MM."""
+    month_start = date.fromisoformat(f"{month}-01")
+    next_month = (
+        date(month_start.year + 1, 1, 1)
+        if month_start.month == 12
+        else date(month_start.year, month_start.month + 1, 1)
+    )
+    month_end = next_month - timedelta(days=1)
+    total = 0.0
+    for item in get_subscriptions(include_inactive=True):
+        start = (
+            date.fromisoformat(str(item["start_date"])[:10])
+            if item.get("start_date")
+            else None
+        )
+        end = (
+            date.fromisoformat(str(item["end_date"])[:10])
+            if item.get("end_date")
+            else None
+        )
+        if start and start > month_end:
+            continue
+        if end and end < month_start:
+            continue
+
+        if item.get("payment_type") == RECURRING_PAYMENT_PREPAID:
+            if start is None:
+                continue
+            months = max(1, int(item.get("billing_interval_months") or 1))
+            month_offset = (
+                (month_start.year - start.year) * 12 + month_start.month - start.month
+            )
+            if not 0 <= month_offset < months:
+                continue
+        elif item.get("status") != SUBSCRIPTION_STATUS_ACTIVE and end is None:
+            continue
+
+        total += monthly_equivalent(item)
+    return total
+
+
 def add_subscription(
     name: str,
     amount: float,

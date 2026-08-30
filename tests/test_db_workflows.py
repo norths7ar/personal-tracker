@@ -286,11 +286,14 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(subscription["category"], "工作")
 
         before = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
-        with patch.object(
-            subscription_db,
-            "_insert_subscription",
-            side_effect=RuntimeError("insert failed"),
-        ), self.assertRaisesRegex(RuntimeError, "insert failed"):
+        with (
+            patch.object(
+                subscription_db,
+                "_insert_subscription",
+                side_effect=RuntimeError("insert failed"),
+            ),
+            self.assertRaisesRegex(RuntimeError, "insert failed"),
+        ):
             subscription_db.create_prepaid_with_transaction(
                 "broken prepaid",
                 50,
@@ -471,6 +474,54 @@ class DatabaseWorkflowTest(unittest.TestCase):
 
         expense_db.add_refund(transaction_id, "final refund", 40, "2026-09-01")
         self.assertEqual(expense_db.refund_total_for(transaction_id), 100)
+
+    def test_refunds_reconcile_expense_totals_and_original_category(self):
+        transaction_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "hotel",
+            100,
+            "2026-08-01",
+            category="旅行",
+            subcategory="酒店住宿",
+        )
+        expense_db.add_refund(transaction_id, "hotel refund", 30, "2026-08-02")
+
+        for basis in ("cash", "amortized"):
+            period = expense_db.get_period_data("2026-08-01", "2026-08-31", basis)
+            self.assertEqual(period["expense"], 70)
+            self.assertEqual(period["income"], 0)
+            self.assertEqual(
+                sum(row["total"] for row in period["expense_breakdown"]), 70
+            )
+            self.assertEqual(period["expense_breakdown"][0]["category"], "旅行")
+            self.assertEqual(period["income_breakdown"], [])
+
+    def test_fixed_cost_uses_the_selected_month(self):
+        subscription_db.add_subscription(
+            "video service",
+            30,
+            "月付",
+            start_date="2026-08-15",
+            end_date="2026-10-15",
+            category="通讯",
+        )
+        subscription_db.create_prepaid_with_transaction(
+            "quarterly rent",
+            3000,
+            "2026-07-01",
+            3,
+            "2026-07-01",
+            "住房",
+            "租房物业",
+            None,
+        )
+
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-06"), 0)
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-07"), 1000)
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-08"), 1030)
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-09"), 1030)
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-10"), 30)
+        self.assertEqual(subscription_db.fixed_cost_for_month("2026-11"), 0)
 
     def test_month_budget_replaces_only_the_selected_month(self):
         budget_db.save_month_budget(

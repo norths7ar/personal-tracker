@@ -11,7 +11,7 @@ from core.expense.db import (
     get_active_years,
     get_period_data,
 )
-from core.subscription.db import get_subscriptions
+from core.subscription.db import fixed_cost_for_month
 
 require_login(show_logout=False)
 
@@ -269,16 +269,13 @@ with tab_month:
         prev = get_period_data(prev_start, prev_end, basis=basis_key)
         cash_prev = get_period_data(prev_start, prev_end, "cash")
 
-        recurring_monthly_cost = sum(
-            float(record.get("monthly_equivalent") or 0)
-            for record in get_subscriptions()
-        )
+        recurring_monthly_cost = fixed_cost_for_month(selected_ym)
         metrics_row(cash_cur, cash_prev, n_days=n_days)
         fixed_cost_col, _ = st.columns([1, 3])
         fixed_cost_col.metric(
             "固定支出",
             f"¥{recurring_monthly_cost:,.2f}",
-            help="活跃订阅与预付摊销折算后的月均固定成本。",
+            help="所选月份有效的订阅与预付摊销折算月均成本。",
         )
         budget = get_month_budget(selected_ym)
         cash_data = cur if basis_key == "cash" else get_period_data(start, end, "cash")
