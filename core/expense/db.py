@@ -108,25 +108,92 @@ def get_transactions(
     start_date: str | None = None,
     end_date: str | None = None,
     type_: str | None = None,
-    limit: int = 500,
+    limit: int | None = 500,
+    *,
+    category: str | None = None,
+    subcategory: str | None = None,
+    keyword: str | None = None,
+    offset: int = 0,
 ) -> list[dict]:
-    query = "SELECT * FROM transactions WHERE 1=1"
-    params = []
-    if start_date:
-        query += " AND date >= ?"
-        params.append(start_date)
-    if end_date:
-        query += " AND date <= ?"
-        params.append(end_date)
-    if type_:
-        query += " AND type = ?"
-        params.append(type_)
-    query += " ORDER BY date DESC, created_at DESC LIMIT ?"
-    params.append(limit)
+    where, params = _transaction_filters(
+        start_date=start_date,
+        end_date=end_date,
+        type_=type_,
+        category=category,
+        subcategory=subcategory,
+        keyword=keyword,
+    )
+    query = f"SELECT * FROM transactions WHERE {where}"
+    query += " ORDER BY date DESC, created_at DESC"
+    if limit is not None:
+        query += " LIMIT ? OFFSET ?"
+        params.extend([limit, max(0, offset)])
 
     with closing(_connect()) as conn:
         rows = conn.execute(query, params).fetchall()
     return [_normalize_transaction(r) for r in rows]
+
+
+def count_transactions(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    type_: str | None = None,
+    category: str | None = None,
+    subcategory: str | None = None,
+    keyword: str | None = None,
+) -> int:
+    where, params = _transaction_filters(
+        start_date=start_date,
+        end_date=end_date,
+        type_=type_,
+        category=category,
+        subcategory=subcategory,
+        keyword=keyword,
+    )
+    with closing(_connect()) as conn:
+        row = conn.execute(
+            f"SELECT COUNT(*) AS count FROM transactions WHERE {where}", params
+        ).fetchone()
+    return int(row["count"])
+
+
+def _transaction_filters(
+    start_date: str | None = None,
+    end_date: str | None = None,
+    type_: str | None = None,
+    category: str | None = None,
+    subcategory: str | None = None,
+    keyword: str | None = None,
+) -> tuple[str, list]:
+    clauses = ["1=1"]
+    params: list = []
+    if start_date:
+        clauses.append("date >= ?")
+        params.append(start_date)
+    if end_date:
+        clauses.append("date <= ?")
+        params.append(end_date)
+    if type_:
+        clauses.append("type = ?")
+        params.append(type_)
+    if category:
+        clauses.append("category = ?")
+        params.append(category)
+    if subcategory:
+        clauses.append("subcategory = ?")
+        params.append(subcategory)
+    if keyword and keyword.strip():
+        pattern = f"%{keyword.strip().lower()}%"
+        searchable = ("description", "category", "subcategory", "notes")
+        clauses.append(
+            "("
+            + " OR ".join(
+                f"LOWER(COALESCE({field}, '')) LIKE ?" for field in searchable
+            )
+            + ")"
+        )
+        params.extend([pattern] * len(searchable))
+    return " AND ".join(clauses), params
 
 
 def get_monthly_summary(year: int, month: int) -> dict:

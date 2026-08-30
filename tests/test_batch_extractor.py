@@ -133,13 +133,6 @@ class BatchExtractorTest(unittest.TestCase):
         llm = ScriptedLLM(blocks, events)
         extractor._llm = llm
         classifier = RecordingClassifier()
-        classifier.classify = lambda description, category_hint=None: {
-            "status": "confirmed",
-            "category": "餐饮",
-            "subcategory": "堂食",
-            "confidence": 0.95,
-            "reasoning": "restaurant",
-        }
         extractor._classifier = classifier
         extractor._diet_extractor = StubDietExtractor()
 
@@ -150,6 +143,7 @@ class BatchExtractorTest(unittest.TestCase):
             ["支出", "饮食"],
         )
         self.assertEqual(len(llm.calls), 2)
+        self.assertEqual(classifier.calls, [])
         self.assertEqual(
             result["records"][1]["foods"][0]["food_name"], "中午吃了杂粮饭和鸡腿"
         )

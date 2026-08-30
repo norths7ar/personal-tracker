@@ -155,15 +155,28 @@ class BatchExtractor:
         category_hint = self._resolve_expense_category_hint(
             event.get("category_hint", "")
         )
-        result = self._classifier.classify(event["text"], category_hint=category_hint)
-        if result.get("status") == "confirmed":
-            category = result["category"]
-            subcategory = result["subcategory"]
+        subcategory_hint = str(event.get("subcategory_hint") or "").strip()
+        categories = self.expense_categories.get(category_hint) or []
+        valid_hint = bool(category_hint) and (
+            (not categories and not subcategory_hint) or subcategory_hint in categories
+        )
+        if valid_hint:
+            category = category_hint
+            subcategory = subcategory_hint
+            confidence = event.get("confidence", 0.0)
+            reasoning = event.get("reasoning", "")
         else:
-            category = PENDING_CATEGORY
-            subcategory = PENDING_CATEGORY
-        confidence = result.get("confidence", event.get("confidence", 0.0))
-        reasoning = result.get("reasoning", event.get("reasoning", ""))
+            result = self._classifier.classify(
+                event["text"], category_hint=category_hint
+            )
+            if result.get("status") == "confirmed":
+                category = result["category"]
+                subcategory = result["subcategory"]
+            else:
+                category = PENDING_CATEGORY
+                subcategory = PENDING_CATEGORY
+            confidence = result.get("confidence", event.get("confidence", 0.0))
+            reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         return self._record(
             record_type=TYPE_EXPENSE,
@@ -400,8 +413,15 @@ class BatchExtractor:
                     "linked_group": str(
                         item.get("linked_group") or defaults.get("linked_group") or ""
                     ).strip(),
-                    "confidence": 0.0,
+                    "confidence": self._normalize_confidence(item.get("confidence")),
                     "reasoning": str(item.get("reasoning") or "").strip(),
                 }
             )
         return events, rejected
+
+    @staticmethod
+    def _normalize_confidence(value) -> float:
+        try:
+            return max(0.0, min(1.0, float(value)))
+        except (TypeError, ValueError):
+            return 0.0

@@ -18,6 +18,7 @@ from core.constants import (
 )
 from core.expense.db import (
     add_refund,
+    count_transactions,
     delete_transaction,
     get_transactions,
     refund_total_for,
@@ -357,27 +358,32 @@ with filter_subcategory:
 with filter_keyword:
     keyword = st.text_input("搜索", placeholder="描述、分类或备注")
 
-rows = get_transactions(type_=None if type_filter == "全部" else type_filter, limit=500)
-if category_filter != "全部":
-    rows = [row for row in rows if row.get("category") == category_filter]
-if subcategory_filter != "全部":
-    rows = [row for row in rows if row.get("subcategory") == subcategory_filter]
-if keyword.strip():
-    needle = keyword.strip().lower()
-    rows = [
-        row
-        for row in rows
-        if any(
-            needle in display_text(row.get(field)).lower()
-            for field in ("description", "category", "subcategory", "notes")
-        )
-    ]
+query_filters = {
+    "type_": None if type_filter == "全部" else type_filter,
+    "category": None if category_filter == "全部" else category_filter,
+    "subcategory": None if subcategory_filter == "全部" else subcategory_filter,
+    "keyword": keyword.strip() or None,
+}
+total_count = count_transactions(**query_filters)
+page_size = 100
+page_count = max(1, (total_count + page_size - 1) // page_size)
+page = st.selectbox(
+    "页码",
+    range(1, page_count + 1),
+    format_func=lambda value: f"第 {value} / {page_count} 页",
+)
+rows = get_transactions(
+    **query_filters,
+    limit=page_size,
+    offset=(page - 1) * page_size,
+)
 
 if not rows:
     st.info("没有符合条件的记录。")
     st.stop()
 
 df = pd.DataFrame(rows)
+export_df = pd.DataFrame(get_transactions(**query_filters, limit=None))
 display_df = df[
     [
         "id",
@@ -398,12 +404,12 @@ export_col, count_col = st.columns([1, 4])
 with export_col:
     st.download_button(
         "导出 CSV",
-        data=df.to_csv(index=False, encoding="utf-8-sig"),
+        data=export_df.to_csv(index=False, encoding="utf-8-sig"),
         file_name=f"流水_{date.today():%Y%m%d}.csv",
         mime="text/csv",
     )
 with count_col:
-    st.caption(f"{len(rows)} 条记录")
+    st.caption(f"共 {total_count} 条；当前显示 {len(rows)} 条")
 
 event = st.dataframe(
     display_df,

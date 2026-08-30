@@ -136,6 +136,7 @@ def init_db():
         _ensure_subscription_renewal_columns(conn)
         _ensure_planned_expense_columns(conn)
         _ensure_batch_submission_schema(conn)
+        _ensure_query_indexes(conn)
         _init_budgets(conn)
         _migrate_amortized_to_subscriptions(conn)
         conn.commit()
@@ -488,6 +489,24 @@ def _migrate_amortized_to_subscriptions(conn):
                 item["id"],
             ),
         )
+
+
+def _ensure_query_indexes(conn):
+    """Keep common ledger and relationship lookups indexed on both backends."""
+    for statement in (
+        "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)",
+        """CREATE INDEX IF NOT EXISTS idx_transactions_filter
+           ON transactions(type, category, subcategory, date)""",
+        """CREATE INDEX IF NOT EXISTS idx_transactions_refund_for
+           ON transactions(refund_for_id)""",
+        """CREATE INDEX IF NOT EXISTS idx_transactions_subscription
+           ON transactions(subscription_id)""",
+        """CREATE INDEX IF NOT EXISTS idx_subscriptions_transaction
+           ON subscriptions(transaction_id)""",
+        """CREATE INDEX IF NOT EXISTS idx_planned_expenses_transaction
+           ON planned_expenses(transaction_id)""",
+    ):
+        conn.execute(statement)
 
 
 def _ensure_subscription_amount_cents(conn):

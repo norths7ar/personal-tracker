@@ -78,6 +78,43 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(row["amount_cents"], 4568)
         self.assertEqual(row["amount"], 45.68)
 
+    def test_transaction_filters_are_database_backed_and_paginated(self):
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "airport train",
+            80,
+            "2026-08-03",
+            category="旅行",
+            subcategory="旅行交通",
+            notes="summer trip",
+        )
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "city taxi",
+            30,
+            "2026-08-02",
+            category="交通",
+            subcategory="打车租车",
+        )
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "hotel",
+            200,
+            "2026-08-01",
+            category="旅行",
+            subcategory="酒店住宿",
+        )
+
+        self.assertEqual(
+            expense_db.count_transactions(category="旅行", keyword="trip"), 1
+        )
+        travel = expense_db.get_transactions(category="旅行", limit=None)
+        self.assertEqual(
+            [row["description"] for row in travel], ["airport train", "hotel"]
+        )
+        second_page = expense_db.get_transactions(limit=1, offset=1)
+        self.assertEqual(second_page[0]["description"], "city taxi")
+
     def test_batch_save_is_atomic_and_idempotent(self):
         records = [
             {

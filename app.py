@@ -1,14 +1,25 @@
 import streamlit as st
 
+from core import db as core_db
 from core.auth import require_login
-from core.db import init_db
 from core.ui import apply_app_style
 
 st.set_page_config(layout="wide")
 apply_app_style()
 
 require_login()
-init_db()
+
+
+@st.cache_resource(show_spinner=False)
+def initialize_database(cache_key: str) -> None:
+    core_db.init_db()
+
+
+backend = core_db.get_backend()
+database_location = (
+    str(core_db.DB_PATH.resolve()) if backend == "sqlite" else "configured"
+)
+initialize_database(f"{backend}:{database_location}")
 
 pages = [
     st.Page("pages/batch_entry.py", title="记录", icon="✏️"),
