@@ -91,6 +91,42 @@ class TransactionApiTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_bulk_update_transaction_categories_and_notes(self):
+        first_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "打车一",
+            18.26,
+            "2026-08-30",
+            category="交通",
+            subcategory="打车租车",
+        )
+        second_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "打车二",
+            11.3,
+            "2026-08-30",
+            category="交通",
+            subcategory="打车租车",
+        )
+
+        response = self.client.patch(
+            "/api/transactions/bulk-update",
+            json={
+                "ids": [first_id, second_id],
+                "category": "旅游",
+                "subcategory": "旅行交通",
+                "notes": "父母报销",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"updated_count": 2})
+        rows = self.client.get("/api/transactions").json()
+        self.assertEqual({row["category"] for row in rows}, {"旅游"})
+        self.assertEqual({row["subcategory"] for row in rows}, {"旅行交通"})
+        self.assertEqual({row["notes"] for row in rows}, {"父母报销"})
+        self.assertTrue(all(row["reviewed"] for row in rows))
+
     def test_category_configuration_exposes_transaction_types_only(self):
         response = self.client.get("/api/config/categories")
         self.assertEqual(response.status_code, 200)
@@ -128,6 +164,12 @@ class TransactionApiTest(unittest.TestCase):
         self.assertEqual(
             self.client.post(
                 "/api/transactions/bulk-delete", json={"ids": []}
+            ).status_code,
+            422,
+        )
+        self.assertEqual(
+            self.client.patch(
+                "/api/transactions/bulk-update", json={"ids": [1]}
             ).status_code,
             422,
         )

@@ -88,6 +88,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
+  updateTransactions: (
+    ids: number[],
+    changes: Partial<Pick<TransactionUpdate, "category" | "subcategory" | "notes">>,
+  ) =>
+    request<{ updated_count: number }>("/api/transactions/bulk-update", {
+      method: "PATCH",
+      body: JSON.stringify({ ids, ...changes }),
+    }),
   prepareTransaction: (type: TransactionCreate["type"], description: string) =>
     request<TransactionPreparation>("/api/entries/transactions/prepare", {
       method: "POST",

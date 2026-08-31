@@ -63,6 +63,23 @@ class BulkDeleteResponse(BaseModel):
     deleted_count: int
 
 
+class BulkTransactionUpdateRequest(BaseModel):
+    ids: list[int] = Field(min_length=1)
+    category: str | None = None
+    subcategory: str | None = None
+    notes: str | None = None
+
+    @model_validator(mode="after")
+    def require_a_change(self):
+        if not (self.model_fields_set - {"ids"}):
+            raise ValueError("At least one field is required")
+        return self
+
+
+class BulkCategoryUpdateResponse(BaseModel):
+    updated_count: int
+
+
 class RefundCreate(BaseModel):
     description: str = Field(min_length=1)
     amount: float = Field(gt=0)
@@ -87,6 +104,24 @@ class CreatedRecord(BaseModel):
 @router.get("", response_model=list[TransactionResponse])
 def list_transactions() -> list[dict]:
     return transaction_service.list_transactions()
+
+
+@router.patch("/bulk-update", response_model=BulkCategoryUpdateResponse)
+def bulk_update_transactions(
+    body: BulkTransactionUpdateRequest,
+) -> BulkCategoryUpdateResponse:
+    changes = body.model_dump(exclude_unset=True, exclude={"ids"})
+    try:
+        updated_count = transaction_service.update_transactions(body.ids, changes)
+    except transaction_service.TransactionNotFound as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
+        ) from exc
+    except transaction_service.TransactionConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+    return BulkCategoryUpdateResponse(updated_count=updated_count)
 
 
 @router.patch("/{transaction_id}", response_model=TransactionResponse)

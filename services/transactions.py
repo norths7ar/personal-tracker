@@ -28,6 +28,26 @@ def update_transaction(transaction_id: int, changes: dict) -> dict:
     return updated
 
 
+def update_transactions(transaction_ids: list[int], changes: dict) -> int:
+    ids = list(dict.fromkeys(transaction_ids))
+    missing = [
+        transaction_id
+        for transaction_id in ids
+        if expense_db.get_transaction(transaction_id) is None
+    ]
+    if missing:
+        raise TransactionNotFound(f"Transaction #{missing[0]} does not exist")
+    updates = dict(changes)
+    if "category" in updates or "subcategory" in updates:
+        updates["reviewed"] = True
+    try:
+        for transaction_id in ids:
+            expense_db.update_transaction(transaction_id, **updates)
+    except ValueError as exc:
+        raise TransactionConflict(str(exc)) from exc
+    return len(ids)
+
+
 def delete_transactions(transaction_ids: list[int]) -> int:
     try:
         return expense_db.delete_transactions(transaction_ids)

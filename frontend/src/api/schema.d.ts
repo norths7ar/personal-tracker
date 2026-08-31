@@ -415,6 +415,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transactions/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bulk Update Transactions */
+        patch: operations["bulk_update_transactions_api_transactions_bulk_update_patch"];
+        trace?: never;
+    };
     "/api/transactions/{transaction_id}": {
         parameters: {
             query?: never;
@@ -623,6 +640,11 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** BulkCategoryUpdateResponse */
+        BulkCategoryUpdateResponse: {
+            /** Updated Count */
+            updated_count: number;
+        };
         /** BulkDeleteRequest */
         BulkDeleteRequest: {
             /** Ids */
@@ -632,6 +654,17 @@ export interface components {
         BulkDeleteResponse: {
             /** Deleted Count */
             deleted_count: number;
+        };
+        /** BulkTransactionUpdateRequest */
+        BulkTransactionUpdateRequest: {
+            /** Ids */
+            ids: number[];
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
         };
         /** CategoryConfiguration */
         CategoryConfiguration: {
@@ -2163,6 +2196,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_transactions_api_transactions_bulk_update_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkTransactionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkCategoryUpdateResponse"];
                 };
             };
             /** @description Validation Error */
