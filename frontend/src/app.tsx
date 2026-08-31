@@ -21,6 +21,9 @@ const DietPage = lazy(() =>
 const AnalysisPage = lazy(() =>
   import("@/pages/analysis-page").then((module) => ({ default: module.AnalysisPage })),
 );
+const CrossPeriodPage = lazy(() =>
+  import("@/pages/cross-period-page").then((module) => ({ default: module.CrossPeriodPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -51,6 +54,7 @@ export function App() {
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
+          <Route path="/cross-period" element={<CrossPeriodPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>
       </Suspense>

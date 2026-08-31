@@ -25,29 +25,51 @@ def add_planned_expense(
     notes: str | None = None,
     subscription_id: int | None = None,
 ) -> int:
-    amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
-        cur = conn.execute(
-            """INSERT INTO planned_expenses
-               (description, amount, amount_cents, due_date, category, subcategory,
-                notes, subscription_id, status)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-            + returning_id_clause(),
-            (
-                description,
-                amount_cents / 100,
-                amount_cents,
-                due_date,
-                category,
-                subcategory,
-                notes,
-                subscription_id,
-                PLANNED_EXPENSE_STATUS_OPEN,
-            ),
+        planned_id = _insert_planned_expense(
+            conn,
+            description,
+            amount,
+            due_date,
+            category,
+            subcategory,
+            notes,
+            subscription_id,
         )
-        planned_id = inserted_id(cur)
         conn.commit()
         return planned_id
+
+
+def _insert_planned_expense(
+    conn,
+    description: str,
+    amount: float,
+    due_date: str | None = None,
+    category: str | None = None,
+    subcategory: str | None = None,
+    notes: str | None = None,
+    subscription_id: int | None = None,
+) -> int:
+    amount_cents = to_cents(amount)
+    cur = conn.execute(
+        """INSERT INTO planned_expenses
+           (description, amount, amount_cents, due_date, category, subcategory,
+            notes, subscription_id, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        + returning_id_clause(),
+        (
+            description,
+            amount_cents / 100,
+            amount_cents,
+            due_date,
+            category,
+            subcategory,
+            notes,
+            subscription_id,
+            PLANNED_EXPENSE_STATUS_OPEN,
+        ),
+    )
+    return inserted_id(cur)
 
 
 def get_planned_expenses(include_closed: bool = False, limit: int = 500) -> list[dict]:
@@ -128,39 +150,62 @@ def confirm_planned_expense(
     notes: str | None,
 ) -> int:
     """Turn an independent plan into one immutable expense transaction."""
-    amount_cents = to_cents(amount)
     with closing(_connect()) as conn:
-        plan = conn.execute(
-            "SELECT * FROM planned_expenses WHERE id = ? AND status = ?",
-            (id_, PLANNED_EXPENSE_STATUS_OPEN),
-        ).fetchone()
-        if plan is None:
-            raise ValueError("预计支出不存在或已处理")
-        if dict(plan).get("subscription_id") is not None:
-            raise ValueError("订阅预计支出必须通过订阅付款流程确认")
-
-        cur = conn.execute(
-            """INSERT INTO transactions
-               (type, description, amount, amount_cents, date, category,
-                subcategory, notes)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-            + returning_id_clause(),
-            (
-                TYPE_EXPENSE,
-                description,
-                amount_cents / 100,
-                amount_cents,
-                date_,
-                category,
-                subcategory,
-                notes,
-            ),
-        )
-        transaction_id = inserted_id(cur)
-        conn.execute(
-            """UPDATE planned_expenses
-               SET status = ?, transaction_id = ? WHERE id = ?""",
-            (PLANNED_EXPENSE_STATUS_COMPLETED, transaction_id, id_),
+        transaction_id = _confirm_planned_expense(
+            conn,
+            id_,
+            description,
+            amount,
+            date_,
+            category,
+            subcategory,
+            notes,
         )
         conn.commit()
         return transaction_id
+
+
+def _confirm_planned_expense(
+    conn,
+    id_: int,
+    description: str,
+    amount: float,
+    date_: str,
+    category: str | None,
+    subcategory: str | None,
+    notes: str | None,
+) -> int:
+    amount_cents = to_cents(amount)
+    plan = conn.execute(
+        "SELECT * FROM planned_expenses WHERE id = ? AND status = ?",
+        (id_, PLANNED_EXPENSE_STATUS_OPEN),
+    ).fetchone()
+    if plan is None:
+        raise ValueError("预计支出不存在或已处理")
+    if dict(plan).get("subscription_id") is not None:
+        raise ValueError("订阅预计支出必须通过订阅付款流程确认")
+
+    cur = conn.execute(
+        """INSERT INTO transactions
+           (type, description, amount, amount_cents, date, category,
+            subcategory, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+        + returning_id_clause(),
+        (
+            TYPE_EXPENSE,
+            description,
+            amount_cents / 100,
+            amount_cents,
+            date_,
+            category,
+            subcategory,
+            notes,
+        ),
+    )
+    transaction_id = inserted_id(cur)
+    conn.execute(
+        """UPDATE planned_expenses
+           SET status = ?, transaction_id = ? WHERE id = ?""",
+        (PLANNED_EXPENSE_STATUS_COMPLETED, transaction_id, id_),
+    )
+    return transaction_id

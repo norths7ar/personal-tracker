@@ -106,6 +106,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cross-period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cross Period */
+        get: operations["list_cross_period_api_cross_period_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cross-period/expected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Expected */
+        post: operations["create_expected_api_cross_period_expected_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cross-period/expected/{source}/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Expected */
+        delete: operations["delete_expected_api_cross_period_expected__source___record_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Expected */
+        patch: operations["update_expected_api_cross_period_expected__source___record_id__patch"];
+        trace?: never;
+    };
+    "/api/cross-period/expected/{source}/{record_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Expected */
+        post: operations["confirm_expected_api_cross_period_expected__source___record_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cross-period/prepaid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Prepaid */
+        post: operations["create_prepaid_api_cross_period_prepaid_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cross-period/prepaid/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Prepaid */
+        delete: operations["delete_prepaid_api_cross_period_prepaid__record_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Prepaid */
+        patch: operations["update_prepaid_api_cross_period_prepaid__record_id__patch"];
+        trace?: never;
+    };
     "/api/entries/transactions/prepare": {
         parameters: {
             query?: never;
@@ -493,6 +597,24 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /** ConfirmExpected */
+        ConfirmExpected: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Payment Date
+             * Format: date
+             */
+            payment_date: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
         /** CountByDate */
         CountByDate: {
             /**
@@ -524,6 +646,13 @@ export interface components {
             /** Duplicate */
             duplicate: boolean;
         };
+        /** CrossPeriodResponse */
+        CrossPeriodResponse: {
+            /** Expected */
+            expected: components["schemas"]["ExpectedRecord"][];
+            /** Prepaid */
+            prepaid: components["schemas"]["PrepaidRecord"][];
+        };
         /** DailyPoint */
         DailyPoint: {
             /** Date */
@@ -543,6 +672,67 @@ export interface components {
             daily_meals: components["schemas"]["CountByDate"][];
             /** Meal Type Dist */
             meal_type_dist: components["schemas"]["CountByMealType"][];
+        };
+        /** ExpectedRecord */
+        ExpectedRecord: {
+            /** Id */
+            id: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "subscription" | "plan";
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Next Date */
+            next_date: string | null;
+            /** Cycle */
+            cycle: string;
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Renewal Mode */
+            renewal_mode: ("same_day" | "fixed_days") | null;
+            /** Renewal Interval */
+            renewal_interval: number | null;
+            /** State */
+            state: string;
+        };
+        /** ExpectedWrite */
+        ExpectedWrite: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Recurring
+             * @default false
+             */
+            recurring: boolean;
+            /** Due Date */
+            due_date?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Renewal Mode
+             * @default same_day
+             * @enum {string}
+             */
+            renewal_mode: "same_day" | "fixed_days";
+            /**
+             * Renewal Interval
+             * @default 1
+             */
+            renewal_interval: number;
         };
         /** ExpenseAnalysisResponse */
         ExpenseAnalysisResponse: {
@@ -725,6 +915,68 @@ export interface components {
             /** Expense */
             expense: number;
         };
+        /** PrepaidRecord */
+        PrepaidRecord: {
+            /** Id */
+            id: number;
+            /** Transaction Id */
+            transaction_id: number;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Monthly Equivalent */
+            monthly_equivalent: number;
+            /** Months */
+            months: number;
+            /** Remaining Months */
+            remaining_months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Notes */
+            notes: string | null;
+        };
+        /** PrepaidUpdate */
+        PrepaidUpdate: {
+            /** Description */
+            description: string;
+            /** Months */
+            months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** PrepaidWrite */
+        PrepaidWrite: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Payment Date
+             * Format: date
+             */
+            payment_date: string;
+            /** Months */
+            months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
         /** TransactionCreateRequest */
         TransactionCreateRequest: {
             /**
@@ -862,6 +1114,19 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /** WriteResult */
+        WriteResult: {
+            /** Id */
+            id?: number | null;
+            /** Source */
+            source?: string | null;
+            /** Transaction Id */
+            transaction_id?: number | null;
+            /** Subscription Id */
+            subscription_id?: number | null;
+            /** Duplicate */
+            duplicate: boolean;
         };
     };
     responses: never;
@@ -1047,6 +1312,285 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["CategoryConfiguration"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cross_period_api_cross_period_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrossPeriodResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_expected_api_cross_period_expected_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_expected_api_cross_period_expected__source___record_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_expected_api_cross_period_expected__source___record_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_expected_api_cross_period_expected__source___record_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmExpected"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_prepaid_api_cross_period_prepaid_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepaidWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_prepaid_api_cross_period_prepaid__record_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_prepaid_api_cross_period_prepaid__record_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepaidUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
