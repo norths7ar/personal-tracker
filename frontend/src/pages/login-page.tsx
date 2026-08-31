@@ -22,7 +22,7 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
         className="w-full max-w-sm rounded-xl border border-neutral-200 bg-white p-7 shadow-sm"
         onSubmit={handleSubmit(({ password }) => login.mutate(password))}
       >
-        <h1 className="text-2xl font-semibold">personal-tracker</h1>
+        <h1 className="text-2xl font-semibold">拾记</h1>
         <p className="mb-6 mt-1 text-sm text-neutral-500">登录后访问你的记录</p>
         <label className="mb-2 block text-sm font-medium" htmlFor="password">密码</label>
         <Input id="password" type="password" autoFocus {...register("password")} />

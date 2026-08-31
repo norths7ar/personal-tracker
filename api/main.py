@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI):
 
 
 def create_app() -> FastAPI:
-    application = FastAPI(title="personal-tracker API", lifespan=lifespan)
+    application = FastAPI(title="拾记 API", lifespan=lifespan)
     application.include_router(analysis_router)
     application.include_router(auth_router)
     application.include_router(configuration_router)
@@ -41,9 +41,14 @@ def create_app() -> FastAPI:
 
     frontend_dist = Path(__file__).resolve().parents[1] / "frontend" / "dist"
     index_file = frontend_dist / "index.html"
+    favicon_file = frontend_dist / "favicon.svg"
     assets = frontend_dist / "assets"
     if index_file.is_file() and assets.is_dir():
         application.mount("/assets", StaticFiles(directory=assets), name="assets")
+
+        @application.get("/favicon.svg", include_in_schema=False)
+        def favicon() -> FileResponse:
+            return FileResponse(favicon_file, media_type="image/svg+xml")
 
         @application.get("/{frontend_path:path}", include_in_schema=False)
         def frontend(frontend_path: str) -> FileResponse:

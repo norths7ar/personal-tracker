@@ -14,7 +14,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
   return (
     <div className="min-h-screen bg-stone-50 text-neutral-900">
       <aside className="fixed inset-y-0 left-0 hidden w-56 border-r border-neutral-200 bg-white p-4 md:flex md:flex-col">
-        <div className="mb-8 px-2 text-lg font-semibold">personal-tracker</div>
+        <div className="mb-8 px-2 text-lg font-semibold">拾记</div>
         <nav className="space-y-1">
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
           <NavItem to="/pending" icon={<CheckSquare2 size={17} />} label="待处理" />
@@ -30,7 +30,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
       </aside>
       <div className="md:pl-56">
         <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:hidden">
-          <span className="font-semibold">personal-tracker</span>
+          <span className="font-semibold">拾记</span>
           <Button size="sm" variant="ghost" onClick={onLogout}>退出</Button>
         </header>
         <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</main>

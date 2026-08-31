@@ -67,6 +67,13 @@ class ApiAuthenticationTest(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    def test_favicon_is_served_as_svg_instead_of_spa_html(self):
+        response = self.client.get("/favicon.svg")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.headers["content-type"].startswith("image/svg+xml"))
+        self.assertIn(b"<svg", response.content)
+
 
 if __name__ == "__main__":
     unittest.main()
