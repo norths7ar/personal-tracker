@@ -1,4 +1,4 @@
-import { BookOpen, LogOut, PencilLine } from "lucide-react";
+import { BookOpen, CheckSquare2, LogOut, PencilLine } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -17,6 +17,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
         <div className="mb-8 px-2 text-lg font-semibold">personal-tracker</div>
         <nav className="space-y-1">
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
+          <NavItem to="/pending" icon={<CheckSquare2 size={17} />} label="待处理" />
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-neutral-400">
             <BookOpen size={17} />

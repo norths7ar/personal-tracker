@@ -12,6 +12,9 @@ const LedgerPage = lazy(() =>
 const RecordPage = lazy(() =>
   import("@/pages/record-page").then((module) => ({ default: module.RecordPage })),
 );
+const PendingPage = lazy(() =>
+  import("@/pages/pending-page").then((module) => ({ default: module.PendingPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -38,6 +41,7 @@ export function App() {
       <Suspense fallback={<p className="text-sm text-neutral-500">正在载入页面…</p>}>
         <Routes>
           <Route path="/record" element={<RecordPage />} />
+          <Route path="/pending" element={<PendingPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>

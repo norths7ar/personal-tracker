@@ -43,6 +43,8 @@ export const api = {
   logout: () =>
     request<{ authenticated: boolean }>("/api/auth/logout", { method: "POST" }),
   transactions: () => request<Transaction[]>("/api/transactions"),
+  pendingTransactions: () =>
+    request<Transaction[]>("/api/pending-transactions"),
   categories: () => request<CategoryConfiguration>("/api/config/categories"),
   updateTransaction: (id: number, changes: TransactionUpdate) =>
     request<Transaction>(`/api/transactions/${id}`, {

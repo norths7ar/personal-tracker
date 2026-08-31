@@ -93,6 +93,31 @@ class TransactionApiTest(unittest.TestCase):
         self.assertEqual(set(response.json()), {"支出", "收入", "迁移"})
         self.assertIn("餐饮", response.json()["支出"])
 
+    def test_pending_endpoint_only_returns_unresolved_expenses(self):
+        pending_id = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "待确认",
+            20,
+            "2026-08-31",
+            category="待分类",
+            subcategory="待分类",
+            confidence=0.3,
+        )
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "已确认",
+            30,
+            "2026-08-31",
+            category="餐饮",
+            subcategory="堂食",
+            reviewed=True,
+        )
+
+        response = self.client.get("/api/pending-transactions")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual([row["id"] for row in response.json()], [pending_id])
+
     def test_empty_update_and_empty_bulk_delete_are_rejected(self):
         response = self.client.patch("/api/transactions/1", json={})
         self.assertEqual(response.status_code, 422)

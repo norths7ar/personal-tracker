@@ -174,6 +174,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/pending-transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Pending Transactions */
+        get: operations["list_pending_transactions_api_pending_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -914,6 +931,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pending_transactions_api_pending_transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionResponse"][];
                 };
             };
             /** @description Validation Error */
