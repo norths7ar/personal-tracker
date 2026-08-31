@@ -449,6 +449,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/transactions/{transaction_id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Refund */
+        post: operations["create_refund_api_transactions__transaction_id__refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/transactions/{transaction_id}/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Subscription */
+        post: operations["create_subscription_api_transactions__transaction_id__subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -658,6 +692,13 @@ export interface components {
         };
         /** CreateResponse */
         CreateResponse: {
+            /** Id */
+            id: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** CreatedRecord */
+        CreatedRecord: {
             /** Id */
             id: number;
             /** Duplicate */
@@ -1005,6 +1046,18 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** RefundCreate */
+        RefundCreate: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+        };
         /** Reminder */
         Reminder: {
             /** Source */
@@ -1019,6 +1072,32 @@ export interface components {
             due_date: string;
             /** Days Until Due */
             days_until_due: number;
+        };
+        /** SubscriptionCreate */
+        SubscriptionCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Billing Cycle
+             * @enum {string}
+             */
+            billing_cycle: "月付" | "季付" | "年付" | "自定义";
+            /** Billing Interval Months */
+            billing_interval_months?: number | null;
+            /**
+             * Next Renewal Date
+             * Format: date
+             */
+            next_renewal_date: string;
+            /**
+             * Renewal Mode
+             * @enum {string}
+             */
+            renewal_mode: "same_day" | "fixed_days";
+            /** Renewal Interval */
+            renewal_interval: number;
+            /** Renewal Anchor Day */
+            renewal_anchor_day?: number | null;
         };
         /** TodayMeal */
         TodayMeal: {
@@ -2156,6 +2235,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BulkDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_refund_api_transactions__transaction_id__refunds_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                transaction_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subscription_api_transactions__transaction_id__subscription_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                transaction_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedRecord"];
                 };
             };
             /** @description Validation Error */

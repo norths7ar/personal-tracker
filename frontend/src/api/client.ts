@@ -23,6 +23,8 @@ export type PrepaidRecord = components["schemas"]["PrepaidRecord"];
 export type PrepaidWrite = components["schemas"]["PrepaidWrite"];
 export type PrepaidUpdate = components["schemas"]["PrepaidUpdate"];
 export type HomeSummary = components["schemas"]["HomeSummary"];
+export type RefundCreate = components["schemas"]["RefundCreate"];
+export type SubscriptionCreate = components["schemas"]["SubscriptionCreate"];
 
 export class ApiError extends Error {
   constructor(
@@ -66,6 +68,21 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(changes),
     }),
+  createRefund: (id: number, entry: RefundCreate, idempotencyKey: string) =>
+    request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/refunds`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(entry),
+    }),
+  createSubscription: (
+    id: number,
+    entry: SubscriptionCreate,
+    idempotencyKey: string,
+  ) => request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/subscription`, {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify(entry),
+  }),
   deleteTransactions: (ids: number[]) =>
     request<{ deleted_count: number }>("/api/transactions/bulk-delete", {
       method: "POST",

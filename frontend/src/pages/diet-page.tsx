@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BarChart, LineChart } from "echarts/charts";
+import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
@@ -7,7 +7,7 @@ import ReactEChartsCore from "echarts-for-react/lib/core";
 import { Download, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
-import { api, type Meal, type MealUpdate } from "@/api/client";
+import { api, type DietStats, type Meal, type MealUpdate } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,7 @@ type Tab = "ledger" | "analysis";
 echarts.use([
   BarChart,
   LineChart,
+  ScatterChart,
   GridComponent,
   TooltipComponent,
   CanvasRenderer,
@@ -163,9 +164,9 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
   return (
     <div className="space-y-4">
       <Field label="月份"><select className={`${selectClass} max-w-52`} value={selectedMonth} onChange={(event) => setSelectedMonth(event.target.value)}>{months.map((value) => <option key={value}>{value}</option>)}</select></Field>
-      <div className="grid gap-3 sm:grid-cols-3"><Metric label="总餐次" value={String(totalMeals)} /><Metric label="期间日均" value={(totalMeals / daysInMonth).toFixed(1)} /><Metric label="最高频食物" value={topFood} /></div>
-      <div className="grid gap-4 lg:grid-cols-2"><Chart title="每日餐次" option={{ xAxis: { type: "category", data: stats.data.daily_meals.map((item) => item.date) }, yAxis: { type: "value", minInterval: 1 }, series: [{ type: "line", areaStyle: {}, data: stats.data.daily_meals.map((item) => item.count) }], tooltip: { trigger: "axis" } }} /><Chart title="餐顿标签" option={{ xAxis: { type: "category", data: stats.data.meal_type_dist.map((item) => item.meal_type) }, yAxis: { type: "value", minInterval: 1 }, series: [{ type: "bar", data: stats.data.meal_type_dist.map((item) => item.count) }], tooltip: { trigger: "axis" } }} /></div>
-      <Chart title="高频食物" option={{ yAxis: { type: "category", data: stats.data.food_freq.slice(0, 15).map((item) => item.food_name).reverse() }, xAxis: { type: "value", minInterval: 1 }, series: [{ type: "bar", data: stats.data.food_freq.slice(0, 15).map((item) => item.count).reverse() }], tooltip: { trigger: "axis" } }} />
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><Metric label="记录天数" value={`${stats.data.daily_meals.length} / ${daysInMonth}`} /><Metric label="总餐次" value={String(totalMeals)} /><Metric label="期间日均" value={(totalMeals / daysInMonth).toFixed(1)} /><Metric label="最高频食物" value={topFood} /></div>
+      <div className="grid gap-4 lg:grid-cols-2"><Chart title="用餐时间分布" option={mealTimeOption(stats.data.meal_times)} /><Chart title="每日餐次" option={{ xAxis: { type: "category", data: stats.data.daily_meals.map((item) => item.date) }, yAxis: { type: "value", minInterval: 1 }, series: [{ type: "line", areaStyle: {}, data: stats.data.daily_meals.map((item) => item.count) }], tooltip: { trigger: "axis" } }} /></div>
+      <div className="grid gap-4 lg:grid-cols-2"><Chart title="餐顿标签" option={{ xAxis: { type: "category", data: stats.data.meal_type_dist.map((item) => item.meal_type) }, yAxis: { type: "value", minInterval: 1 }, series: [{ type: "bar", data: stats.data.meal_type_dist.map((item) => item.count) }], tooltip: { trigger: "axis" } }} /><Chart title="高频食物" option={{ yAxis: { type: "category", data: stats.data.food_freq.slice(0, 15).map((item) => item.food_name).reverse() }, xAxis: { type: "value", minInterval: 1 }, series: [{ type: "bar", data: stats.data.food_freq.slice(0, 15).map((item) => item.count).reverse() }], tooltip: { trigger: "axis" } }} /></div>
     </div>
   );
 }
@@ -176,4 +177,5 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function foodLabel(food: Meal["foods"][number]): string { const ingredients = food.ingredients?.length ? `（${food.ingredients.join("、")}）` : ""; return `${food.food_name}${food.quantity ? `×${food.quantity}` : ""}${ingredients}`; }
 function splitIngredients(value: string): string[] { return value.split(/[、,，;；]/).map((item) => item.trim()).filter(Boolean); }
 function formatDate(value: Date): string { return new Intl.DateTimeFormat("en-CA").format(value); }
+function mealTimeOption(rows: DietStats["meal_times"]) { return { tooltip: { formatter: (params: { data: [string, number, string] }) => `${params.data[0]} ${params.data[2]}` }, xAxis: { type: "category", data: [...new Set(rows.map((item) => item.date))] }, yAxis: { type: "value", min: 0, max: 24, interval: 4, axisLabel: { formatter: (value: number) => `${String(value).padStart(2, "0")}:00` } }, series: [{ type: "scatter", symbolSize: 9, data: rows.map((item) => { const [hour = 0, minute = 0] = item.time.split(":").map(Number); return [item.date, hour + minute / 60, item.time] as [string, number, string]; }) }] }; }
 function exportMeals(meals: Meal[]) { const rows = [["ID", "日期", "时间", "餐顿", "描述", "食物", "备注"], ...meals.map((meal) => [meal.id, meal.date, meal.time, meal.meal_type ?? "", meal.description, meal.foods.map(foodLabel).join("、"), meal.notes ?? ""])]; const csv = rows.map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\r\n"); const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" })); link.download = "diet.csv"; link.click(); URL.revokeObjectURL(link.href); }

@@ -408,50 +408,61 @@ def add_refund(
     refund_date: str,
 ) -> int:
     """Create a linked refund without exceeding the original expense."""
-    amount_cents = to_cents(amount)
-    if amount_cents <= 0:
-        raise ValueError("退款金额须大于 0")
-
     with closing(_connect()) as conn:
         try:
-            lock_clause = " FOR UPDATE" if conn.backend == "postgres" else ""
-            original = conn.execute(
-                "SELECT * FROM transactions WHERE id = ?" + lock_clause,
-                (transaction_id,),
-            ).fetchone()
-            if original is None or original["type"] != TYPE_EXPENSE:
-                raise ValueError("关联支出不存在")
-
-            original_cents = original["amount_cents"]
-            if original_cents is None:
-                original_cents = to_cents(original["amount"])
-            refunded_row = conn.execute(
-                """SELECT COALESCE(SUM(amount_cents), 0) AS refunded_cents
-                   FROM transactions WHERE refund_for_id = ?""",
-                (transaction_id,),
-            ).fetchone()
-            remaining_cents = int(original_cents) - int(
-                refunded_row["refunded_cents"] or 0
-            )
-            if amount_cents > remaining_cents:
-                raise ValueError(f"退款金额超过剩余可退 ¥{remaining_cents / 100:.2f}")
-
-            refund_id = _insert_transaction(
-                conn,
-                TYPE_INCOME,
-                description,
-                amount_cents / 100,
-                refund_date,
-                category=REFUND_CATEGORY,
-                notes=f"关联支出 #{transaction_id}",
-                refund_for_id=transaction_id,
-                reviewed=True,
+            refund_id = _add_refund(
+                conn, transaction_id, description, amount, refund_date
             )
             conn.commit()
             return refund_id
         except Exception:
             conn.rollback()
             raise
+
+
+def _add_refund(
+    conn,
+    transaction_id: int,
+    description: str,
+    amount: float,
+    refund_date: str,
+) -> int:
+    amount_cents = to_cents(amount)
+    if amount_cents <= 0:
+        raise ValueError("退款金额须大于 0")
+    lock_clause = " FOR UPDATE" if conn.backend == "postgres" else ""
+    original = conn.execute(
+        "SELECT * FROM transactions WHERE id = ?" + lock_clause,
+        (transaction_id,),
+    ).fetchone()
+    if original is None or original["type"] != TYPE_EXPENSE:
+        raise ValueError("关联支出不存在")
+
+    original_cents = original["amount_cents"]
+    if original_cents is None:
+        original_cents = to_cents(original["amount"])
+    refunded_row = conn.execute(
+        """SELECT COALESCE(SUM(amount_cents), 0) AS refunded_cents
+           FROM transactions WHERE refund_for_id = ?""",
+        (transaction_id,),
+    ).fetchone()
+    remaining_cents = int(original_cents) - int(
+        refunded_row["refunded_cents"] or 0
+    )
+    if amount_cents > remaining_cents:
+        raise ValueError(f"退款金额超过剩余可退 ¥{remaining_cents / 100:.2f}")
+
+    return _insert_transaction(
+        conn,
+        TYPE_INCOME,
+        description,
+        amount_cents / 100,
+        refund_date,
+        category=REFUND_CATEGORY,
+        notes=f"关联支出 #{transaction_id}",
+        refund_for_id=transaction_id,
+        reviewed=True,
+    )
 
 
 def _next_month(month_start: date) -> date:

@@ -622,55 +622,80 @@ def create_subscription_from_transaction(
 ) -> int:
     """Use an existing expense as the first confirmed subscription payment."""
     with closing(_connect()) as conn:
-        transaction = conn.execute(
-            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
-        ).fetchone()
-        if transaction is None:
-            raise ValueError("账目不存在")
-        item = dict(transaction)
-        if item.get("type") != TYPE_EXPENSE:
-            raise ValueError("只有支出可以设为周期性付款")
-        if item.get("subscription_id") is not None:
-            raise ValueError("这笔支出已经关联周期性付款")
-
-        amount_cents = int(
-            item.get("amount_cents")
-            if item.get("amount_cents") is not None
-            else to_cents(item.get("amount") or 0)
-        )
-        cur = conn.execute(
-            """INSERT INTO subscriptions
-               (name, amount, amount_cents, billing_cycle,
-                billing_interval_months, start_date, next_renewal_date,
-                category, subcategory, auto_renew, status, notes, payment_type,
-                transaction_id, renewal_mode, renewal_interval,
-                renewal_anchor_day, last_payment_date)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"""
-            + returning_id_clause(),
-            (
-                name,
-                amount_cents / 100,
-                amount_cents,
-                billing_cycle,
-                billing_interval_months,
-                item["date"],
-                next_renewal_date,
-                item.get("category"),
-                item.get("subcategory"),
-                SUBSCRIPTION_STATUS_ACTIVE,
-                item.get("notes"),
-                RECURRING_PAYMENT_SUBSCRIPTION,
-                transaction_id,
-                renewal_mode,
-                renewal_interval,
-                renewal_anchor_day,
-                item["date"],
-            ),
-        )
-        subscription_id = inserted_id(cur)
-        conn.execute(
-            "UPDATE transactions SET subscription_id = ? WHERE id = ?",
-            (subscription_id, transaction_id),
+        subscription_id = _create_subscription_from_transaction(
+            conn,
+            transaction_id,
+            name,
+            billing_cycle,
+            billing_interval_months,
+            next_renewal_date,
+            renewal_mode,
+            renewal_interval,
+            renewal_anchor_day,
         )
         conn.commit()
         return subscription_id
+
+
+def _create_subscription_from_transaction(
+    conn,
+    transaction_id: int,
+    name: str,
+    billing_cycle: str,
+    billing_interval_months: int | None,
+    next_renewal_date: str,
+    renewal_mode: str,
+    renewal_interval: int,
+    renewal_anchor_day: int | None,
+) -> int:
+    transaction = conn.execute(
+        "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
+    ).fetchone()
+    if transaction is None:
+        raise ValueError("账目不存在")
+    item = dict(transaction)
+    if item.get("type") != TYPE_EXPENSE:
+        raise ValueError("只有支出可以设为周期性付款")
+    if item.get("subscription_id") is not None:
+        raise ValueError("这笔支出已经关联周期性付款")
+
+    amount_cents = int(
+        item.get("amount_cents")
+        if item.get("amount_cents") is not None
+        else to_cents(item.get("amount") or 0)
+    )
+    cur = conn.execute(
+        """INSERT INTO subscriptions
+           (name, amount, amount_cents, billing_cycle,
+            billing_interval_months, start_date, next_renewal_date,
+            category, subcategory, auto_renew, status, notes, payment_type,
+            transaction_id, renewal_mode, renewal_interval,
+            renewal_anchor_day, last_payment_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"""
+        + returning_id_clause(),
+        (
+            name,
+            amount_cents / 100,
+            amount_cents,
+            billing_cycle,
+            billing_interval_months,
+            item["date"],
+            next_renewal_date,
+            item.get("category"),
+            item.get("subcategory"),
+            SUBSCRIPTION_STATUS_ACTIVE,
+            item.get("notes"),
+            RECURRING_PAYMENT_SUBSCRIPTION,
+            transaction_id,
+            renewal_mode,
+            renewal_interval,
+            renewal_anchor_day,
+            item["date"],
+        ),
+    )
+    subscription_id = inserted_id(cur)
+    conn.execute(
+        "UPDATE transactions SET subscription_id = ? WHERE id = ?",
+        (subscription_id, transaction_id),
+    )
+    return subscription_id

@@ -4,6 +4,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, model_validator
 
+from api.routes.entries import IdempotencyKey
 from api.security import require_api_auth
 from services import transactions as transaction_service
 
@@ -62,6 +63,27 @@ class BulkDeleteResponse(BaseModel):
     deleted_count: int
 
 
+class RefundCreate(BaseModel):
+    description: str = Field(min_length=1)
+    amount: float = Field(gt=0)
+    date: Date
+
+
+class SubscriptionCreate(BaseModel):
+    name: str = Field(min_length=1)
+    billing_cycle: Literal["月付", "季付", "年付", "自定义"]
+    billing_interval_months: int | None = Field(default=None, ge=1, le=120)
+    next_renewal_date: Date
+    renewal_mode: Literal["same_day", "fixed_days"]
+    renewal_interval: int = Field(ge=1, le=730)
+    renewal_anchor_day: int | None = Field(default=None, ge=1, le=31)
+
+
+class CreatedRecord(BaseModel):
+    id: int
+    duplicate: bool
+
+
 @router.get("", response_model=list[TransactionResponse])
 def list_transactions() -> list[dict]:
     return transaction_service.list_transactions()
@@ -94,3 +116,35 @@ def bulk_delete_transactions(body: BulkDeleteRequest) -> BulkDeleteResponse:
             status_code=status.HTTP_409_CONFLICT, detail=str(exc)
         ) from exc
     return BulkDeleteResponse(deleted_count=deleted_count)
+
+
+@router.post("/{transaction_id}/refunds", response_model=CreatedRecord)
+def create_refund(
+    transaction_id: int, body: RefundCreate, idempotency_key: IdempotencyKey
+) -> dict:
+    payload = body.model_dump(mode="json")
+    try:
+        return transaction_service.create_refund(
+            transaction_id, payload, idempotency_key
+        )
+    except transaction_service.TransactionConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc
+
+
+@router.post("/{transaction_id}/subscription", response_model=CreatedRecord)
+def create_subscription(
+    transaction_id: int,
+    body: SubscriptionCreate,
+    idempotency_key: IdempotencyKey,
+) -> dict:
+    payload = body.model_dump(mode="json")
+    try:
+        return transaction_service.create_subscription(
+            transaction_id, payload, idempotency_key
+        )
+    except transaction_service.TransactionConflict as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
+        ) from exc

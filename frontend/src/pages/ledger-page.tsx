@@ -15,7 +15,12 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
-import { api, type Transaction } from "@/api/client";
+import {
+  api,
+  type RefundCreate,
+  type SubscriptionCreate,
+  type Transaction,
+} from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -265,12 +270,21 @@ export function LedgerPage() {
 
       <TransactionEditor
         transaction={editing}
+        transactions={allRows}
         categories={categories.data ?? {}}
         onClose={() => setEditing(null)}
         onSaved={(updated) => {
           queryClient.setQueryData<Transaction[]>(["transactions"], (current = []) =>
             current.map((row) => row.id === updated.id ? updated : row),
           );
+          setEditing(null);
+        }}
+        onRefresh={() => {
+          queryClient.invalidateQueries({ queryKey: ["transactions"] });
+          queryClient.invalidateQueries({ queryKey: ["expense-analysis"] });
+          queryClient.invalidateQueries({ queryKey: ["cross-period"] });
+          queryClient.invalidateQueries({ queryKey: ["home-summary"] });
+          setRowSelection({});
           setEditing(null);
         }}
       />
@@ -289,12 +303,15 @@ const editSchema = z.object({
 });
 type EditValues = z.infer<typeof editSchema>;
 
-function TransactionEditor({ transaction, categories, onClose, onSaved }: {
+function TransactionEditor({ transaction, transactions, categories, onClose, onSaved, onRefresh }: {
   transaction: Transaction | null;
+  transactions: Transaction[];
   categories: Record<string, Record<string, string[]>>;
   onClose: () => void;
   onSaved: (transaction: Transaction) => void;
+  onRefresh: () => void;
 }) {
+  const [tab, setTab] = useState<"edit" | "amortization" | "recurring" | "refund">("edit");
   const form = useForm<EditValues>({ resolver: zodResolver(editSchema) });
   const entryType = form.watch("type");
   const category = form.watch("category");
@@ -314,6 +331,7 @@ function TransactionEditor({ transaction, categories, onClose, onSaved }: {
 
   useEffect(() => {
     if (!transaction) return;
+    setTab("edit");
     form.reset({
       type: transaction.type,
       description: transaction.description,
@@ -333,7 +351,25 @@ function TransactionEditor({ transaction, categories, onClose, onSaved }: {
           <DialogDescription>保存后只更新本地缓存中的这一行，不重新加载整个页面。</DialogDescription>
         </DialogHeader>
         {transaction && (
-          <form className="space-y-4" onSubmit={form.handleSubmit((values) => update.mutate(values))}>
+          <>
+            <div className="mb-5 grid grid-cols-4 gap-1 rounded-lg bg-neutral-100 p-1">
+              {([
+                ["edit", "编辑"],
+                ["amortization", "摊销"],
+                ["recurring", "周期"],
+                ["refund", "退款"],
+              ] as const).map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  className={cn("rounded-md px-2 py-2 text-sm", tab === value && "bg-white font-medium shadow-sm")}
+                  onClick={() => setTab(value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            {tab === "edit" && <form className="space-y-4" onSubmit={form.handleSubmit((values) => update.mutate(values))}>
             <FormField label="类型">
               <select
                 className={selectClass}
@@ -385,12 +421,100 @@ function TransactionEditor({ transaction, categories, onClose, onSaved }: {
               <Button type="button" variant="outline" onClick={onClose}>取消</Button>
               <Button type="submit" disabled={update.isPending}>{update.isPending ? "保存中…" : "保存修改"}</Button>
             </div>
-          </form>
+            </form>}
+            {tab === "amortization" && <AmortizationForm transaction={transaction} onSaved={onSaved} />}
+            {tab === "recurring" && <RecurringForm transaction={transaction} onSaved={onRefresh} />}
+            {tab === "refund" && <RefundForm transaction={transaction} transactions={transactions} onSaved={onRefresh} />}
+          </>
         )}
       </DialogContent>
     </Dialog>
   );
 }
+
+function AmortizationForm({ transaction, onSaved }: { transaction: Transaction; onSaved: (record: Transaction) => void }) {
+  const [months, setMonths] = useState(String(transaction.amortization_months ?? 12));
+  const [startMonth, setStartMonth] = useState((transaction.amortization_start ?? transaction.date).slice(0, 7));
+  const update = useMutation({
+    mutationFn: () => api.updateTransaction(transaction.id, {
+      amortization_months: Number(months),
+      amortization_start: `${startMonth}-01`,
+    }),
+    onSuccess: onSaved,
+  });
+  if (transaction.type !== "支出") return <Info>只有支出记录可以设置摊销。</Info>;
+  return (
+    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); update.mutate(); }}>
+      <p className="text-sm text-neutral-500">把这笔已发生的支出分摊到多个自然月。</p>
+      <FormField label="摊销月数"><Input type="number" min="2" max="120" value={months} onChange={(event) => setMonths(event.target.value)} /></FormField>
+      <FormField label="摊销开始月份"><Input type="month" value={startMonth} onChange={(event) => setStartMonth(event.target.value)} /></FormField>
+      {update.isError && <p className="text-sm text-red-600">{update.error.message}</p>}
+      <Button className="w-full" disabled={update.isPending || Number(months) < 2}>{update.isPending ? "保存中…" : "保存摊销"}</Button>
+    </form>
+  );
+}
+
+function RefundForm({ transaction, transactions, onSaved }: { transaction: Transaction; transactions: Transaction[]; onSaved: () => void }) {
+  const refunded = transactions.filter((item) => item.refund_for_id === transaction.id).reduce((sum, item) => sum + item.amount, 0);
+  const remaining = Math.max(0, transaction.amount - refunded);
+  const [entry, setEntry] = useState<RefundCreate>({ description: `${transaction.description} 退款`, amount: remaining, date: formatDate(new Date()) });
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const create = useMutation({ mutationFn: () => api.createRefund(transaction.id, entry, idempotencyKey), onSuccess: onSaved });
+  if (transaction.type !== "支出") return <Info>只有支出记录可以关联退款。</Info>;
+  return (
+    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
+      <p className="text-sm text-neutral-500">已关联退款 {formatMoney(refunded)}，剩余可退 {formatMoney(remaining)}。</p>
+      <FormField label="退款描述"><Input value={entry.description} onChange={(event) => setEntry({ ...entry, description: event.target.value })} /></FormField>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="退款金额"><Input type="number" min="0.01" max={remaining} step="0.01" value={entry.amount} onChange={(event) => setEntry({ ...entry, amount: Number(event.target.value) })} /></FormField>
+        <FormField label="退款日期"><Input type="date" value={entry.date} onChange={(event) => setEntry({ ...entry, date: event.target.value })} /></FormField>
+      </div>
+      {create.isError && <p className="text-sm text-red-600">{create.error.message}</p>}
+      <Button className="w-full" disabled={create.isPending || entry.amount <= 0 || entry.amount > remaining || !entry.description.trim()}>{create.isPending ? "保存中…" : "保存退款"}</Button>
+    </form>
+  );
+}
+
+function RecurringForm({ transaction, onSaved }: { transaction: Transaction; onSaved: () => void }) {
+  const [name, setName] = useState(transaction.description);
+  const [nextDate, setNextDate] = useState(formatDate(new Date()));
+  const [mode, setMode] = useState<"same_day" | "fixed_days">("same_day");
+  const [interval, setInterval] = useState("1");
+  const [idempotencyKey] = useState(() => crypto.randomUUID());
+  const create = useMutation({
+    mutationFn: () => {
+      const months = Number(interval);
+      const entry: SubscriptionCreate = {
+        name: name.trim(),
+        billing_cycle: mode === "fixed_days" ? "自定义" : cycleFromMonths(months),
+        billing_interval_months: mode === "fixed_days" || [1, 3, 12].includes(months) ? null : months,
+        next_renewal_date: nextDate,
+        renewal_mode: mode,
+        renewal_interval: months,
+        renewal_anchor_day: mode === "same_day" ? Number(nextDate.slice(8, 10)) : null,
+      };
+      return api.createSubscription(transaction.id, entry, idempotencyKey);
+    },
+    onSuccess: onSaved,
+  });
+  if (transaction.type !== "支出") return <Info>只有支出记录可以设为周期性付款。</Info>;
+  if (transaction.subscription_id != null) return <Info>这笔支出已经关联周期性付款。</Info>;
+  return (
+    <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); create.mutate(); }}>
+      <p className="text-sm text-neutral-500">用这笔支出作为首次付款，后续到期时再确认入账。</p>
+      <FormField label="描述"><Input value={name} onChange={(event) => setName(event.target.value)} /></FormField>
+      <FormField label="下次付款日"><Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} /></FormField>
+      <div className="grid grid-cols-2 gap-3">
+        <FormField label="续费方式"><select className={selectClass} value={mode} onChange={(event) => { const value = event.target.value as "same_day" | "fixed_days"; setMode(value); setInterval(value === "same_day" ? "1" : "30"); }}><option value="same_day">按月同日</option><option value="fixed_days">固定天数</option></select></FormField>
+        <FormField label={mode === "same_day" ? "间隔月数" : "间隔天数"}><Input type="number" min="1" max={mode === "same_day" ? "120" : "730"} value={interval} onChange={(event) => setInterval(event.target.value)} /></FormField>
+      </div>
+      {create.isError && <p className="text-sm text-red-600">{create.error.message}</p>}
+      <Button className="w-full" disabled={create.isPending || !name.trim() || Number(interval) < 1}>{create.isPending ? "创建中…" : "创建周期性付款"}</Button>
+    </form>
+  );
+}
+
+function Info({ children }: { children: ReactNode }) { return <div className="rounded-lg bg-neutral-100 p-4 text-sm text-neutral-600">{children}</div>; }
 
 function FilterSelect({ label, value, options, onChange }: {
   label: string;
@@ -431,6 +555,17 @@ function unique(values: Array<string | null | undefined>): string[] {
 
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY" }).format(value);
+}
+
+function formatDate(value: Date): string {
+  return new Intl.DateTimeFormat("en-CA").format(value);
+}
+
+function cycleFromMonths(months: number): "月付" | "季付" | "年付" | "自定义" {
+  if (months === 1) return "月付";
+  if (months === 3) return "季付";
+  if (months === 12) return "年付";
+  return "自定义";
 }
 
 function csvCell(value: unknown): string {

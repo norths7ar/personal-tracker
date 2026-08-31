@@ -6,6 +6,8 @@ from fastapi.testclient import TestClient
 
 import core.db as core_db
 import core.expense.db as expense_db
+import core.idempotency as idempotency
+import core.subscription.db as subscription_db
 from api.main import create_app
 from core.constants import TYPE_EXPENSE, TYPE_INCOME
 
@@ -27,6 +29,8 @@ class TransactionApiTest(unittest.TestCase):
             patch.object(core_db, "is_postgres", return_value=False),
             patch.object(expense_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "is_postgres", return_value=False),
+            patch.object(idempotency, "_connect", return_value=self.conn),
+            patch.object(subscription_db, "_connect", return_value=self.conn),
             patch("api.main.init_db", side_effect=core_db.init_db),
             patch("api.security.get_secret", side_effect=self._secret),
         ]
@@ -126,6 +130,64 @@ class TransactionApiTest(unittest.TestCase):
                 "/api/transactions/bulk-delete", json={"ids": []}
             ).status_code,
             422,
+        )
+
+    def test_refund_creation_is_idempotent_and_limited_to_remaining_amount(self):
+        expense_id = expense_db.add_transaction(
+            TYPE_EXPENSE, "网购", 100, "2026-08-30", category="购物"
+        )
+        body = {"description": "网购退款", "amount": 40, "date": "2026-08-31"}
+
+        first = self.client.post(
+            f"/api/transactions/{expense_id}/refunds",
+            json=body,
+            headers={"Idempotency-Key": "refund-request-1"},
+        )
+        retried = self.client.post(
+            f"/api/transactions/{expense_id}/refunds",
+            json=body,
+            headers={"Idempotency-Key": "refund-request-1"},
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertFalse(first.json()["duplicate"])
+        self.assertTrue(retried.json()["duplicate"])
+        self.assertEqual(expense_db.refund_total_for(expense_id), 40)
+        too_much = self.client.post(
+            f"/api/transactions/{expense_id}/refunds",
+            json={**body, "amount": 61},
+            headers={"Idempotency-Key": "refund-request-2"},
+        )
+        self.assertEqual(too_much.status_code, 409)
+
+    def test_subscription_creation_from_transaction_is_idempotent(self):
+        expense_id = expense_db.add_transaction(
+            TYPE_EXPENSE, "会员", 30, "2026-08-30", category="通讯"
+        )
+        body = {
+            "name": "会员",
+            "billing_cycle": "月付",
+            "next_renewal_date": "2026-09-30",
+            "renewal_mode": "same_day",
+            "renewal_interval": 1,
+            "renewal_anchor_day": 30,
+        }
+
+        first = self.client.post(
+            f"/api/transactions/{expense_id}/subscription",
+            json=body,
+            headers={"Idempotency-Key": "subscription-request-1"},
+        )
+        retried = self.client.post(
+            f"/api/transactions/{expense_id}/subscription",
+            json=body,
+            headers={"Idempotency-Key": "subscription-request-1"},
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(retried.json()["duplicate"])
+        self.assertEqual(
+            len(subscription_db.get_subscriptions(payment_type="subscription")), 1
         )
 
 
