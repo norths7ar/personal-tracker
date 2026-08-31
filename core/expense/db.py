@@ -134,6 +134,14 @@ def get_transactions(
     return [_normalize_transaction(r) for r in rows]
 
 
+def get_transaction(id_: int) -> dict | None:
+    with closing(_connect()) as conn:
+        row = conn.execute(
+            "SELECT * FROM transactions WHERE id = ?", (id_,)
+        ).fetchone()
+    return _normalize_transaction(row) if row is not None else None
+
+
 def count_transactions(
     start_date: str | None = None,
     end_date: str | None = None,
