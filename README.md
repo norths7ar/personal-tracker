@@ -1,6 +1,6 @@
 # personal-tracker
 
-个人记录工具，基于 Streamlit、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录，并支持跨设备部署到 Streamlit Cloud + Supabase PostgreSQL。
+个人记录工具，基于 React SPA、FastAPI、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。React 迁移阶段先以本地单服务运行完成验证；云端部署方案另行决定。
 
 ## 功能
 
@@ -43,7 +43,10 @@
 
 ```text
 personal-tracker/
-├── app.py                  # Streamlit 入口和页面导航
+├── api/                    # FastAPI 应用、认证和 HTTP 路由
+├── services/               # 页面工作流与 core 之间的编排层
+├── frontend/               # Vite + React + TypeScript SPA
+├── app.py                  # 暂时保留的 Streamlit 旧入口
 ├── config.yaml             # 开销分类、饮食配置和公开 LLM 参数
 ├── .env.example            # 环境变量示例
 ├── pyproject.toml          # 项目元数据和直接依赖
@@ -65,7 +68,7 @@ personal-tracker/
 │   └── diet/
 │       ├── extractor.py    # 饮食结构化提取逻辑
 │       └── db.py           # 饮食记录查询与统计
-├── pages/
+├── pages/                  # 暂时保留的 Streamlit 旧页面
 │   ├── batch_entry.py
 │   ├── expense_pending.py
 │   ├── expense_ledger.py
@@ -89,10 +92,21 @@ Copy-Item .env.example .env
 # 编辑 .env，填入 LLM_API_KEY
 # DB_BACKEND 保持 sqlite
 
-uv run streamlit run app.py
+Set-Location frontend
+npm ci
+npm run build
+Set-Location ..
+
+uv run uvicorn api.main:app --reload
 ```
 
-### Supabase PostgreSQL / Streamlit Cloud
+打开 `http://127.0.0.1:8000`。FastAPI 会同域提供 `/api/*` 和已构建的 React 页面，直接访问 `/ledger` 等客户端路由也会返回 SPA。
+
+开发前端时可以分别启动两个进程：根目录运行 `uv run uvicorn api.main:app --reload`，`frontend/` 目录运行 `npm run dev`。Vite 会把 `/api` 代理到本地 FastAPI。
+
+### Supabase PostgreSQL / 旧 Streamlit Cloud
+
+当前仍保留 Streamlit 旧入口作为本地迁移期回退，既有 Streamlit Cloud + Supabase 配置可以继续使用。React/FastAPI 的云端托管、域名和反向代理将在本地验收后单独处理。
 
 云端部署推荐使用 Supabase PostgreSQL pooler connection string。Streamlit Cloud 的 secrets 可以配置为：
 
@@ -140,15 +154,15 @@ LLM_API_KEY=your_llm_api_key
 模型名、服务地址和推理参数统一在 `config.yaml` 的 `llm` 段配置；`.env` 只保存密钥。
 部分 reasoning 模型可能忽略 `temperature` / `top_p` 等采样参数；例如 `mimo-v2.5` 思考模式会使用模型侧推荐默认值，因此这类模型主要通过 `max_tokens` 预留足够的推理和 JSON 输出预算。
 
-分类配置会按 `config.yaml` 修改时间刷新，通常不需要重启 Streamlit。
+分类配置会按 `config.yaml` 修改时间刷新，通常不需要重启服务。
 
 ## 技术栈
 
-- UI：Streamlit
+- UI：Vite + React + TypeScript、TanStack Query/Table、Tailwind、Radix、ECharts
+- API：FastAPI，OpenAPI 自动生成前端 TypeScript 类型
 - LLM：LangChain + OpenAI-compatible API
 - 数据库：SQLite（本地默认）/ PostgreSQL（云端部署）
-- 数据处理：Pandas
-- 可视化：Plotly
+- 旧版回退：Streamlit 页面和依赖暂时保留，待 React 本地试用通过后再删除
 
 ## 测试
 

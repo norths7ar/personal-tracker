@@ -312,6 +312,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home Summary */
+        get: operations["home_summary_api_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meals": {
         parameters: {
             query?: never;
@@ -777,6 +794,17 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /** HomeSummary */
+        HomeSummary: {
+            /** Reminders */
+            reminders: components["schemas"]["Reminder"][];
+            /** Pending Count */
+            pending_count: number;
+            /** Today Expense */
+            today_expense: number;
+            /** Today Meals */
+            today_meals: components["schemas"]["TodayMeal"][];
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Password */
@@ -976,6 +1004,32 @@ export interface components {
             subcategory?: string | null;
             /** Notes */
             notes?: string | null;
+        };
+        /** Reminder */
+        Reminder: {
+            /** Source */
+            source: string;
+            /** Id */
+            id: number;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Due Date */
+            due_date: string;
+            /** Days Until Due */
+            days_until_due: number;
+        };
+        /** TodayMeal */
+        TodayMeal: {
+            /** Id */
+            id: number;
+            /** Time */
+            time: string | null;
+            /** Meal Type */
+            meal_type: string | null;
+            /** Foods */
+            foods: string[];
         };
         /** TransactionCreateRequest */
         TransactionCreateRequest: {
@@ -1804,6 +1858,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    home_summary_api_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeSummary"];
                 };
             };
             /** @description Validation Error */

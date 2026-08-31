@@ -55,6 +55,7 @@ export function BatchEntry() {
       setDiagnostics(null);
       setText("");
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 

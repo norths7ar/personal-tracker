@@ -62,6 +62,7 @@ export function TransactionEntry() {
         notes: null,
       }));
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 

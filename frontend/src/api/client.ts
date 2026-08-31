@@ -22,6 +22,7 @@ export type ConfirmExpected = components["schemas"]["ConfirmExpected"];
 export type PrepaidRecord = components["schemas"]["PrepaidRecord"];
 export type PrepaidWrite = components["schemas"]["PrepaidWrite"];
 export type PrepaidUpdate = components["schemas"]["PrepaidUpdate"];
+export type HomeSummary = components["schemas"]["HomeSummary"];
 
 export class ApiError extends Error {
   constructor(
@@ -169,4 +170,5 @@ export const api = {
     }),
   deletePrepaid: (id: number) =>
     request<void>(`/api/cross-period/prepaid/${id}`, { method: "DELETE" }),
+  homeSummary: () => request<HomeSummary>("/api/home"),
 };

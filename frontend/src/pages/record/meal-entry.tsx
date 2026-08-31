@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
@@ -23,6 +23,7 @@ const initialEntry: MealCreate = {
 };
 
 export function MealEntry() {
+  const queryClient = useQueryClient();
   const [entry, setEntry] = useState<MealCreate>(initialEntry);
   const [review, setReview] = useState<MealPreparation | null>(null);
   const [requestKey, setRequestKey] = useState("");
@@ -43,6 +44,7 @@ export function MealEntry() {
         notes: null,
         foods: [],
       }));
+      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 
