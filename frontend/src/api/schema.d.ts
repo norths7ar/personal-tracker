@@ -174,6 +174,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Meals */
+        get: operations["list_meals_api_meals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meals/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diet Stats */
+        get: operations["diet_stats_api_meals_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/meals/{meal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Meal */
+        delete: operations["delete_meal_api_meals__meal_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Meal */
+        patch: operations["update_meal_api_meals__meal_id__patch"];
+        trace?: never;
+    };
     "/api/pending-transactions": {
         parameters: {
             query?: never;
@@ -396,12 +448,47 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /** CountByDate */
+        CountByDate: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Count */
+            count: number;
+        };
+        /** CountByFood */
+        CountByFood: {
+            /** Food Name */
+            food_name: string;
+            /** Count */
+            count: number;
+        };
+        /** CountByMealType */
+        CountByMealType: {
+            /** Meal Type */
+            meal_type: string;
+            /** Count */
+            count: number;
+        };
         /** CreateResponse */
         CreateResponse: {
             /** Id */
             id: number;
             /** Duplicate */
             duplicate: boolean;
+        };
+        /** DietStatsResponse */
+        DietStatsResponse: {
+            /** Meal Times */
+            meal_times: components["schemas"]["MealTimePoint"][];
+            /** Food Freq */
+            food_freq: components["schemas"]["CountByFood"][];
+            /** Daily Meals */
+            daily_meals: components["schemas"]["CountByDate"][];
+            /** Meal Type Dist */
+            meal_type_dist: components["schemas"]["CountByMealType"][];
         };
         /** FoodInput */
         FoodInput: {
@@ -467,6 +554,58 @@ export interface components {
              * @default
              */
             reasoning: string;
+        };
+        /** MealResponse */
+        MealResponse: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
+        };
+        /** MealTimePoint */
+        MealTimePoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time: string;
+        };
+        /** MealUpdate */
+        MealUpdate: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
         };
         /** TransactionCreateRequest */
         TransactionCreateRequest: {
@@ -931,6 +1070,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BatchSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_meals_api_meals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diet_stats_api_meals_stats_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DietStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_meal_api_meals__meal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meal_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_meal_api_meals__meal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meal_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealResponse"];
                 };
             };
             /** @description Validation Error */

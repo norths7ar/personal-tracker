@@ -123,6 +123,53 @@ class EntryApiTest(unittest.TestCase):
             self.raw.execute("SELECT COUNT(*) FROM diet_foods").fetchone()[0], 1
         )
 
+    def test_meal_ledger_endpoints_update_analyze_and_delete(self):
+        meal_id = diet_db.add_meal(
+            date="2026-08-31",
+            time="12:30",
+            meal_type="午餐",
+            description="鸡腿饭",
+            notes=None,
+            confidence=0.9,
+            foods=[{"food_name": "鸡腿饭", "quantity": "一份"}],
+        )
+
+        listed = self.client.get("/api/meals")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(listed.json()[0]["id"], meal_id)
+
+        updated = self.client.patch(
+            f"/api/meals/{meal_id}",
+            json={
+                "date": "2026-08-31",
+                "time": "12:35",
+                "meal_type": "午餐",
+                "description": "鸡腿饭和青菜",
+                "notes": "加菜",
+                "foods": [
+                    {
+                        "food_name": "鸡腿饭",
+                        "quantity": "一份",
+                        "ingredients": ["鸡腿", "米饭"],
+                    },
+                    {"food_name": "青菜", "quantity": "一份"},
+                ],
+            },
+        )
+        self.assertEqual(updated.status_code, 200)
+        self.assertEqual(len(updated.json()["foods"]), 2)
+
+        stats = self.client.get(
+            "/api/meals/stats",
+            params={"start_date": "2026-08-01", "end_date": "2026-08-31"},
+        )
+        self.assertEqual(stats.status_code, 200)
+        self.assertEqual(stats.json()["daily_meals"][0]["count"], 1)
+
+        deleted = self.client.delete(f"/api/meals/{meal_id}")
+        self.assertEqual(deleted.status_code, 204)
+        self.assertEqual(self.client.get("/api/meals").json(), [])
+
     def test_income_and_transfer_preparation_do_not_call_llm(self):
         for type_name in ("收入", "迁移"):
             response = self.client.post(

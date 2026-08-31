@@ -15,6 +15,9 @@ const RecordPage = lazy(() =>
 const PendingPage = lazy(() =>
   import("@/pages/pending-page").then((module) => ({ default: module.PendingPage })),
 );
+const DietPage = lazy(() =>
+  import("@/pages/diet-page").then((module) => ({ default: module.DietPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -43,6 +46,7 @@ export function App() {
           <Route path="/record" element={<RecordPage />} />
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
+          <Route path="/diet" element={<DietPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>
       </Suspense>

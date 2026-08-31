@@ -9,6 +9,9 @@ export type MealPreparation = components["schemas"]["MealPreparationResponse"];
 export type MealCreate = components["schemas"]["MealCreateRequest"];
 export type BatchRecord = components["schemas"]["BatchRecord"];
 export type BatchPreparation = components["schemas"]["BatchPrepareResponse"];
+export type Meal = components["schemas"]["MealResponse"];
+export type MealUpdate = components["schemas"]["MealUpdate"];
+export type DietStats = components["schemas"]["DietStatsResponse"];
 
 export class ApiError extends Error {
   constructor(
@@ -30,6 +33,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const body = (await response.json().catch(() => null)) as { detail?: string } | null;
     throw new ApiError(response.status, body?.detail ?? `请求失败 (${response.status})`);
   }
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
 
@@ -88,4 +92,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ submission_id: submissionId, records }),
     }),
+  meals: () => request<Meal[]>("/api/meals"),
+  updateMeal: (id: number, entry: MealUpdate) =>
+    request<Meal>(`/api/meals/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(entry),
+    }),
+  deleteMeal: (id: number) =>
+    request<void>(`/api/meals/${id}`, { method: "DELETE" }),
+  dietStats: (startDate: string, endDate: string) => {
+    const query = new URLSearchParams({
+      start_date: startDate,
+      end_date: endDate,
+    });
+    return request<DietStats>(`/api/meals/stats?${query}`);
+  },
 };
