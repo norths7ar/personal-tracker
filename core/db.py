@@ -136,6 +136,7 @@ def init_db():
         _ensure_subscription_renewal_columns(conn)
         _ensure_planned_expense_columns(conn)
         _ensure_batch_submission_schema(conn)
+        _ensure_idempotency_schema(conn)
         _ensure_query_indexes(conn)
         _init_budgets(conn)
         _migrate_amortized_to_subscriptions(conn)
@@ -450,6 +451,18 @@ def _ensure_batch_submission_schema(conn):
             payload_hash TEXT NOT NULL,
             record_count INTEGER NOT NULL,
             created_at   {created_at}
+        )"""
+    )
+
+
+def _ensure_idempotency_schema(conn):
+    conn.execute(
+        """CREATE TABLE IF NOT EXISTS idempotency_keys (
+            idempotency_key TEXT PRIMARY KEY,
+            operation TEXT NOT NULL,
+            payload_hash TEXT NOT NULL,
+            response_json TEXT,
+            created_at TEXT NOT NULL
         )"""
     )
 
