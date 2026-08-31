@@ -87,6 +87,12 @@ class TransactionApiTest(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 404)
 
+    def test_category_configuration_exposes_transaction_types_only(self):
+        response = self.client.get("/api/config/categories")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(set(response.json()), {"支出", "收入", "迁移"})
+        self.assertIn("餐饮", response.json()["支出"])
+
     def test_empty_update_and_empty_bulk_delete_are_rejected(self):
         response = self.client.patch("/api/transactions/1", json={})
         self.assertEqual(response.status_code, 422)
