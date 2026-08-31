@@ -72,6 +72,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/entries/transactions/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Transaction */
+        post: operations["prepare_transaction_api_entries_transactions_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Transaction */
+        post: operations["create_transaction_api_entries_transactions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/meals/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Meal */
+        post: operations["prepare_meal_api_entries_meals_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/meals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Meal */
+        post: operations["create_meal_api_entries_meals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/batch/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Batch */
+        post: operations["prepare_batch_api_entries_batch_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save Batch */
+        post: operations["save_batch_api_entries_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -149,6 +251,109 @@ export interface components {
             /** Authenticated */
             authenticated: boolean;
         };
+        /** BatchDiagnostics */
+        BatchDiagnostics: {
+            /** Raw Count */
+            raw_count: number;
+            /** Block Count */
+            block_count: number;
+            /** Kept Count */
+            kept_count: number;
+            /** Rejected Records */
+            rejected_records?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** BatchPrepareRequest */
+        BatchPrepareRequest: {
+            /** Text */
+            text: string;
+            /**
+             * Default Date
+             * Format: date
+             */
+            default_date: string;
+        };
+        /** BatchPrepareResponse */
+        BatchPrepareResponse: {
+            /** Status */
+            status: string;
+            /** Records */
+            records: components["schemas"]["BatchRecord"][];
+            diagnostics: components["schemas"]["BatchDiagnostics"];
+        };
+        /** BatchRecord */
+        BatchRecord: {
+            /**
+             * Include
+             * @default true
+             */
+            include: boolean;
+            /**
+             * Record Type
+             * @enum {string}
+             */
+            record_type: "支出" | "收入" | "迁移" | "饮食";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Time
+             * @default
+             */
+            time: string;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount?: number | null;
+            /**
+             * Category
+             * @default
+             */
+            category: string;
+            /**
+             * Subcategory
+             * @default
+             */
+            subcategory: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Foods */
+            foods?: components["schemas"]["FoodInput"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** BatchSaveRequest */
+        BatchSaveRequest: {
+            /** Submission Id */
+            submission_id: string;
+            /** Records */
+            records: components["schemas"]["BatchRecord"][];
+        };
+        /** BatchSaveResponse */
+        BatchSaveResponse: {
+            /** Saved Count */
+            saved_count: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
         /** BulkDeleteRequest */
         BulkDeleteRequest: {
             /** Ids */
@@ -165,6 +370,34 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        /** ClassificationCandidate */
+        ClassificationCandidate: {
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Confidence */
+            confidence: number;
+        };
+        /** CreateResponse */
+        CreateResponse: {
+            /** Id */
+            id: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** FoodInput */
+        FoodInput: {
+            /** Food Name */
+            food_name: string;
+            /**
+             * Quantity
+             * @default
+             */
+            quantity: string;
+            /** Ingredients */
+            ingredients?: string[];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -174,6 +407,107 @@ export interface components {
         LoginRequest: {
             /** Password */
             password: string;
+        };
+        /** MealCreateRequest */
+        MealCreateRequest: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
+        };
+        /** MealPreparationRequest */
+        MealPreparationRequest: {
+            /** Description */
+            description: string;
+            /** Time */
+            time: string;
+        };
+        /** MealPreparationResponse */
+        MealPreparationResponse: {
+            /** Status */
+            status: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
+            /** Confidence */
+            confidence: number;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** TransactionCreateRequest */
+        TransactionCreateRequest: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "支出" | "收入" | "迁移";
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Reviewed
+             * @default false
+             */
+            reviewed: boolean;
+        };
+        /** TransactionPreparationRequest */
+        TransactionPreparationRequest: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "支出" | "收入" | "迁移";
+            /** Description */
+            description: string;
+        };
+        /** TransactionPreparationResponse */
+        TransactionPreparationResponse: {
+            /** Status */
+            status: string;
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+            /** Candidates */
+            candidates?: components["schemas"]["ClassificationCandidate"][];
         };
         /** TransactionResponse */
         TransactionResponse: {
@@ -366,6 +700,220 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CategoryConfiguration"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_transaction_api_entries_transactions_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionPreparationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPreparationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_transaction_api_entries_transactions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_meal_api_entries_meals_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPreparationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPreparationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_meal_api_entries_meals_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_batch_api_entries_batch_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchPrepareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_batch_api_entries_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchSaveResponse"];
                 };
             };
             /** @description Validation Error */

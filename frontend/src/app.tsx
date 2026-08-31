@@ -1,10 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
 import { ApiError, api } from "@/api/client";
 import { AppShell } from "@/components/app-shell";
 import { LoginPage } from "@/pages/login-page";
-import { LedgerPage } from "@/pages/ledger-page";
+
+const LedgerPage = lazy(() =>
+  import("@/pages/ledger-page").then((module) => ({ default: module.LedgerPage })),
+);
+const RecordPage = lazy(() =>
+  import("@/pages/record-page").then((module) => ({ default: module.RecordPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -28,10 +35,13 @@ export function App() {
 
   return (
     <AppShell onLogout={logout}>
-      <Routes>
-        <Route path="/ledger" element={<LedgerPage />} />
-        <Route path="*" element={<Navigate to="/ledger" replace />} />
-      </Routes>
+      <Suspense fallback={<p className="text-sm text-neutral-500">正在载入页面…</p>}>
+        <Routes>
+          <Route path="/record" element={<RecordPage />} />
+          <Route path="/ledger" element={<LedgerPage />} />
+          <Route path="*" element={<Navigate to="/record" replace />} />
+        </Routes>
+      </Suspense>
     </AppShell>
   );
 }

@@ -16,9 +16,10 @@ export function AppShell({ children, onLogout }: AppShellProps) {
       <aside className="fixed inset-y-0 left-0 hidden w-56 border-r border-neutral-200 bg-white p-4 md:flex md:flex-col">
         <div className="mb-8 px-2 text-lg font-semibold">personal-tracker</div>
         <nav className="space-y-1">
+          <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <div className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-neutral-400">
-            <PencilLine size={17} />
+            <BookOpen size={17} />
             其他页面迁移中
           </div>
         </nav>

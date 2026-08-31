@@ -20,7 +20,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["src/components/ui/**/*.tsx"],
+    files: ["src/components/ui/**/*.tsx", "src/pages/record/entry-shared.tsx"],
     rules: { "react-refresh/only-export-components": "off" },
   },
 );
