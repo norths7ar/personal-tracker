@@ -97,7 +97,7 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
   const cashCurrent = data.cash_current!;
   const cashPrevious = data.cash_previous!;
   const [level, setLevel] = useState<BreakdownLevel>("category");
-  const daily = useMemo(() => fillDaily(data), [data]);
+  const daily = useMemo(() => cumulativeNetExpense(fillDaily(data)), [data]);
   const breakdown = aggregateBreakdown(current.expense_breakdown, level);
   const incomeBreakdown = aggregateBreakdown(current.income_breakdown, level);
   return (
@@ -122,16 +122,18 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
         {trendSummary(current, previous, basis === "cash" ? "现金流" : "摊销后")}
       </div>
       <Chart
-        title={granularity === "month" ? "本月每日净支出与收入" : "本年各月净支出与收入"}
+        title={granularity === "month" ? "本月累计净支出" : "本年各月净支出"}
         option={granularity === "month" ? lineOption(daily) : barOption(data.timeline ?? [])}
       />
-      {granularity === "month" ? (
-        <Chart title="最近 12 个月对比" option={barOption(data.timeline ?? [])} />
-      ) : (
+      {/* “最近 12 个月对比”暂不展示，保留 timeline 数据和 barOption 供后续调整。 */}
+      {granularity === "year" && (
         <Chart title="历年对比" option={barOption(data.comparison ?? [])} />
       )}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">分类明细</h2>
+        <div>
+          <h2 className="text-lg font-semibold">分类明细</h2>
+          <p className="mt-1 text-xs text-neutral-500">未关联的报销和退款只抵减净支出，不参与分类排行。</p>
+        </div>
         <Segmented
           value={level}
           options={[{ value: "category", label: "主类别" }, { value: "subcategory", label: "子类别" }]}
@@ -139,7 +141,7 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
         />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Breakdown title="净支出" rows={breakdown} chart />
+        <Breakdown title="支出分类" rows={breakdown} chart />
         <Breakdown title="收入" rows={incomeBreakdown} />
       </div>
     </div>
@@ -210,6 +212,8 @@ function aggregateBreakdown(rows: BreakdownRow[], level: BreakdownLevel): Breakd
 function trendSummary(current: NonNullable<ExpenseAnalysis["current"]>, previous: NonNullable<ExpenseAnalysis["previous"]>, label: string): string { const delta = current.expense - previous.expense; if (Math.abs(delta) < 0.005) return `按${label}口径，本期净支出与上期基本持平。`; const changes = categoryTotals(current.expense_breakdown); const previousTotals = categoryTotals(previous.expense_breakdown); let largest = ["", 0] as [string, number]; for (const category of new Set([...changes.keys(), ...previousTotals.keys()])) { const change = (changes.get(category) ?? 0) - (previousTotals.get(category) ?? 0); if (Math.abs(change) > Math.abs(largest[1])) largest = [category, change]; } const direction = delta > 0 ? "增加" : "减少"; if (!largest[0]) return `按${label}口径，本期净支出较上期${direction} ${money(Math.abs(delta))}。`; return `按${label}口径，本期净支出较上期${direction} ${money(Math.abs(delta))}；变化最大的是${largest[0]}，${largest[1] > 0 ? "增加" : "减少"} ${money(Math.abs(largest[1]))}。`; }
 function categoryTotals(rows: BreakdownRow[]): Map<string, number> { const result = new Map<string, number>(); for (const row of rows) { const key = row.category || "未分类"; result.set(key, (result.get(key) ?? 0) + row.total); } return result; }
 function fillDaily(data: ExpenseAnalysis) { const rows = data.current?.daily ?? []; if (!data.selected_period || data.selected_period.length !== 7 || !data.days) return rows; const byDate = new Map(rows.map((row) => [row.date, row])); return Array.from({ length: data.days }, (_, index) => { const date = `${data.selected_period}-${String(index + 1).padStart(2, "0")}`; return byDate.get(date) ?? { date, income: 0, expense: 0 }; }); }
-function lineOption(rows: { date: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["净支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.date.slice(5)) }, yAxis: { type: "value" }, series: [{ name: "净支出", type: "line", data: rows.map((row) => row.expense), itemStyle: { color: "#dc2626" } }, { name: "收入", type: "line", data: rows.map((row) => row.income), itemStyle: { color: "#059669" } }] }; }
-function barOption(rows: { label: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["净支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.label) }, yAxis: { type: "value" }, series: [{ name: "净支出", type: "bar", data: rows.map((row) => row.expense) }, { name: "收入", type: "bar", data: rows.map((row) => row.income) }] }; }
-function breakdownOption(rows: BreakdownRow[]) { const reversed = [...rows].reverse(); return { tooltip: { trigger: "axis" }, grid: { left: 100, right: 28 }, xAxis: { type: "value" }, yAxis: { type: "category", data: reversed.map((row) => row.subcategory ? `${row.category} / ${row.subcategory}` : row.category || "未分类") }, series: [{ type: "bar", data: reversed.map((row) => row.total) }] }; }
+function cumulativeNetExpense(rows: { date: string; income: number; expense: number }[]) { let total = 0; return rows.map((row) => { total = Math.round((total + row.expense) * 100) / 100; return { ...row, expense: total }; }); }
+function chartMoney(value: unknown): string { return money(Number(value)); }
+function lineOption(rows: { date: string; expense: number }[]) { return { tooltip: { trigger: "axis", valueFormatter: chartMoney }, xAxis: { type: "category", data: rows.map((row) => row.date.slice(5)) }, yAxis: { type: "value" }, series: [{ name: "累计净支出", type: "line", data: rows.map((row) => row.expense), itemStyle: { color: "#dc2626" }, areaStyle: { opacity: 0.08 } }] }; }
+function barOption(rows: { label: string; expense: number }[]) { return { tooltip: { trigger: "axis", valueFormatter: chartMoney }, xAxis: { type: "category", data: rows.map((row) => row.label) }, yAxis: { type: "value" }, series: [{ name: "净支出", type: "bar", data: rows.map((row) => Math.round(row.expense * 100) / 100) }] }; }
+function breakdownOption(rows: BreakdownRow[]) { const reversed = [...rows].reverse(); return { tooltip: { trigger: "axis", valueFormatter: chartMoney }, grid: { left: 100, right: 28 }, xAxis: { type: "value" }, yAxis: { type: "category", data: reversed.map((row) => row.subcategory ? `${row.category} / ${row.subcategory}` : row.category || "未分类") }, series: [{ type: "bar", data: reversed.map((row) => Math.round(row.total * 100) / 100) }] }; }

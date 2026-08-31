@@ -534,9 +534,6 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
     def expense_bd(conn):
         amount = "COALESCE(t.amount_cents / 100.0, t.amount)"
         refund_amount = "COALESCE(r.amount_cents / 100.0, r.amount)"
-        offset_placeholders = ", ".join(
-            "?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES
-        )
         return conn.execute(
             f"""SELECT category, subcategory,
                        SUM(total) AS total, SUM(count) AS count
@@ -551,14 +548,6 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                     JOIN transactions original ON original.id = r.refund_for_id
                     WHERE r.date >= ? AND r.date <= ?
                       AND r.type = ? AND r.category = ?
-                    UNION ALL
-                    SELECT r.category, r.subcategory,
-                           -{refund_amount} AS total, 0 AS count
-                    FROM transactions r
-                    WHERE r.date >= ? AND r.date <= ?
-                      AND r.type = ?
-                      AND r.category IN ({offset_placeholders})
-                      AND r.refund_for_id IS NULL
                 ) entries
                 GROUP BY category, subcategory
                 HAVING ABS(SUM(total)) >= 0.005
@@ -571,10 +560,6 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                 end_date,
                 TYPE_INCOME,
                 REFUND_CATEGORY,
-                start_date,
-                end_date,
-                TYPE_INCOME,
-                *EXPENSE_OFFSET_INCOME_CATEGORIES,
             ),
         ).fetchall()
 
@@ -686,9 +671,11 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
                 day[TYPE_EXPENSE] -= entry_amount
                 expense -= entry_amount
                 original = rows_by_id.get(row.get("refund_for_id")) or {}
+                if not original:
+                    continue
                 key = (
-                    original.get("category") or row.get("category") or "",
-                    original.get("subcategory") or row.get("subcategory") or "",
+                    original.get("category") or "",
+                    original.get("subcategory") or "",
                 )
                 current = breakdown.setdefault(
                     key,

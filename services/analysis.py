@@ -30,15 +30,30 @@ def _period_data(start: str, end: str, basis: str) -> dict:
     data = get_period_data(start, end, basis)
     return {
         **data,
+        "income": _money(data["income"]),
+        "expense": _money(data["expense"]),
+        "balance": _money(data["balance"]),
         "daily": [
             {
                 "date": row["date"],
-                "income": float(row.get("收入") or 0),
-                "expense": float(row.get("支出") or 0),
+                "income": _money(row.get("收入")),
+                "expense": _money(row.get("支出")),
             }
             for row in data["daily"]
         ],
+        "expense_breakdown": [
+            {**row, "total": _money(row.get("total"))}
+            for row in data["expense_breakdown"]
+        ],
+        "income_breakdown": [
+            {**row, "total": _money(row.get("total"))}
+            for row in data["income_breakdown"]
+        ],
     }
+
+
+def _money(value) -> float:
+    return round(float(value or 0), 2)
 
 
 def get_expense_analysis(

@@ -75,6 +75,18 @@ class ExpenseAnalysisApiTest(unittest.TestCase):
 
         self.assertEqual(response.status_code, 422)
 
+    def test_period_money_is_rounded_at_the_api_boundary(self):
+        noisy = _period(9446.179999999997)
+        noisy["daily"][0]["支出"] = 9446.179999999997
+        with patch.object(analysis_service, "get_period_data", return_value=noisy):
+            period = analysis_service._period_data(
+                "2026-08-01", "2026-08-31", "amortized"
+            )
+
+        self.assertEqual(period["expense"], 9446.18)
+        self.assertEqual(period["daily"][0]["expense"], 9446.18)
+        self.assertEqual(period["expense_breakdown"][0]["total"], 9446.18)
+
 
 if __name__ == "__main__":
     unittest.main()

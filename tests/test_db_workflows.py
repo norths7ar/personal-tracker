@@ -580,7 +580,11 @@ class DatabaseWorkflowTest(unittest.TestCase):
             self.assertEqual(period["income"], 0)
             self.assertEqual(period["balance"], 4)
             self.assertEqual(
-                sum(row["total"] for row in period["expense_breakdown"]), -4
+                sum(row["total"] for row in period["expense_breakdown"]), 1296
+            )
+            self.assertNotIn(
+                REIMBURSEMENT_CATEGORY,
+                {row["category"] for row in period["expense_breakdown"]},
             )
             self.assertEqual(period["income_breakdown"], [])
 
