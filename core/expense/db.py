@@ -3,6 +3,7 @@ from datetime import date, timedelta
 
 from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
+    EXPENSE_OFFSET_INCOME_CATEGORIES,
     PENDING_CATEGORY,
     RECURRING_PAYMENT_PREPAID,
     REFUND_CATEGORY,
@@ -509,12 +510,17 @@ def _week_start(value: str) -> str:
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
     def bd(conn, type_):
+        offset_placeholders = ", ".join(
+            "?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES
+        )
         refund_filter = (
-            " AND COALESCE(category, '') <> ?" if type_ == TYPE_INCOME else ""
+            f" AND COALESCE(category, '') NOT IN ({offset_placeholders})"
+            if type_ == TYPE_INCOME
+            else ""
         )
         params = [start_date, end_date, type_]
         if type_ == TYPE_INCOME:
-            params.append(REFUND_CATEGORY)
+            params.extend(EXPENSE_OFFSET_INCOME_CATEGORIES)
         return conn.execute(
             f"""SELECT category, subcategory,
                        SUM({_amount_expr()}) as total, COUNT(*) as count
@@ -528,6 +534,9 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
     def expense_bd(conn):
         amount = "COALESCE(t.amount_cents / 100.0, t.amount)"
         refund_amount = "COALESCE(r.amount_cents / 100.0, r.amount)"
+        offset_placeholders = ", ".join(
+            "?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES
+        )
         return conn.execute(
             f"""SELECT category, subcategory,
                        SUM(total) AS total, SUM(count) AS count
@@ -542,6 +551,14 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                     JOIN transactions original ON original.id = r.refund_for_id
                     WHERE r.date >= ? AND r.date <= ?
                       AND r.type = ? AND r.category = ?
+                    UNION ALL
+                    SELECT r.category, r.subcategory,
+                           -{refund_amount} AS total, 0 AS count
+                    FROM transactions r
+                    WHERE r.date >= ? AND r.date <= ?
+                      AND r.type = ?
+                      AND r.category IN ({offset_placeholders})
+                      AND r.refund_for_id IS NULL
                 ) entries
                 GROUP BY category, subcategory
                 HAVING ABS(SUM(total)) >= 0.005
@@ -554,6 +571,10 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
                 end_date,
                 TYPE_INCOME,
                 REFUND_CATEGORY,
+                start_date,
+                end_date,
+                TYPE_INCOME,
+                *EXPENSE_OFFSET_INCOME_CATEGORIES,
             ),
         ).fetchall()
 
@@ -584,7 +605,10 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
     for raw in totals_rows:
         row = dict(raw)
         total = row["total"] or 0
-        if row["type"] == TYPE_INCOME and row.get("category") == REFUND_CATEGORY:
+        if (
+            row["type"] == TYPE_INCOME
+            and row.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
+        ):
             expense -= total
         elif row["type"] == TYPE_INCOME:
             income += total
@@ -597,7 +621,10 @@ def _cash_period_data(start_date: str, end_date: str) -> dict:
         d = r["date"]
         if d not in daily:
             daily[d] = {"date": d, TYPE_INCOME: 0.0, TYPE_EXPENSE: 0.0}
-        if r["type"] == TYPE_INCOME and r.get("category") == REFUND_CATEGORY:
+        if (
+            r["type"] == TYPE_INCOME
+            and r.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
+        ):
             daily[d][TYPE_EXPENSE] -= r["total"] or 0
         else:
             daily[d][r["type"]] += r["total"] or 0
@@ -652,13 +679,16 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
             day = daily.setdefault(
                 entry_date, {"date": entry_date, TYPE_INCOME: 0.0, TYPE_EXPENSE: 0.0}
             )
-            if type_ == TYPE_INCOME and row.get("category") == REFUND_CATEGORY:
+            if (
+                type_ == TYPE_INCOME
+                and row.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
+            ):
                 day[TYPE_EXPENSE] -= entry_amount
                 expense -= entry_amount
                 original = rows_by_id.get(row.get("refund_for_id")) or {}
                 key = (
-                    original.get("category") or "",
-                    original.get("subcategory") or "",
+                    original.get("category") or row.get("category") or "",
+                    original.get("subcategory") or row.get("subcategory") or "",
                 )
                 current = breakdown.setdefault(
                     key,

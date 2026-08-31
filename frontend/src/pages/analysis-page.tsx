@@ -103,17 +103,17 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <Metric label="现金流支出" value={money(cashCurrent.expense)} delta={cashCurrent.expense - cashPrevious.expense} inverse />
+        <Metric label="现金流净支出" value={money(cashCurrent.expense)} delta={cashCurrent.expense - cashPrevious.expense} inverse />
         <Metric label="现金流收入" value={money(cashCurrent.income)} delta={cashCurrent.income - cashPrevious.income} />
-        <Metric label="日均现金流支出" value={money(cashCurrent.expense / (data.days || 1))} />
+        <Metric label="日均现金流净支出" value={money(cashCurrent.expense / (data.days || 1))} />
         <Metric label="收支结余" value={money(cashCurrent.balance)} />
       </div>
       {granularity === "month" && (
         <>
           <div className="grid gap-3 lg:grid-cols-3">
             <Metric label="固定支出" value={money(data.fixed_monthly_cost ?? 0)} />
-            <BudgetStatus label="摊销后成本上限" actual={data.amortized_expense ?? 0} budget={data.budget?.amortized_total} />
-            <BudgetStatus label="现金流上限" actual={data.cash_expense ?? 0} budget={data.budget?.cash_total} />
+            <BudgetStatus label="摊销后净支出上限" actual={data.amortized_expense ?? 0} budget={data.budget?.amortized_total} />
+            <BudgetStatus label="现金流净支出上限" actual={data.cash_expense ?? 0} budget={data.budget?.cash_total} />
           </div>
           <BudgetEditor month={data.selected_period!} budget={data.budget ?? { amortized_total: null, cash_total: null }} />
         </>
@@ -122,7 +122,7 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
         {trendSummary(current, previous, basis === "cash" ? "现金流" : "摊销后")}
       </div>
       <Chart
-        title={granularity === "month" ? "本月每日收支" : "本年各月收支"}
+        title={granularity === "month" ? "本月每日净支出与收入" : "本年各月净支出与收入"}
         option={granularity === "month" ? lineOption(daily) : barOption(data.timeline ?? [])}
       />
       {granularity === "month" ? (
@@ -139,7 +139,7 @@ function AnalysisContent({ data, basis, granularity }: { data: ExpenseAnalysis; 
         />
       </div>
       <div className="grid gap-4 lg:grid-cols-2">
-        <Breakdown title="支出" rows={breakdown} chart />
+        <Breakdown title="净支出" rows={breakdown} chart />
         <Breakdown title="收入" rows={incomeBreakdown} />
       </div>
     </div>
@@ -170,8 +170,8 @@ function BudgetEditor({ month, budget }: { month: string; budget: MonthBudgetUpd
   if (!open) return <Button variant="outline" onClick={() => setOpen(true)}>设置本月预算</Button>;
   return (
     <form className="grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end" onSubmit={submit}>
-      <Field label="摊销后成本上限"><Input type="number" min="0" step="0.01" value={form.amortized_total} onChange={(event) => setForm({ ...form, amortized_total: event.target.value })} /></Field>
-      <Field label="现金流上限"><Input type="number" min="0" step="0.01" value={form.cash_total} onChange={(event) => setForm({ ...form, cash_total: event.target.value })} /></Field>
+      <Field label="摊销后净支出上限"><Input type="number" min="0" step="0.01" value={form.amortized_total} onChange={(event) => setForm({ ...form, amortized_total: event.target.value })} /></Field>
+      <Field label="现金流净支出上限"><Input type="number" min="0" step="0.01" value={form.cash_total} onChange={(event) => setForm({ ...form, cash_total: event.target.value })} /></Field>
       <div className="flex gap-2"><Button disabled={update.isPending}>{update.isPending ? "保存中…" : "保存"}</Button><Button type="button" variant="ghost" onClick={() => setOpen(false)}>取消</Button></div>
       {update.error && <div className="sm:col-span-3"><Feedback error={update.error} /></div>}
     </form>
@@ -207,9 +207,9 @@ function Segmented({ value, options, onChange }: { value: string; options: { val
 function money(value: number): string { return new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY" }).format(value); }
 function optionalAmount(value: string): number | null { const parsed = Number(value); return value && parsed > 0 ? parsed : null; }
 function aggregateBreakdown(rows: BreakdownRow[], level: BreakdownLevel): BreakdownRow[] { if (level === "subcategory") return rows; const totals = new Map<string, BreakdownRow>(); for (const row of rows) { const category = row.category || "未分类"; const current = totals.get(category) ?? { category, subcategory: null, total: 0, count: 0 }; current.total += row.total; current.count += row.count; totals.set(category, current); } return [...totals.values()].sort((a, b) => b.total - a.total); }
-function trendSummary(current: NonNullable<ExpenseAnalysis["current"]>, previous: NonNullable<ExpenseAnalysis["previous"]>, label: string): string { const delta = current.expense - previous.expense; if (Math.abs(delta) < 0.005) return `按${label}口径，本期支出与上期基本持平。`; const changes = categoryTotals(current.expense_breakdown); const previousTotals = categoryTotals(previous.expense_breakdown); let largest = ["", 0] as [string, number]; for (const category of new Set([...changes.keys(), ...previousTotals.keys()])) { const change = (changes.get(category) ?? 0) - (previousTotals.get(category) ?? 0); if (Math.abs(change) > Math.abs(largest[1])) largest = [category, change]; } const direction = delta > 0 ? "增加" : "减少"; if (!largest[0]) return `按${label}口径，本期支出较上期${direction} ${money(Math.abs(delta))}。`; return `按${label}口径，本期支出较上期${direction} ${money(Math.abs(delta))}；变化最大的是${largest[0]}，${largest[1] > 0 ? "增加" : "减少"} ${money(Math.abs(largest[1]))}。`; }
+function trendSummary(current: NonNullable<ExpenseAnalysis["current"]>, previous: NonNullable<ExpenseAnalysis["previous"]>, label: string): string { const delta = current.expense - previous.expense; if (Math.abs(delta) < 0.005) return `按${label}口径，本期净支出与上期基本持平。`; const changes = categoryTotals(current.expense_breakdown); const previousTotals = categoryTotals(previous.expense_breakdown); let largest = ["", 0] as [string, number]; for (const category of new Set([...changes.keys(), ...previousTotals.keys()])) { const change = (changes.get(category) ?? 0) - (previousTotals.get(category) ?? 0); if (Math.abs(change) > Math.abs(largest[1])) largest = [category, change]; } const direction = delta > 0 ? "增加" : "减少"; if (!largest[0]) return `按${label}口径，本期净支出较上期${direction} ${money(Math.abs(delta))}。`; return `按${label}口径，本期净支出较上期${direction} ${money(Math.abs(delta))}；变化最大的是${largest[0]}，${largest[1] > 0 ? "增加" : "减少"} ${money(Math.abs(largest[1]))}。`; }
 function categoryTotals(rows: BreakdownRow[]): Map<string, number> { const result = new Map<string, number>(); for (const row of rows) { const key = row.category || "未分类"; result.set(key, (result.get(key) ?? 0) + row.total); } return result; }
 function fillDaily(data: ExpenseAnalysis) { const rows = data.current?.daily ?? []; if (!data.selected_period || data.selected_period.length !== 7 || !data.days) return rows; const byDate = new Map(rows.map((row) => [row.date, row])); return Array.from({ length: data.days }, (_, index) => { const date = `${data.selected_period}-${String(index + 1).padStart(2, "0")}`; return byDate.get(date) ?? { date, income: 0, expense: 0 }; }); }
-function lineOption(rows: { date: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.date.slice(5)) }, yAxis: { type: "value" }, series: [{ name: "支出", type: "line", data: rows.map((row) => row.expense), itemStyle: { color: "#dc2626" } }, { name: "收入", type: "line", data: rows.map((row) => row.income), itemStyle: { color: "#059669" } }] }; }
-function barOption(rows: { label: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.label) }, yAxis: { type: "value" }, series: [{ name: "支出", type: "bar", data: rows.map((row) => row.expense) }, { name: "收入", type: "bar", data: rows.map((row) => row.income) }] }; }
+function lineOption(rows: { date: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["净支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.date.slice(5)) }, yAxis: { type: "value" }, series: [{ name: "净支出", type: "line", data: rows.map((row) => row.expense), itemStyle: { color: "#dc2626" } }, { name: "收入", type: "line", data: rows.map((row) => row.income), itemStyle: { color: "#059669" } }] }; }
+function barOption(rows: { label: string; income: number; expense: number }[]) { return { tooltip: { trigger: "axis" }, legend: { data: ["净支出", "收入"] }, xAxis: { type: "category", data: rows.map((row) => row.label) }, yAxis: { type: "value" }, series: [{ name: "净支出", type: "bar", data: rows.map((row) => row.expense) }, { name: "收入", type: "bar", data: rows.map((row) => row.income) }] }; }
 function breakdownOption(rows: BreakdownRow[]) { const reversed = [...rows].reverse(); return { tooltip: { trigger: "axis" }, grid: { left: 100, right: 28 }, xAxis: { type: "value" }, yAxis: { type: "category", data: reversed.map((row) => row.subcategory ? `${row.category} / ${row.subcategory}` : row.category || "未分类") }, series: [{ type: "bar", data: reversed.map((row) => row.total) }] }; }

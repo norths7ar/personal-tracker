@@ -385,7 +385,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
           <div className="grid grid-cols-2 gap-3">
             <FormField label="主类别">
               <select
-                className={selectClass}
+                className={`${selectClass} disabled:bg-neutral-100 disabled:text-neutral-500`}
                 value={category}
                 disabled={!changeCategory}
                 onChange={(event) => {
@@ -398,7 +398,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
               </select>
             </FormField>
             <FormField label="子类别">
-              <select className={selectClass} value={subcategory} disabled={!changeCategory} onChange={(event) => setSubcategory(event.target.value)}>
+              <select className={`${selectClass} disabled:bg-neutral-100 disabled:text-neutral-500`} value={subcategory} disabled={!changeCategory} onChange={(event) => setSubcategory(event.target.value)}>
                 <option value="">无</option>
                 {subcategoryOptions.map((item) => <option key={item}>{item}</option>)}
               </select>
@@ -433,7 +433,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
 }
 
 function LockedField({ label, value }: { label: string; value: string }) {
-  return <FormField label={label}><Input value={value} disabled readOnly /></FormField>;
+  return <FormField label={label}><Input className="border-neutral-200 bg-neutral-100 text-neutral-500 disabled:opacity-100" value={value} disabled readOnly /></FormField>;
 }
 
 function TransactionEditor({ transaction, transactions, categories, onClose, onSaved, onRefresh }: {

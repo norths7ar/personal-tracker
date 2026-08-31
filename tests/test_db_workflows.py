@@ -12,10 +12,12 @@ import core.subscription.db as subscription_db
 from core.constants import (
     PENDING_CATEGORY,
     RECURRING_PAYMENT_PREPAID,
+    REIMBURSEMENT_CATEGORY,
     RENEWAL_MODE_FIXED_DAYS,
     RENEWAL_MODE_SAME_DAY,
     SUBSCRIPTION_CYCLE_ONE_TIME,
     TYPE_EXPENSE,
+    TYPE_INCOME,
 )
 
 
@@ -553,6 +555,33 @@ class DatabaseWorkflowTest(unittest.TestCase):
                 sum(row["total"] for row in period["expense_breakdown"]), 70
             )
             self.assertEqual(period["expense_breakdown"][0]["category"], "旅行")
+            self.assertEqual(period["income_breakdown"], [])
+
+    def test_reimbursements_reduce_net_expense_without_counting_as_income(self):
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "trip",
+            1296,
+            "2026-08-01",
+            category="旅行",
+            subcategory="旅行交通",
+        )
+        expense_db.add_transaction(
+            TYPE_INCOME,
+            "family reimbursement",
+            1300,
+            "2026-08-02",
+            category=REIMBURSEMENT_CATEGORY,
+        )
+
+        for basis in ("cash", "amortized"):
+            period = expense_db.get_period_data("2026-08-01", "2026-08-31", basis)
+            self.assertEqual(period["expense"], -4)
+            self.assertEqual(period["income"], 0)
+            self.assertEqual(period["balance"], 4)
+            self.assertEqual(
+                sum(row["total"] for row in period["expense_breakdown"]), -4
+            )
             self.assertEqual(period["income_breakdown"], [])
 
     def test_fixed_cost_uses_the_selected_month(self):
