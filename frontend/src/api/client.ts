@@ -12,6 +12,9 @@ export type BatchPreparation = components["schemas"]["BatchPrepareResponse"];
 export type Meal = components["schemas"]["MealResponse"];
 export type MealUpdate = components["schemas"]["MealUpdate"];
 export type DietStats = components["schemas"]["DietStatsResponse"];
+export type ExpenseAnalysis = components["schemas"]["ExpenseAnalysisResponse"];
+export type MonthBudget = components["schemas"]["MonthBudget"];
+export type MonthBudgetUpdate = components["schemas"]["MonthBudgetUpdate"];
 
 export class ApiError extends Error {
   constructor(
@@ -107,4 +110,18 @@ export const api = {
     });
     return request<DietStats>(`/api/meals/stats?${query}`);
   },
+  expenseAnalysis: (
+    granularity: "month" | "year",
+    period: string | null,
+    basis: "cash" | "amortized",
+  ) => {
+    const query = new URLSearchParams({ granularity, basis });
+    if (period) query.set("period", period);
+    return request<ExpenseAnalysis>(`/api/analysis/expenses?${query}`);
+  },
+  updateMonthBudget: (month: string, budget: MonthBudgetUpdate) =>
+    request<MonthBudget>(`/api/analysis/budgets/${month}`, {
+      method: "PUT",
+      body: JSON.stringify(budget),
+    }),
 };

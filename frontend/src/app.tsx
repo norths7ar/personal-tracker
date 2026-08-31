@@ -18,6 +18,9 @@ const PendingPage = lazy(() =>
 const DietPage = lazy(() =>
   import("@/pages/diet-page").then((module) => ({ default: module.DietPage })),
 );
+const AnalysisPage = lazy(() =>
+  import("@/pages/analysis-page").then((module) => ({ default: module.AnalysisPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -47,6 +50,7 @@ export function App() {
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
+          <Route path="/analysis" element={<AnalysisPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>
       </Suspense>

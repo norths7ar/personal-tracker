@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/analysis/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Expense Analysis */
+        get: operations["expense_analysis_api_analysis_expenses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/analysis/budgets/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Budget */
+        put: operations["update_budget_api_analysis_budgets__month__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -423,6 +457,17 @@ export interface components {
             /** Duplicate */
             duplicate: boolean;
         };
+        /** BreakdownItem */
+        BreakdownItem: {
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Total */
+            total: number;
+            /** Count */
+            count: number;
+        };
         /** BulkDeleteRequest */
         BulkDeleteRequest: {
             /** Ids */
@@ -479,6 +524,15 @@ export interface components {
             /** Duplicate */
             duplicate: boolean;
         };
+        /** DailyPoint */
+        DailyPoint: {
+            /** Date */
+            date: string;
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
+        };
         /** DietStatsResponse */
         DietStatsResponse: {
             /** Meal Times */
@@ -489,6 +543,32 @@ export interface components {
             daily_meals: components["schemas"]["CountByDate"][];
             /** Meal Type Dist */
             meal_type_dist: components["schemas"]["CountByMealType"][];
+        };
+        /** ExpenseAnalysisResponse */
+        ExpenseAnalysisResponse: {
+            /** Months */
+            months: string[];
+            /** Years */
+            years: string[];
+            /** Selected Period */
+            selected_period: string | null;
+            /** Days */
+            days?: number | null;
+            current?: components["schemas"]["PeriodData"] | null;
+            previous?: components["schemas"]["PeriodData"] | null;
+            cash_current?: components["schemas"]["PeriodData"] | null;
+            cash_previous?: components["schemas"]["PeriodData"] | null;
+            /** Timeline */
+            timeline?: components["schemas"]["PeriodSummary"][];
+            /** Comparison */
+            comparison?: components["schemas"]["PeriodSummary"][];
+            /** Fixed Monthly Cost */
+            fixed_monthly_cost?: number | null;
+            budget?: components["schemas"]["MonthBudget"] | null;
+            /** Cash Expense */
+            cash_expense?: number | null;
+            /** Amortized Expense */
+            amortized_expense?: number | null;
         };
         /** FoodInput */
         FoodInput: {
@@ -606,6 +686,44 @@ export interface components {
             notes?: string | null;
             /** Foods */
             foods: components["schemas"]["FoodInput"][];
+        };
+        /** MonthBudget */
+        MonthBudget: {
+            /** Amortized Total */
+            amortized_total: number | null;
+            /** Cash Total */
+            cash_total: number | null;
+        };
+        /** MonthBudgetUpdate */
+        MonthBudgetUpdate: {
+            /** Amortized Total */
+            amortized_total?: number | null;
+            /** Cash Total */
+            cash_total?: number | null;
+        };
+        /** PeriodData */
+        PeriodData: {
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
+            /** Balance */
+            balance: number;
+            /** Daily */
+            daily: components["schemas"]["DailyPoint"][];
+            /** Expense Breakdown */
+            expense_breakdown: components["schemas"]["BreakdownItem"][];
+            /** Income Breakdown */
+            income_breakdown: components["schemas"]["BreakdownItem"][];
+        };
+        /** PeriodSummary */
+        PeriodSummary: {
+            /** Label */
+            label: string;
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
         };
         /** TransactionCreateRequest */
         TransactionCreateRequest: {
@@ -754,6 +872,78 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    expense_analysis_api_analysis_expenses_get: {
+        parameters: {
+            query?: {
+                granularity?: "month" | "year";
+                period?: string | null;
+                basis?: "cash" | "amortized";
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_budget_api_analysis_budgets__month__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthBudgetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthBudget"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_auth_login_post: {
         parameters: {
             query?: never;

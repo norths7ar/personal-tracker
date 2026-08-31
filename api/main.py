@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
+from api.routes.analysis import router as analysis_router
 from api.routes.auth import router as auth_router
 from api.routes.configuration import router as configuration_router
 from api.routes.entries import router as entries_router
@@ -19,6 +20,7 @@ async def lifespan(_: FastAPI):
 
 def create_app() -> FastAPI:
     application = FastAPI(title="personal-tracker API", lifespan=lifespan)
+    application.include_router(analysis_router)
     application.include_router(auth_router)
     application.include_router(configuration_router)
     application.include_router(entries_router)
