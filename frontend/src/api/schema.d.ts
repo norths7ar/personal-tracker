@@ -904,7 +904,7 @@ export interface components {
              */
             date: string;
             /** Time */
-            time: string;
+            time?: string | null;
             /** Meal Type */
             meal_type?: string | null;
             /** Description */

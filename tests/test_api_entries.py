@@ -170,6 +170,25 @@ class EntryApiTest(unittest.TestCase):
         self.assertEqual(deleted.status_code, 204)
         self.assertEqual(self.client.get("/api/meals").json(), [])
 
+    def test_meal_ledger_accepts_legacy_rows_without_time(self):
+        cursor = self.raw.execute(
+            """INSERT INTO diet_meals (date, time, meal_type, description)
+               VALUES (?, ?, ?, ?)""",
+            ("2026-08-31", None, "午餐", "旧数据"),
+        )
+        meal_id = cursor.lastrowid
+        self.raw.execute(
+            "INSERT INTO diet_foods (meal_id, food_name, quantity) VALUES (?, ?, ?)",
+            (meal_id, "米饭", "一份"),
+        )
+        self.raw.commit()
+
+        response = self.client.get("/api/meals")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()[0]["id"], meal_id)
+        self.assertIsNone(response.json()[0]["time"])
+
     def test_income_and_transfer_preparation_do_not_call_llm(self):
         for type_name in ("收入", "迁移"):
             response = self.client.post(

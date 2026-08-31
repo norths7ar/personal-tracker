@@ -18,7 +18,7 @@ router = APIRouter(
 class MealResponse(BaseModel):
     id: int
     date: Date
-    time: str
+    time: str | None = None
     meal_type: str | None = None
     description: str
     notes: str | None = None

@@ -3,7 +3,6 @@ import { BarChart, LineChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import ReactEChartsCore from "echarts-for-react/lib/core";
 import { useMemo, useState, type FormEvent } from "react";
 
 import {
@@ -12,6 +11,7 @@ import {
   type MonthBudgetUpdate,
 } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { EChart } from "@/components/echart";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Feedback, Field, selectClass } from "@/pages/record/entry-shared";
@@ -191,7 +191,7 @@ function Breakdown({ title, rows, chart = false }: { title: string; rows: Breakd
       <h3 className="mb-3 font-medium">{title}</h3>
       {!rows.length ? <p className="text-sm text-neutral-500">本期无{title}记录。</p> : (
         <>
-          {chart && <ReactEChartsCore echarts={echarts} option={breakdownOption(rows.slice(0, 8))} style={{ height: Math.max(220, rows.slice(0, 8).length * 38) }} />}
+          {chart && <EChart option={breakdownOption(rows.slice(0, 8))} height={Math.max(220, rows.slice(0, 8).length * 38)} />}
           <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="text-left text-xs text-neutral-500"><tr><th className="py-2">分类</th><th className="py-2 text-right">金额</th><th className="py-2 text-right">笔数</th></tr></thead><tbody>{rows.map((row) => <tr className="border-t border-neutral-100" key={`${row.category}-${row.subcategory}`}><td className="py-2">{row.subcategory ? `${row.category || "未分类"} / ${row.subcategory}` : row.category || "未分类"}</td><td className="py-2 text-right">{money(row.total)}</td><td className="py-2 text-right">{row.count}</td></tr>)}</tbody></table></div>
         </>
       )}
@@ -199,7 +199,7 @@ function Breakdown({ title, rows, chart = false }: { title: string; rows: Breakd
   );
 }
 
-function Chart({ title, option }: { title: string; option: object }) { return <div className="rounded-lg border border-neutral-200 bg-white p-4"><h2 className="mb-2 font-medium">{title}</h2><ReactEChartsCore echarts={echarts} option={option} style={{ height: 280 }} /></div>; }
+function Chart({ title, option }: { title: string; option: object }) { return <div className="rounded-lg border border-neutral-200 bg-white p-4"><h2 className="mb-2 font-medium">{title}</h2><EChart option={option} /></div>; }
 function Metric({ label, value, delta, inverse = false }: { label: string; value: string; delta?: number; inverse?: boolean }) { const good = delta === undefined || delta === 0 ? null : inverse ? delta < 0 : delta > 0; return <div className="rounded-lg border border-neutral-200 bg-white p-4"><p className="text-sm text-neutral-500">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p>{delta !== undefined && delta !== 0 && <p className={cn("mt-1 text-xs", good ? "text-emerald-600" : "text-red-600")}>较上期 {delta > 0 ? "+" : ""}{money(delta)}</p>}</div>; }
 function BudgetStatus({ label, actual, budget }: { label: string; actual: number; budget?: number | null }) { if (budget == null) return <div className="rounded-lg border bg-white p-4"><p className="text-sm text-neutral-500">{label}</p><p className="mt-2 text-sm">尚未设置</p></div>; const ratio = budget ? actual / budget : 0; return <div className="rounded-lg border bg-white p-4"><p className="text-sm text-neutral-500">{label}</p><p className="mt-1 font-medium">{money(actual)} / {money(budget)}</p><div className="mt-3 h-2 overflow-hidden rounded bg-neutral-100"><div className={cn("h-full", ratio >= 1 ? "bg-red-500" : ratio >= 0.8 ? "bg-amber-500" : "bg-emerald-500")} style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }} /></div><p className="mt-2 text-xs text-neutral-500">{ratio >= 1 ? `超出 ${money(actual - budget)}` : `剩余 ${money(budget - actual)}`}</p></div>; }
 function Segmented({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) { return <div className="flex self-end rounded-lg bg-neutral-100 p-1">{options.map((option) => <button className={cn("rounded-md px-3 py-1.5 text-sm", option.value === value && "bg-white font-medium shadow-sm")} key={option.value} onClick={() => onChange(option.value)}>{option.label}</button>)}</div>; }

@@ -3,12 +3,12 @@ import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
-import ReactEChartsCore from "echarts-for-react/lib/core";
 import { Download, Plus, Trash2 } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 
 import { api, type DietStats, type Meal, type MealUpdate } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { EChart } from "@/components/echart";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -123,14 +123,14 @@ function MealTable({ meals, selectedId, onSelect }: { meals: Meal[]; selectedId:
     <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
       <table className="w-full min-w-[700px] text-sm">
         <thead className="bg-neutral-50 text-left text-xs text-neutral-500"><tr><th className="p-3">日期</th><th className="p-3">时间</th><th className="p-3">餐顿</th><th className="p-3">食物</th><th className="p-3">备注</th></tr></thead>
-        <tbody>{meals.map((meal) => <tr key={meal.id} onClick={() => onSelect(meal.id)} className={cn("cursor-pointer border-t border-neutral-100", meal.id === selectedId ? "bg-amber-50" : "hover:bg-neutral-50")}><td className="p-3">{meal.date}</td><td className="p-3">{meal.time}</td><td className="p-3">{meal.meal_type || "—"}</td><td className="p-3">{meal.foods.map(foodLabel).join("、")}</td><td className="p-3">{meal.notes || ""}</td></tr>)}</tbody>
+        <tbody>{meals.map((meal) => <tr key={meal.id} onClick={() => onSelect(meal.id)} className={cn("cursor-pointer border-t border-neutral-100", meal.id === selectedId ? "bg-amber-50" : "hover:bg-neutral-50")}><td className="p-3">{meal.date}</td><td className="p-3">{meal.time || "—"}</td><td className="p-3">{meal.meal_type || "—"}</td><td className="p-3">{meal.foods.map(foodLabel).join("、")}</td><td className="p-3">{meal.notes || ""}</td></tr>)}</tbody>
       </table>
     </div>
   );
 }
 
 function MealEditor({ meal, saving, deleting, error, onSave, onDelete }: { meal: Meal; saving: boolean; deleting: boolean; error: Error | null; onSave: (payload: MealUpdate) => void; onDelete: () => void }) {
-  const [form, setForm] = useState<MealUpdate>({ date: meal.date, time: meal.time, meal_type: meal.meal_type, description: meal.description, notes: meal.notes, foods: meal.foods });
+  const [form, setForm] = useState<MealUpdate>({ date: meal.date, time: meal.time ?? "", meal_type: meal.meal_type, description: meal.description, notes: meal.notes, foods: meal.foods });
   const updateFood = (index: number, changes: Partial<MealUpdate["foods"][number]>) => setForm({ ...form, foods: form.foods.map((food, foodIndex) => foodIndex === index ? { ...food, ...changes } : food) });
   const submit = (event: FormEvent) => { event.preventDefault(); onSave({ ...form, description: form.description.trim(), notes: form.notes?.trim() || null, foods: form.foods.filter((food) => food.food_name.trim()) }); };
   return (
@@ -171,7 +171,7 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
   );
 }
 
-function Chart({ title, option }: { title: string; option: object }) { return <div className="rounded-lg border border-neutral-200 bg-white p-4"><h2 className="mb-2 font-medium">{title}</h2><ReactEChartsCore echarts={echarts} option={option} style={{ height: 280 }} /></div>; }
+function Chart({ title, option }: { title: string; option: object }) { return <div className="rounded-lg border border-neutral-200 bg-white p-4"><h2 className="mb-2 font-medium">{title}</h2><EChart option={option} /></div>; }
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-lg border border-neutral-200 bg-white p-4"><p className="text-sm text-neutral-500">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>; }
 function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) { return <button className={cn("flex-1 rounded-md px-3 py-2 text-sm font-medium", active && "bg-white shadow-sm")} onClick={onClick}>{children}</button>; }
 function foodLabel(food: Meal["foods"][number]): string { const ingredients = food.ingredients?.length ? `（${food.ingredients.join("、")}）` : ""; return `${food.food_name}${food.quantity ? `×${food.quantity}` : ""}${ingredients}`; }
