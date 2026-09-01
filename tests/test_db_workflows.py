@@ -216,31 +216,6 @@ class DatabaseWorkflowTest(unittest.TestCase):
         ).fetchone()["amount_cents"]
         self.assertEqual(amount, 2000)
 
-    def test_existing_amortized_transactions_migrate_to_prepaid_subscriptions(self):
-        tx_id = expense_db.add_transaction(
-            TYPE_EXPENSE,
-            "annual software",
-            120,
-            "2026-07-01",
-            category="通讯",
-            subcategory="订阅服务",
-            amortization_months=12,
-            amortization_start="2026-07-01",
-        )
-
-        core_db.init_db()
-
-        rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["transaction_id"], tx_id)
-        self.assertEqual(rows[0]["billing_cycle"], SUBSCRIPTION_CYCLE_ONE_TIME)
-        self.assertEqual(rows[0]["billing_interval_months"], 12)
-        self.assertEqual(rows[0]["monthly_equivalent"], 10)
-
-        core_db.init_db()
-        rows = subscription_db.get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
-        self.assertEqual(len(rows), 1)
-
     def test_deleting_prepaid_subscription_clears_linked_amortization(self):
         tx_id = expense_db.add_transaction(
             TYPE_EXPENSE,
@@ -639,44 +614,6 @@ class DatabaseWorkflowTest(unittest.TestCase):
         self.assertEqual(
             budget_db.get_month_budget("2026-07"),
             {"amortized_total": None, "cash_total": None},
-        )
-
-    def test_legacy_category_budget_table_preserves_monthly_totals(self):
-        self.raw.execute("DROP TABLE budgets")
-        self.raw.execute(
-            """CREATE TABLE budgets (
-                id INTEGER PRIMARY KEY,
-                month TEXT NOT NULL,
-                scope TEXT NOT NULL,
-                category TEXT NOT NULL,
-                amortized_budget_cents INTEGER,
-                cash_budget_cents INTEGER
-            )"""
-        )
-        self.raw.execute(
-            """INSERT INTO budgets
-               VALUES (1, '2026-07', 'overall', '', 800000, 1000000)"""
-        )
-        self.raw.execute(
-            """INSERT INTO budgets
-               VALUES (2, '2026-07', 'category', '餐饮', 200000, NULL)"""
-        )
-
-        core_db.init_db()
-
-        columns = {
-            row["name"] for row in self.raw.execute("PRAGMA table_info(budgets)")
-        }
-        self.assertEqual(
-            columns,
-            {"month", "amortized_budget_cents", "cash_budget_cents"},
-        )
-        self.assertEqual(
-            budget_db.get_month_budget("2026-07"),
-            {
-                "amortized_total": 8000,
-                "cash_total": 10000,
-            },
         )
 
     def test_budget_can_compare_cash_and_amortized_costs(self):

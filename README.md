@@ -20,7 +20,7 @@ Copy-Item .env.example .env
 安装一次登录后自动启动的本地服务：
 
 ```powershell
-.\scripts\personal-tracker-service.ps1 install
+.\scripts\personal-tracker-service.ps1 install-autostart
 ```
 
 服务只监听 `127.0.0.1:18080`，浏览器访问 <http://127.0.0.1:18080>。日常管理命令：
