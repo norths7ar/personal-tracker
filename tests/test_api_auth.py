@@ -34,9 +34,7 @@ class ApiAuthenticationTest(unittest.TestCase):
     def test_login_cookie_protects_current_user_endpoint(self):
         self.assertEqual(self.client.get("/api/auth/me").status_code, 401)
         self.assertEqual(
-            self.client.post(
-                "/api/auth/login", json={"password": "wrong"}
-            ).status_code,
+            self.client.post("/api/auth/login", json={"password": "wrong"}).status_code,
             401,
         )
 

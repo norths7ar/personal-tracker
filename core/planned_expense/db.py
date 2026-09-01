@@ -6,7 +6,7 @@ from core.constants import (
     PLANNED_EXPENSE_STATUS_OPEN,
     TYPE_EXPENSE,
 )
-from core.db import _connect, inserted_id, returning_id_clause, to_cents
+from core.db import _connect, to_cents
 
 
 def _normalize(row) -> dict:
@@ -55,8 +55,7 @@ def _insert_planned_expense(
         """INSERT INTO planned_expenses
            (description, amount, amount_cents, due_date, category, subcategory,
             notes, subscription_id, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             description,
             amount_cents / 100,
@@ -69,7 +68,7 @@ def _insert_planned_expense(
             PLANNED_EXPENSE_STATUS_OPEN,
         ),
     )
-    return inserted_id(cur)
+    return cur.lastrowid
 
 
 def get_planned_expenses(include_closed: bool = False, limit: int = 500) -> list[dict]:
@@ -189,8 +188,7 @@ def _confirm_planned_expense(
         """INSERT INTO transactions
            (type, description, amount, amount_cents, date, category,
             subcategory, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             TYPE_EXPENSE,
             description,
@@ -202,7 +200,7 @@ def _confirm_planned_expense(
             notes,
         ),
     )
-    transaction_id = inserted_id(cur)
+    transaction_id = cur.lastrowid
     conn.execute(
         """UPDATE planned_expenses
            SET status = ?, transaction_id = ? WHERE id = ?""",

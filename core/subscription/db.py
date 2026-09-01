@@ -18,7 +18,7 @@ from core.constants import (
     SUBSCRIPTION_STATUS_ACTIVE,
     TYPE_EXPENSE,
 )
-from core.db import _connect, inserted_id, returning_id_clause, to_cents
+from core.db import _connect, to_cents
 from core.expense.db import _insert_transaction
 
 
@@ -186,8 +186,7 @@ def _insert_subscription(
             start_date, next_renewal_date, end_date, category, subcategory,
             payment_method, auto_renew, status, notes, payment_type, transaction_id,
             renewal_mode, renewal_interval, renewal_anchor_day, last_payment_date)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             name,
             vendor,
@@ -212,7 +211,7 @@ def _insert_subscription(
             last_payment_date,
         ),
     )
-    return inserted_id(cur)
+    return cur.lastrowid
 
 
 def get_subscriptions(
@@ -533,8 +532,7 @@ def _record_subscription_payment(
         """INSERT INTO transactions
            (type, description, amount, amount_cents, date, category, subcategory,
             notes, subscription_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             TYPE_EXPENSE,
             description,
@@ -547,10 +545,8 @@ def _record_subscription_payment(
             subscription_id,
         ),
     )
-    transaction_id = inserted_id(cur)
-    next_date = next_renewal_override or next_renewal_date(
-        subscription, payment_date
-    )
+    transaction_id = cur.lastrowid
+    next_date = next_renewal_override or next_renewal_date(subscription, payment_date)
     conn.execute(
         """UPDATE subscriptions
            SET last_payment_date = ?,
@@ -671,8 +667,7 @@ def _create_subscription_from_transaction(
             category, subcategory, auto_renew, status, notes, payment_type,
             transaction_id, renewal_mode, renewal_interval,
             renewal_anchor_day, last_payment_date)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             name,
             amount_cents / 100,
@@ -693,7 +688,7 @@ def _create_subscription_from_transaction(
             item["date"],
         ),
     )
-    subscription_id = inserted_id(cur)
+    subscription_id = cur.lastrowid
     conn.execute(
         "UPDATE transactions SET subscription_id = ? WHERE id = ?",
         (subscription_id, transaction_id),

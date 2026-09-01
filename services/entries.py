@@ -165,8 +165,7 @@ def _normalize_batch_record(record: dict, config: dict) -> dict:
         )
         normalized["foods"] = record.get("foods") or []
         has_food = any(
-            str(food.get("food_name") or "").strip()
-            for food in normalized["foods"]
+            str(food.get("food_name") or "").strip() for food in normalized["foods"]
         )
         if not has_food:
             raise ValueError("批量饮食记录缺少食物清单")

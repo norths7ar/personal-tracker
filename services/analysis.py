@@ -10,9 +10,7 @@ def _month_range(month: str) -> tuple[str, str, int]:
     year, month_number = map(int, month.split("-"))
     first = date(year, month_number, 1)
     next_first = (
-        date(year + 1, 1, 1)
-        if month_number == 12
-        else date(year, month_number + 1, 1)
+        date(year + 1, 1, 1) if month_number == 12 else date(year, month_number + 1, 1)
     )
     return (
         first.isoformat(),

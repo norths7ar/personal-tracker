@@ -55,9 +55,7 @@ def delete_transactions(transaction_ids: list[int]) -> int:
         raise TransactionConflict(str(exc)) from exc
 
 
-def create_refund(
-    transaction_id: int, payload: dict, idempotency_key: str
-) -> dict:
+def create_refund(transaction_id: int, payload: dict, idempotency_key: str) -> dict:
     def insert(conn) -> dict:
         refund_id = expense_db._add_refund(
             conn,

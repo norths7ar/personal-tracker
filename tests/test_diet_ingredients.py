@@ -7,23 +7,20 @@ import core.diet.db as diet_db
 from core.diet.ingredients import normalize_ingredients
 
 
-class NoCloseConnection(core_db.Connection):
+class NoCloseConnection(sqlite3.Connection):
     def close(self):
         pass
 
 
 class DietIngredientTest(unittest.TestCase):
     def setUp(self):
-        self.raw = sqlite3.connect(":memory:")
+        self.raw = sqlite3.connect(":memory:", factory=NoCloseConnection)
         self.raw.row_factory = sqlite3.Row
         self.raw.execute("PRAGMA foreign_keys = ON")
-        self.conn = NoCloseConnection(self.raw, "sqlite")
+        self.conn = self.raw
         self.patchers = [
             patch.object(core_db, "_connect", return_value=self.conn),
-            patch.object(core_db, "get_backend", return_value="sqlite"),
-            patch.object(core_db, "is_postgres", return_value=False),
             patch.object(diet_db, "_connect", return_value=self.conn),
-            patch.object(diet_db, "is_postgres", return_value=False),
         ]
         for patcher in self.patchers:
             patcher.start()
@@ -32,7 +29,7 @@ class DietIngredientTest(unittest.TestCase):
     def tearDown(self):
         for patcher in reversed(self.patchers):
             patcher.stop()
-        self.raw.close()
+        sqlite3.Connection.close(self.raw)
 
     def test_normalizes_ingredient_text_without_duplicates(self):
         self.assertEqual(

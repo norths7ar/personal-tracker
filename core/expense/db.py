@@ -11,7 +11,7 @@ from core.constants import (
     TYPE_INCOME,
     TYPE_TRANSFER,
 )
-from core.db import _connect, inserted_id, is_postgres, returning_id_clause, to_cents
+from core.db import _connect, to_cents
 
 
 def _amount_expr() -> str:
@@ -83,8 +83,7 @@ def _insert_transaction(
            (type, description, amount, amount_cents, date, category,
             subcategory, notes, confidence, refund_for_id,
             amortization_months, amortization_start, subscription_id, reviewed)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"""
-        + returning_id_clause(),
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             type_,
             description,
@@ -102,7 +101,7 @@ def _insert_transaction(
             1 if reviewed else 0,
         ),
     )
-    return inserted_id(cur)
+    return cur.lastrowid
 
 
 def get_transactions(
@@ -137,9 +136,7 @@ def get_transactions(
 
 def get_transaction(id_: int) -> dict | None:
     with closing(_connect()) as conn:
-        row = conn.execute(
-            "SELECT * FROM transactions WHERE id = ?", (id_,)
-        ).fetchone()
+        row = conn.execute("SELECT * FROM transactions WHERE id = ?", (id_,)).fetchone()
     return _normalize_transaction(row) if row is not None else None
 
 
@@ -431,9 +428,8 @@ def _add_refund(
     amount_cents = to_cents(amount)
     if amount_cents <= 0:
         raise ValueError("退款金额须大于 0")
-    lock_clause = " FOR UPDATE" if conn.backend == "postgres" else ""
     original = conn.execute(
-        "SELECT * FROM transactions WHERE id = ?" + lock_clause,
+        "SELECT * FROM transactions WHERE id = ?",
         (transaction_id,),
     ).fetchone()
     if original is None or original["type"] != TYPE_EXPENSE:
@@ -447,9 +443,7 @@ def _add_refund(
            FROM transactions WHERE refund_for_id = ?""",
         (transaction_id,),
     ).fetchone()
-    remaining_cents = int(original_cents) - int(
-        refunded_row["refunded_cents"] or 0
-    )
+    remaining_cents = int(original_cents) - int(refunded_row["refunded_cents"] or 0)
     if amount_cents > remaining_cents:
         raise ValueError(f"退款金额超过剩余可退 ¥{remaining_cents / 100:.2f}")
 
@@ -510,9 +504,7 @@ def _week_start(value: str) -> str:
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
     def bd(conn, type_):
-        offset_placeholders = ", ".join(
-            "?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES
-        )
+        offset_placeholders = ", ".join("?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES)
         refund_filter = (
             f" AND COALESCE(category, '') NOT IN ({offset_placeholders})"
             if type_ == TYPE_INCOME
@@ -722,22 +714,9 @@ def get_amortized_period_data(start_date: str, end_date: str) -> dict:
 
 
 def get_active_weeks() -> list:
-    if is_postgres():
-        sql = """SELECT DISTINCT
-                    (
-                        date::date
-                        - (
-                            (EXTRACT(ISODOW FROM date::date)::int - 1)
-                            * INTERVAL '1 day'
-                        )
-                    )::date::text
-                    as week_start
-                 FROM transactions
-                 ORDER BY week_start DESC"""
-    else:
-        sql = """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
-                 FROM transactions
-                 ORDER BY week_start DESC"""
+    sql = """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
+             FROM transactions
+             ORDER BY week_start DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
     weeks = {r["week_start"] for r in rows}
@@ -746,14 +725,9 @@ def get_active_weeks() -> list:
 
 
 def get_active_years() -> list:
-    if is_postgres():
-        sql = """SELECT DISTINCT to_char(date::date, 'YYYY') as year
-                 FROM transactions
-                 ORDER BY year DESC"""
-    else:
-        sql = """SELECT DISTINCT strftime('%Y', date) as year
-                 FROM transactions
-                 ORDER BY year DESC"""
+    sql = """SELECT DISTINCT strftime('%Y', date) as year
+             FROM transactions
+             ORDER BY year DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
     years = {r["year"] for r in rows}
@@ -762,14 +736,9 @@ def get_active_years() -> list:
 
 
 def get_active_months() -> list:
-    if is_postgres():
-        sql = """SELECT DISTINCT to_char(date::date, 'YYYY-MM') as month
-                 FROM transactions
-                 ORDER BY month DESC"""
-    else:
-        sql = """SELECT DISTINCT strftime('%Y-%m', date) as month
-                 FROM transactions
-                 ORDER BY month DESC"""
+    sql = """SELECT DISTINCT strftime('%Y-%m', date) as month
+             FROM transactions
+             ORDER BY month DESC"""
     with closing(_connect()) as conn:
         rows = conn.execute(sql).fetchall()
     months = {r["month"] for r in rows}

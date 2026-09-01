@@ -8,12 +8,16 @@ dependencies = [
     "langchain-openai==1.1.12",
     "pandas==3.0.2",
     "plotly==6.6.0",
-    "psycopg[binary]==3.3.4",
     "python-dotenv==1.2.2",
     "pyyaml==6.0.3",
-    "streamlit==1.56.0",
     "uvicorn==0.52.4",
 ]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
 
 [dependency-groups]
 dev = [

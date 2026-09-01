@@ -12,7 +12,7 @@ import core.subscription.db as subscription_db
 from api.main import create_app
 
 
-class NoCloseConnection(core_db.Connection):
+class NoCloseConnection(sqlite3.Connection):
     def close(self):
         pass
 
@@ -23,16 +23,15 @@ class CrossPeriodApiTest(unittest.TestCase):
         return "false" if name == "AUTH_ENABLED" else default
 
     def setUp(self):
-        self.raw = sqlite3.connect(":memory:", check_same_thread=False)
+        self.raw = sqlite3.connect(
+            ":memory:", check_same_thread=False, factory=NoCloseConnection
+        )
         self.raw.row_factory = sqlite3.Row
         self.raw.execute("PRAGMA foreign_keys = ON")
-        self.conn = NoCloseConnection(self.raw, "sqlite")
+        self.conn = self.raw
         self.patchers = [
             patch.object(core_db, "_connect", return_value=self.conn),
-            patch.object(core_db, "get_backend", return_value="sqlite"),
-            patch.object(core_db, "is_postgres", return_value=False),
             patch.object(expense_db, "_connect", return_value=self.conn),
-            patch.object(expense_db, "is_postgres", return_value=False),
             patch.object(subscription_db, "_connect", return_value=self.conn),
             patch.object(planned_db, "_connect", return_value=self.conn),
             patch.object(idempotency, "_connect", return_value=self.conn),
@@ -48,7 +47,7 @@ class CrossPeriodApiTest(unittest.TestCase):
         self.client_context.__exit__(None, None, None)
         for patcher in reversed(self.patchers):
             patcher.stop()
-        self.raw.close()
+        sqlite3.Connection.close(self.raw)
 
     def test_plan_create_and_confirm_are_idempotent(self):
         body = {

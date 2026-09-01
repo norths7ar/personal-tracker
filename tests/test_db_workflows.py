@@ -21,27 +21,24 @@ from core.constants import (
 )
 
 
-class NoCloseConnection(core_db.Connection):
+class NoCloseConnection(sqlite3.Connection):
     def close(self):
         pass
 
 
 class DatabaseWorkflowTest(unittest.TestCase):
     def setUp(self):
-        self.raw = sqlite3.connect(":memory:")
+        self.raw = sqlite3.connect(":memory:", factory=NoCloseConnection)
         self.raw.row_factory = sqlite3.Row
         self.raw.execute("PRAGMA foreign_keys = ON")
-        self.conn = NoCloseConnection(self.raw, "sqlite")
+        self.conn = self.raw
 
         patches = [
             patch.object(core_db, "_connect", return_value=self.conn),
-            patch.object(core_db, "get_backend", return_value="sqlite"),
-            patch.object(core_db, "is_postgres", return_value=False),
             patch.object(budget_db, "_connect", return_value=self.conn),
             patch.object(batch_db, "_connect", return_value=self.conn),
             patch.object(diet_db, "_connect", return_value=self.conn),
             patch.object(expense_db, "_connect", return_value=self.conn),
-            patch.object(expense_db, "is_postgres", return_value=False),
             patch.object(subscription_db, "_connect", return_value=self.conn),
             patch.object(planned_expense_db, "_connect", return_value=self.conn),
         ]
@@ -53,7 +50,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
     def tearDown(self):
         for patcher in reversed(self.patchers):
             patcher.stop()
-        self.raw.close()
+        sqlite3.Connection.close(self.raw)
 
     def test_amount_cents_are_kept_in_sync_for_transactions(self):
         tx_id = expense_db.add_transaction(

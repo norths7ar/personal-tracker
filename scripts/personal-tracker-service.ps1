@@ -191,10 +191,14 @@ function Stop-Service {
         Write-Output 'personal-tracker is not running.'
         return
     }
-    Stop-Process -Id $managed.Process.Id -ErrorAction Stop
-    $managed.Process.WaitForExit(10000) | Out-Null
+    $processId = [int]$managed.State.pid
+    $process = Get-Process -Id $processId -ErrorAction Stop
+    $process.Kill()
+    if (-not $process.WaitForExit(10000)) {
+        throw "personal-tracker did not stop within 10 seconds. PID: $processId."
+    }
     Remove-StaleState
-    Write-Output "personal-tracker stopped. PID: $($managed.Process.Id)."
+    Write-Output "personal-tracker stopped. PID: $processId."
 }
 
 function Show-ServiceStatus {

@@ -130,9 +130,7 @@ class BatchSaveResponse(BaseModel):
     duplicate: bool
 
 
-@router.post(
-    "/transactions/prepare", response_model=TransactionPreparationResponse
-)
+@router.post("/transactions/prepare", response_model=TransactionPreparationResponse)
 def prepare_transaction(
     body: TransactionPreparationRequest,
 ) -> dict:
