@@ -1,6 +1,6 @@
 # personal-tracker
 
-个人记录工具，基于 React SPA、FastAPI、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。React 迁移阶段先以本地单服务运行完成验证；云端部署方案另行决定。
+个人记录工具，基于 React SPA、FastAPI、SQLite/PostgreSQL 和 OpenAI-compatible LLM。当前包含两条主线：开销记录与饮食记录。React 页面由 FastAPI 同域提供；应用可以在本地直接运行，也可以通过 Docker 部署到 NAS 或服务器。
 
 ## 功能
 
@@ -104,11 +104,39 @@ uv run uvicorn api.main:app --reload
 
 开发前端时可以分别启动两个进程：根目录运行 `uv run uvicorn api.main:app --reload`，`frontend/` 目录运行 `npm run dev`。Vite 会把 `/api` 代理到本地 FastAPI。
 
-### Supabase PostgreSQL / 旧 Streamlit Cloud
+### Docker 部署准备
 
-当前仍保留 Streamlit 旧入口作为本地迁移期回退，既有 Streamlit Cloud + Supabase 配置可以继续使用。React/FastAPI 的云端托管、域名和反向代理将在本地验收后单独处理。
+镜像采用多阶段构建：Node 阶段生成 React 静态文件，Python 阶段运行单个 FastAPI 进程。基础镜像同时支持 x86_64 和 ARM64，可用于普通云服务器和极空间 Z2Pro。
 
-云端部署推荐使用 Supabase PostgreSQL pooler connection string。Streamlit Cloud 的 secrets 可以配置为：
+先复制并填写环境变量：
+
+```powershell
+Copy-Item .env.example .env
+```
+
+部署时至少应设置 `AUTH_ENABLED=true`、`APP_PASSWORD`、独立的 `APP_SESSION_SECRET` 和 `LLM_API_KEY`。`APP_DATA_DIR` 指向宿主机上的持久化目录；NAS 上应使用绝对路径。默认对外端口为 `8080`，可以通过 `APP_PORT` 修改。Compose 只将这些运行所需变量传入容器，`.env` 中遗留的 Supabase 连接信息不会进入 NAS 容器。
+
+```powershell
+docker compose up --build -d
+```
+
+Compose 固定使用 SQLite，并将数据库保存为容器内的 `/app/data/expenses.db`。该目录来自宿主机的 `APP_DATA_DIR`，因此重建容器不会删除数据。当前 Compose 只定义应用本身；接入 NAS 上已有的 Tailscale 容器，需要确认其网络模式后再配置。
+
+### 从 Supabase PostgreSQL 一次性迁移到 SQLite
+
+该迁移只在切换至 NAS 前执行一次；运行中的容器不会连接或同步 Supabase。先在 Supabase 控制台保留一份可回滚备份，再在本地 `.env` 配置现有 PostgreSQL 连接信息（`DATABASE_URL` 或 Supabase pooler 三项）。随后执行：
+
+```powershell
+uv run python scripts/migrate_postgres_to_sqlite.py --target data/expenses.db
+```
+
+工具以只读方式读取 PostgreSQL，创建新的 SQLite 文件，保留原有主键，并逐表回读校验数据；还会执行 SQLite 的完整性与外键检查。目标文件已存在时会拒绝覆盖；只有明确传入 `--replace`，且新的转换成功后才会替换旧文件。将生成的 `data/expenses.db` 放在 NAS 的 `APP_DATA_DIR` 后，再启动 Compose。
+
+### Supabase PostgreSQL / 旧 Streamlit 数据源
+
+当前仍保留 Streamlit 旧入口代码作为迁移期回退。Supabase PostgreSQL 暂时作为既有数据源；迁移至 NAS 或服务器上的 SQLite 需要单独执行一次数据复制和一致性校验。
+
+需要继续连接 Supabase 时，可以使用 PostgreSQL pooler connection string：
 
 ```toml
 AUTH_ENABLED = "true"
@@ -142,12 +170,15 @@ LLM_API_KEY=your_llm_api_key
 - `llm`：公开的 LLM 参数，包括 `base_url`、`model`、`temperature`、`max_tokens`、`timeout` 和统一置信度阈值
 - `diet`：餐顿类型
 
-`.env` 或 Streamlit secrets 包含：
+`.env` 包含：
 
 - `LLM_API_KEY`：必填，不能提交到版本控制的密钥
 - `AUTH_ENABLED`：是否启用单用户登录保护，默认 `false`
 - `APP_PASSWORD`：`AUTH_ENABLED=true` 时必填
+- `APP_SESSION_SECRET`：会话签名密钥，部署时应与登录密码分开设置
+- `COOKIE_SECURE`：通过 HTTPS 访问时设为 `true`
 - `DB_BACKEND`：`sqlite` 或 `postgres`，默认 `sqlite`
+- `DATABASE_PATH`：SQLite 文件路径；相对路径从项目根目录解析
 - `DATABASE_URL`：PostgreSQL 连接 URL；云端部署推荐使用 Supabase pooler URL
 - `SUPABASE_PROJECT_REF` / `SUPABASE_PROJECT_PASSWORD` / `SUPABASE_POOLER_HOST`：未设置 `DATABASE_URL` 时用于拼接 Supabase pooler URL
 

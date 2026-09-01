@@ -6,7 +6,15 @@ from urllib.parse import quote
 from core.constants import SUBSCRIPTION_CYCLE_ONE_TIME, TRANSACTION_TYPE_SQL_LIST
 from core.secrets import get_secret
 
-DB_PATH = Path(__file__).parent.parent / "data" / "expenses.db"
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+_configured_db_path = get_secret("DATABASE_PATH")
+DB_PATH = (
+    Path(_configured_db_path).expanduser()
+    if _configured_db_path
+    else PROJECT_ROOT / "data" / "expenses.db"
+)
+if not DB_PATH.is_absolute():
+    DB_PATH = PROJECT_ROOT / DB_PATH
 
 
 class DatabaseConfigError(RuntimeError):
