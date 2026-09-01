@@ -112,6 +112,16 @@ uv run uvicorn api.main:app --reload
 
 首次运行 `install-autostart` 后，服务会在 Windows 登录时自动后台启动；更新代码或前端构建后，使用 `restart`。该服务只监听 `127.0.0.1:18080`。
 
+本地 SQLite 每天 03:30 做一次在线一致性备份，保留最近 30 份。首次注册和按需手动备份：
+
+```powershell
+.\scripts\backup-personal-tracker.ps1 install-schedule
+.\scripts\backup-personal-tracker.ps1 run
+.\scripts\backup-personal-tracker.ps1 status
+```
+
+备份位于 `data/backup/rolling/`，使用 SQLite 的 `backup()` API 生成，可在服务运行时执行。该目录只提供本机回滚，不替代异机备份。
+
 开发前端时可以分别启动两个进程：根目录运行 `uv run uvicorn api.main:app --reload`，`frontend/` 目录运行 `npm run dev`。Vite 会把 `/api` 代理到本地 FastAPI。
 
 ### Docker 部署准备
