@@ -100,7 +100,17 @@ Set-Location ..
 uv run uvicorn api.main:app --reload
 ```
 
-打开 `http://127.0.0.1:8000`。FastAPI 会同域提供 `/api/*` 和已构建的 React 页面，直接访问 `/ledger` 等客户端路由也会返回 SPA。
+打开 `http://127.0.0.1:18080`。FastAPI 会同域提供 `/api/*` 和已构建的 React 页面，直接访问 `/ledger` 等客户端路由也会返回 SPA。
+
+日常使用可通过后台服务脚本管理，不会占用终端窗口：
+
+```powershell
+.\scripts\personal-tracker-service.ps1 start
+.\scripts\personal-tracker-service.ps1 status
+.\scripts\personal-tracker-service.ps1 logs
+```
+
+首次运行 `install-autostart` 后，服务会在 Windows 登录时自动后台启动；更新代码或前端构建后，使用 `restart`。该服务只监听 `127.0.0.1:18080`。
 
 开发前端时可以分别启动两个进程：根目录运行 `uv run uvicorn api.main:app --reload`，`frontend/` 目录运行 `npm run dev`。Vite 会把 `/api` 代理到本地 FastAPI。
 
