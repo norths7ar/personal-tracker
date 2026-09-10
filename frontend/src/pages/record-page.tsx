@@ -20,18 +20,24 @@ export function RecordPage() {
   const [tab, setTab] = useState<Tab>("batch");
 
   return (
-    <section className="mx-auto max-w-6xl space-y-5">
+    <section className="space-y-5" onKeyDown={(event) => {
+      if (!event.ctrlKey || event.key !== "Enter" || event.repeat || event.nativeEvent.isComposing) return;
+      event.preventDefault();
+      event.currentTarget.querySelector<HTMLButtonElement>(`#record-${tab} button[data-primary-action="true"]:not(:disabled)`)?.click();
+    }}>
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">记录</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          草稿和确认状态留在浏览器；只有解析与保存访问后端。
+          Ctrl+Enter 执行当前步骤；有待确认内容时请检查后保存。
         </p>
       </header>
       <HomeSummary />
-      <div className="flex gap-1 rounded-lg bg-neutral-200/70 p-1">
+      <div aria-label="录入方式" className="flex gap-1 rounded-lg bg-neutral-200/70 p-1">
         {tabs.map(({ value, label }) => (
           <button
             key={value}
+            aria-pressed={tab === value}
+            aria-controls={`record-${value}`}
             className={cn(
               "flex-1 rounded-md px-3 py-2 text-sm font-medium",
               tab === value && "bg-white shadow-sm",
@@ -42,13 +48,13 @@ export function RecordPage() {
           </button>
         ))}
       </div>
-      <div hidden={tab !== "batch"}>
+      <div id="record-batch" hidden={tab !== "batch"}>
         <BatchEntry />
       </div>
-      <div hidden={tab !== "transaction"}>
+      <div id="record-transaction" hidden={tab !== "transaction"}>
         <TransactionEntry />
       </div>
-      <div hidden={tab !== "meal"}>
+      <div id="record-meal" hidden={tab !== "meal"}>
         <MealEntry />
       </div>
     </section>
@@ -61,7 +67,7 @@ function HomeSummary() {
   const { reminders, pending_count: pendingCount, today_expense: expense, today_meals: meals } = summary.data;
   if (!reminders.length && !pendingCount && !expense && !meals.length) return null;
   return (
-    <div className="grid gap-3 lg:grid-cols-[1.3fr_0.7fr]">
+    <div className={`grid gap-3 ${reminders.length > 0 || pendingCount > 0 ? "lg:grid-cols-2" : ""}`}>
       {(reminders.length > 0 || pendingCount > 0) && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
           <h2 className="font-medium text-amber-950">待办提醒</h2>

@@ -33,7 +33,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
           <span className="font-semibold">拾记</span>
           <Button size="sm" variant="ghost" onClick={onLogout}>退出</Button>
         </header>
-        <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8">{children}</main>
+        <main className="app-content">{children}</main>
       </div>
     </div>
   );

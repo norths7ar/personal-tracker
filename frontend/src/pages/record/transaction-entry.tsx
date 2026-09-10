@@ -183,6 +183,7 @@ export function TransactionEntry() {
           />
         </Field>
         <Button
+          data-primary-action={!review}
           disabled={busy || !entry.description.trim() || entry.amount <= 0}
         >
           {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "提交"}
@@ -234,8 +235,9 @@ export function TransactionEntry() {
           </div>
           <div className="flex gap-2">
             <Button
+              data-primary-action="true"
               onClick={() => saveEntry(entry, requestKey)}
-              disabled={save.isPending}
+              disabled={busy}
             >
               确认保存
             </Button>

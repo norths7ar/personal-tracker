@@ -90,9 +90,10 @@ export function BatchEntry() {
           />
         </Field>
         <Button
+          data-primary-action={records.length === 0}
           className="mt-4"
           onClick={() => prepare.mutate()}
-          disabled={prepare.isPending || !text.trim()}
+          disabled={prepare.isPending || save.isPending || !text.trim()}
         >
           {prepare.isPending ? "解析中…" : "解析"}
         </Button>
@@ -121,8 +122,9 @@ export function BatchEntry() {
       {records.length > 0 && (
         <div className="sticky bottom-4 z-20 flex gap-2 rounded-lg border border-neutral-300 bg-white p-3 shadow-lg">
           <Button
+            data-primary-action="true"
             onClick={() => save.mutate()}
-            disabled={save.isPending || !records.some((record) => record.include)}
+            disabled={prepare.isPending || save.isPending || !records.some((record) => record.include)}
           >
             {save.isPending ? "保存中…" : "保存所选记录"}
           </Button>

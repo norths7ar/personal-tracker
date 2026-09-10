@@ -36,8 +36,8 @@ export function Feedback({
 }) {
   return (
     <>
-      {message && <p className="mt-4 text-sm text-emerald-700">{message}</p>}
-      {error && <p className="mt-4 text-sm text-red-600">{error.message}</p>}
+      {message && <p role="status" className="mt-4 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{message}</p>}
+      {error && <p role="alert" className="mt-4 text-sm text-red-600">{error.message}</p>}
     </>
   );
 }

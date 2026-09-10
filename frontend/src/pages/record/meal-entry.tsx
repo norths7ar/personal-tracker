@@ -139,7 +139,7 @@ export function MealEntry() {
             }
           />
         </Field>
-        <Button disabled={busy || !entry.description.trim() || !entry.time}>
+        <Button data-primary-action={!review} disabled={busy || !entry.description.trim() || !entry.time}>
           {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "提交"}
         </Button>
       </form>
@@ -217,8 +217,9 @@ export function MealEntry() {
           </Button>
           <div className="flex gap-2">
             <Button
+              data-primary-action="true"
               onClick={() => saveEntry(entry, requestKey)}
-              disabled={!entry.foods.some((food) => food.food_name.trim())}
+              disabled={busy || !entry.foods.some((food) => food.food_name.trim())}
             >
               确认保存
             </Button>

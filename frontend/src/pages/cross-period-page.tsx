@@ -40,7 +40,7 @@ export function CrossPeriodPage() {
   const data = useQuery({ queryKey: ["cross-period"], queryFn: api.crossPeriod });
 
   return (
-    <section className="mx-auto max-w-6xl space-y-5">
+    <section className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">跨期费用</h1>

@@ -3,6 +3,7 @@ import { useState, type FormEvent } from "react";
 
 import { api, type Transaction, type TransactionUpdate } from "@/api/client";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import {
   Feedback,
@@ -24,6 +25,25 @@ export function PendingPage() {
     queryFn: api.categories,
   });
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [checkedIds, setCheckedIds] = useState<number[]>([]);
+  const [bulkCategory, setBulkCategory] = useState("");
+  const [bulkSubcategory, setBulkSubcategory] = useState("");
+  const [message, setMessage] = useState("");
+  const bulkSubcategories = categories.data?.支出?.[bulkCategory] ?? [];
+  const refresh = () => Promise.all(
+    ["transactions", "pending-transactions", "home-summary", "expense-analysis", "cross-period"].map((key) =>
+      queryClient.invalidateQueries({ queryKey: [key] })),
+  );
+  const bulkUpdate = useMutation({
+    mutationFn: () => api.updateTransactions(checkedIds, { category: bulkCategory, subcategory: bulkSubcategory || null }),
+    onSuccess: async (result) => {
+      setMessage(`已确认 ${result.updated_count} 笔支出的分类。`);
+      setCheckedIds([]);
+      setSelectedId(null);
+      await refresh();
+    },
+    onError: () => { void refresh(); },
+  });
   const effectiveSelectedId = selectedId ?? pending.data?.[0]?.id ?? null;
   const selected =
     pending.data?.find((row) => row.id === effectiveSelectedId) ?? null;
@@ -45,17 +65,45 @@ export function PendingPage() {
             : current.filter((row) => row.id !== updated.id),
       );
       setSelectedId(null);
+      setCheckedIds((ids) => ids.filter((id) => id !== updated.id));
+      setMessage("分类已保存。");
+      void refresh();
     },
   });
 
   return (
-    <section className="mx-auto max-w-6xl space-y-5">
+    <section className="space-y-5">
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">待处理</h1>
         <p className="mt-1 text-sm text-neutral-500">
           处理待分类、缺失分类或低置信度支出。
         </p>
       </header>
+      <Feedback message={message} error={bulkUpdate.error} />
+      {Boolean(checkedIds.length) && (
+        <form className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4" onSubmit={(event) => {
+          event.preventDefault();
+          if (!bulkUpdate.isPending && !update.isPending) bulkUpdate.mutate();
+        }}>
+          <p className="text-sm font-medium">已选择 {checkedIds.length} 笔，统一确认分类为：</p>
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label="批量主类别">
+              <select required disabled={bulkUpdate.isPending} className={selectClass} value={bulkCategory} onChange={(event) => { setBulkCategory(event.target.value); setBulkSubcategory(""); }}>
+                <option value="">请选择</option>
+                {Object.keys(categories.data?.支出 ?? {}).map((category) => <option key={category}>{category}</option>)}
+              </select>
+            </Field>
+            {bulkSubcategories.length > 0 && <Field label="批量子类别">
+              <select required disabled={bulkUpdate.isPending} className={selectClass} value={bulkSubcategory} onChange={(event) => setBulkSubcategory(event.target.value)}>
+                <option value="">请选择</option>
+                {bulkSubcategories.map((category) => <option key={category}>{category}</option>)}
+              </select>
+            </Field>}
+            <Button disabled={bulkUpdate.isPending || update.isPending || !bulkCategory || (bulkSubcategories.length > 0 && !bulkSubcategory)}>{bulkUpdate.isPending ? "保存中…" : `确认 ${checkedIds.length} 笔分类`}</Button>
+            <Button type="button" variant="ghost" disabled={bulkUpdate.isPending} onClick={() => setCheckedIds([])}>取消选择</Button>
+          </div>
+        </form>
+      )}
       {pending.isPending ? (
         <p className="text-sm text-neutral-500">正在读取…</p>
       ) : pending.isError ? (
@@ -70,6 +118,7 @@ export function PendingPage() {
             <table className="w-full text-sm">
               <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
                 <tr>
+                  <th className="p-3"><Checkbox aria-label="选择全部待处理支出" disabled={bulkUpdate.isPending || update.isPending} checked={checkedIds.length === pending.data.length || (checkedIds.length > 0 && "indeterminate")} onCheckedChange={(checked) => setCheckedIds(checked ? pending.data.map((row) => row.id) : [])} /></th>
                   <th className="p-3">日期</th><th className="p-3">描述</th>
                   <th className="p-3">金额</th><th className="p-3">当前分类</th>
                 </tr>
@@ -81,8 +130,9 @@ export function PendingPage() {
                     className={`cursor-pointer border-t border-neutral-100 ${row.id === effectiveSelectedId ? "bg-amber-50" : "hover:bg-neutral-50"}`}
                     onClick={() => setSelectedId(row.id)}
                   >
+                    <td className="p-3" onClick={(event) => event.stopPropagation()}><Checkbox aria-label={`选择待处理支出 ${row.id}`} disabled={bulkUpdate.isPending || update.isPending} checked={checkedIds.includes(row.id)} onCheckedChange={(checked) => setCheckedIds((ids) => checked ? [...ids, row.id] : ids.filter((id) => id !== row.id))} /></td>
                     <td className="p-3">{row.date}</td>
-                    <td className="p-3">{row.description}</td>
+                    <td className="p-3"><button type="button" className="text-left underline-offset-4 hover:underline" aria-pressed={row.id === effectiveSelectedId} onClick={() => setSelectedId(row.id)}>{row.description}</button></td>
                     <td className="p-3">¥{row.amount.toFixed(2)}</td>
                     <td className="p-3">{row.category || "未分类"}</td>
                   </tr>
@@ -95,7 +145,7 @@ export function PendingPage() {
               key={selected.id}
               transaction={selected}
               categories={categories.data?.支出 ?? {}}
-              saving={update.isPending}
+              saving={update.isPending || bulkUpdate.isPending}
               error={update.error}
               onSave={(changes) =>
                 update.mutate({ id: selected.id, changes })
