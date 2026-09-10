@@ -40,6 +40,12 @@ Two renewal modes are intentionally distinct:
 The subscription schema stores `renewal_mode`, `renewal_interval`,
 `renewal_anchor_day` for same-day rules, and `next_renewal_date`.
 
+## Analysis
+
+- Standalone reimbursements and unlinked refunds remain income. Only refunds explicitly linked to an expense reduce net expense, using the original expense category; they are not also counted as income.
+- Current-period actual totals and charts end today, and daily averages use elapsed days including today. Past periods use their full length. Period-over-period change messages are not displayed.
+- Category drilldowns use the same signed contributions as the summaries, including linked refunds and monthly amortization shares. Amortization is allocated in cents with remainder cents in the first months; it is monthly attribution, not daily proration.
+
 ## Budgeting
 
 - Monthly budgets use two separate reference values: amortized cost and actual
@@ -51,11 +57,9 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
 
 ## Interface Principles
 
-- Use constrained fluid layout: a 1280px maximum application content width,
-  with narrower local regions for forms and wider regions for tables/charts.
-- Tables remain the primary surface for scanning records. The ledger uses a
-  compact modal for occasional edits; the short pending-classification list
-  expands its confirmation form below the table.
+- Desktop is the primary interface. Pages share one application content container, consistent margins and alignment; local forms may constrain fields without changing the page width.
+- Ledger and diet tables share selection and editing behavior: a row click selects one record, checkboxes enable multiple selection and current-page selection, and a double click or the edit action opens a centered dialog. Bulk editing changes only explicitly enabled fields; the ledger retains transaction-type restrictions, while diet bulk edits allow date, time, meal label and notes without replacing descriptions, foods or ingredients. Bulk deletion requires confirmation.
+- The short pending-classification list expands its confirmation form below the table.
 - Cross-period management uses parallel expected-expense and prepaid-
   amortization tabs. Creation, editing, confirmation and deletion use compact
   dialogs rather than persistent forms.
@@ -76,8 +80,8 @@ The subscription schema stores `renewal_mode`, `renewal_interval`,
 - When no label is supplied, the application infers breakfast, lunch or dinner
   only inside conservative conventional time windows. Ambiguous times remain
   unlabeled.
-- Diet analysis is based primarily on meal times, daily meal counts and foods.
-  Optional labels are shown only as a secondary distribution.
+- Diet analysis counts eating records, not inferred meals. Current-month averages use elapsed calendar days including today; historical months use the full month. Unrecorded days are gaps rather than evidence of no eating. Time charts run from early at the top to late at the bottom.
+- Food frequency groups exact food names. Ingredient frequency is separate and counts each ingredient at most once per record, with ingredient-data coverage shown. Meal labels remain editable metadata but have no distribution chart.
 - A meal description preserves the user's original wording. Each extracted food
   is a dish or standalone food, and may have separately stored major ingredients.
   Ingredients are editable facts used for later aggregation, not nutritional
