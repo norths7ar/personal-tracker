@@ -363,6 +363,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/meals/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bulk Update Meals */
+        patch: operations["bulk_update_meals_api_meals_bulk_update_patch"];
+        trace?: never;
+    };
+    "/api/meals/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Delete Meals */
+        post: operations["bulk_delete_meals_api_meals_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/meals/{meal_id}": {
         parameters: {
             query?: never;
@@ -655,6 +689,34 @@ export interface components {
             /** Deleted Count */
             deleted_count: number;
         };
+        /** BulkMealDeleteResponse */
+        BulkMealDeleteResponse: {
+            /** Deleted Count */
+            deleted_count: number;
+        };
+        /** BulkMealIds */
+        BulkMealIds: {
+            /** Ids */
+            ids: number[];
+        };
+        /** BulkMealUpdate */
+        BulkMealUpdate: {
+            /** Ids */
+            ids: number[];
+            /** Date */
+            date?: string | null;
+            /** Time */
+            time?: string | null;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** BulkMealUpdateResponse */
+        BulkMealUpdateResponse: {
+            /** Updated Count */
+            updated_count: number;
+        };
         /** BulkTransactionUpdateRequest */
         BulkTransactionUpdateRequest: {
             /** Ids */
@@ -716,6 +778,13 @@ export interface components {
             /** Count */
             count: number;
         };
+        /** CountByIngredient */
+        CountByIngredient: {
+            /** Ingredient Name */
+            ingredient_name: string;
+            /** Count */
+            count: number;
+        };
         /** CountByMealType */
         CountByMealType: {
             /** Meal Type */
@@ -759,6 +828,10 @@ export interface components {
             meal_times: components["schemas"]["MealTimePoint"][];
             /** Food Freq */
             food_freq: components["schemas"]["CountByFood"][];
+            /** Ingredient Freq */
+            ingredient_freq: components["schemas"]["CountByIngredient"][];
+            /** Ingredient Record Count */
+            ingredient_record_count: number;
             /** Daily Meals */
             daily_meals: components["schemas"]["CountByDate"][];
             /** Meal Type Dist */
@@ -2066,6 +2139,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DietStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_meals_api_meals_bulk_update_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkMealUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkMealUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_meals_api_meals_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkMealIds"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkMealDeleteResponse"];
                 };
             };
             /** @description Validation Error */

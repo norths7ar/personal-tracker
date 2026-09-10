@@ -27,5 +27,19 @@ def delete_meal(meal_id: int) -> None:
     diet_db.delete_meal(meal_id)
 
 
+def update_meals(meal_ids: list[int], changes: dict) -> int:
+    try:
+        return diet_db.update_meals(meal_ids, changes)
+    except LookupError as exc:
+        raise MealNotFound(str(exc)) from exc
+
+
+def delete_meals(meal_ids: list[int]) -> int:
+    try:
+        return diet_db.delete_meals(meal_ids)
+    except LookupError as exc:
+        raise MealNotFound(str(exc)) from exc
+
+
 def get_stats(start_date: str, end_date: str) -> dict:
     return diet_db.get_diet_stats(start_date, end_date)

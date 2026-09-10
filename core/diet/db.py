@@ -1,4 +1,5 @@
 from contextlib import closing
+from datetime import date as Date
 
 from core.db import (
     _connect,
@@ -197,6 +198,56 @@ def delete_meal(meal_id: int):
         conn.commit()
 
 
+def _require_meals(conn, meal_ids: list[int]) -> list[int]:
+    ids = list(dict.fromkeys(meal_ids))
+    if not ids:
+        raise ValueError("请至少选择一条饮食记录")
+    found = {
+        row["id"]
+        for row in conn.execute(
+            f"SELECT id FROM diet_meals WHERE id IN ({placeholders(len(ids))})", ids
+        )
+    }
+    missing = set(ids) - found
+    if missing:
+        raise LookupError(f"Meal IDs do not exist: {sorted(missing)}")
+    return ids
+
+
+def update_meals(meal_ids: list[int], changes: dict) -> int:
+    """Update only shared metadata, preserving foods and historical missing times."""
+    if not changes or changes.keys() - {"date", "time", "meal_type", "notes"}:
+        raise ValueError("批量编辑仅支持日期、时间、餐顿标签和备注")
+    updates = dict(changes)
+    if "date" in updates:
+        updates["date"] = Date.fromisoformat(str(updates["date"])).isoformat()
+    if "time" in updates:
+        updates["time"] = require_meal_time(updates["time"])
+    if "meal_type" in updates:
+        updates["meal_type"] = str(updates["meal_type"] or "").strip() or None
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        ids = _require_meals(conn, meal_ids)
+        set_clause = ", ".join(f"{field} = ?" for field in updates)
+        conn.execute(
+            f"UPDATE diet_meals SET {set_clause} "
+            f"WHERE id IN ({placeholders(len(ids))})",
+            [*updates.values(), *ids],
+        )
+    return len(ids)
+
+
+def delete_meals(meal_ids: list[int]) -> int:
+    """Delete selected meals and cascading food/ingredient rows atomically."""
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        ids = _require_meals(conn, meal_ids)
+        conn.execute(
+            f"DELETE FROM diet_meals WHERE id IN ({placeholders(len(ids))})", ids
+        )
+    return len(ids)
+
+
 def get_diet_summary(start_date: str, end_date: str) -> dict:
     """Sidebar/quick stats: meal_type counts + recent meals with food list."""
     with closing(_connect()) as conn:
@@ -256,7 +307,28 @@ def get_diet_stats(start_date, end_date) -> dict:
             (start_date, end_date),
         ).fetchall()
 
-        # Per-day meal count (for trend line)
+        # A shared ingredient in multiple dishes counts once per eating record.
+        ingredient_freq = conn.execute(
+            """SELECT i.ingredient_name, COUNT(DISTINCT m.id) as count
+               FROM diet_ingredients i
+               JOIN diet_foods f ON f.id = i.food_id
+               JOIN diet_meals m ON m.id = f.meal_id
+               WHERE m.date >= ? AND m.date <= ?
+               GROUP BY i.ingredient_name
+               ORDER BY count DESC, i.ingredient_name
+               LIMIT 20""",
+            (start_date, end_date),
+        ).fetchall()
+        ingredient_record_count = conn.execute(
+            """SELECT COUNT(DISTINCT m.id)
+               FROM diet_meals m
+               JOIN diet_foods f ON f.meal_id = m.id
+               JOIN diet_ingredients i ON i.food_id = f.id
+               WHERE m.date >= ? AND m.date <= ?""",
+            (start_date, end_date),
+        ).fetchone()[0]
+
+        # Counts of records, not inferred meals; absent dates are unrecorded.
         daily_meals = conn.execute(
             """SELECT date, COUNT(*) as count
                FROM diet_meals
@@ -278,6 +350,8 @@ def get_diet_stats(start_date, end_date) -> dict:
     return {
         "meal_times": [dict(r) for r in meal_times],
         "food_freq": [dict(r) for r in food_freq],
+        "ingredient_freq": [dict(r) for r in ingredient_freq],
+        "ingredient_record_count": ingredient_record_count,
         "daily_meals": [dict(r) for r in daily_meals],
         "meal_type_dist": [dict(r) for r in meal_type_dist],
     }

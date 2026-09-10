@@ -11,6 +11,7 @@ export type BatchRecord = components["schemas"]["BatchRecord"];
 export type BatchPreparation = components["schemas"]["BatchPrepareResponse"];
 export type Meal = components["schemas"]["MealResponse"];
 export type MealUpdate = components["schemas"]["MealUpdate"];
+export type MealBulkChanges = Partial<Pick<MealUpdate, "date" | "time" | "meal_type" | "notes">>;
 export type DietStats = components["schemas"]["DietStatsResponse"];
 export type ExpenseAnalysis = components["schemas"]["ExpenseAnalysisResponse"];
 export type MonthBudget = components["schemas"]["MonthBudget"];
@@ -134,6 +135,10 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
+  updateMeals: (ids: number[], changes: MealBulkChanges) =>
+    request<{ updated_count: number }>("/api/meals/bulk-update", { method: "PATCH", body: JSON.stringify({ ids, ...changes }) }),
+  deleteMeals: (ids: number[]) =>
+    request<{ deleted_count: number }>("/api/meals/bulk-delete", { method: "POST", body: JSON.stringify({ ids }) }),
   deleteMeal: (id: number) =>
     request<void>(`/api/meals/${id}`, { method: "DELETE" }),
   dietStats: (startDate: string, endDate: string) => {

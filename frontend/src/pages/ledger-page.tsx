@@ -6,13 +6,13 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  type RowSelectionState,
   type SortingState,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowDownUp, Download, Pencil, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ArrowDownUp, Download } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
+import { useSearchParams } from "react-router-dom";
 import { z } from "zod";
 
 import {
@@ -21,6 +21,7 @@ import {
   type SubscriptionCreate,
   type Transaction,
 } from "@/api/client";
+import { RecordActions, BulkFieldToggle, EditorFooter } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -31,6 +32,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useRecordSelection } from "@/lib/use-record-selection";
 import { cn } from "@/lib/utils";
 
 const columnHelper = createColumnHelper<Transaction>();
@@ -41,12 +43,55 @@ export function LedgerPage() {
   const queryClient = useQueryClient();
   const transactions = useQuery({ queryKey: ["transactions"], queryFn: api.transactions });
   const categories = useQuery({ queryKey: ["categories"], queryFn: api.categories });
-  const [typeFilter, setTypeFilter] = useState("全部");
-  const [categoryFilter, setCategoryFilter] = useState("全部");
-  const [subcategoryFilter, setSubcategoryFilter] = useState("全部");
-  const [search, setSearch] = useState("");
+  const [params, setParams] = useSearchParams();
+  const typeFilter = params.get("type") || "全部";
+  const categoryFilter = params.get("category") || "全部";
+  const subcategoryFilter = params.get("subcategory") || "全部";
+  const search = params.get("q") || "";
+  const startDate = params.get("from") || "";
+  const endDate = params.get("to") || "";
+  const [dateResetKey, setDateResetKey] = useState(0);
+  const invalidRange = Boolean(startDate && endDate && startDate > endDate);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const composing = useRef(false);
+  const [searchDraft, setSearchDraft] = useState(search);
+  const [lastSearch, setLastSearch] = useState(search);
+  if (lastSearch !== search) {
+    setLastSearch(search);
+    setSearchDraft(search);
+  }
+  const updateFilters = (changes: Record<string, string>) => {
+    if ("from" in changes || "to" in changes) setDateResetKey((key) => key + 1);
+    setParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(changes).forEach(([key, value]) => {
+        if (value && value !== "全部") next.set(key, value);
+        else next.delete(key);
+      });
+      return next;
+    }, { replace: true });
+  };
+  const selectMonth = (offset: number) => {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
+    const format = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, "0")}-${String(value.getDate()).padStart(2, "0")}`;
+    updateFilters({ from: format(first), to: format(last) });
+  };
+  useEffect(() => {
+    const focusSearch = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (event.key !== "/" || event.ctrlKey || event.altKey || event.metaKey || event.isComposing ||
+        document.querySelector('[role="dialog"]') ||
+        (target instanceof HTMLElement && (target.closest("input, textarea, select") || target.isContentEditable))) return;
+      event.preventDefault();
+      searchInput.current?.focus();
+    };
+    window.addEventListener("keydown", focusSearch);
+    return () => window.removeEventListener("keydown", focusSearch);
+  }, []);
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const { rowSelection, setRowSelection, selectedIds, rowEvents } = useRecordSelection();
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [bulkEditing, setBulkEditing] = useState(false);
 
@@ -54,6 +99,7 @@ export function LedgerPage() {
   const filteredRows = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase();
     return allRows.filter((row) => {
+      if (invalidRange || (startDate && row.date < startDate) || (endDate && row.date > endDate)) return false;
       if (typeFilter !== "全部" && row.type !== typeFilter) return false;
       if (categoryFilter !== "全部" && row.category !== categoryFilter) return false;
       if (subcategoryFilter !== "全部" && row.subcategory !== subcategoryFilter) return false;
@@ -62,7 +108,7 @@ export function LedgerPage() {
         .filter(Boolean)
         .some((value) => value!.toLocaleLowerCase().includes(needle));
     });
-  }, [allRows, categoryFilter, search, subcategoryFilter, typeFilter]);
+  }, [allRows, categoryFilter, search, subcategoryFilter, typeFilter, startDate, endDate, invalidRange]);
 
   const categoryOptions = useMemo(() => {
     const source = typeFilter === "全部" ? allRows : allRows.filter((row) => row.type === typeFilter);
@@ -128,11 +174,8 @@ export function LedgerPage() {
   useEffect(() => {
     table.setPageIndex(0);
     setRowSelection({});
-  }, [categoryFilter, search, subcategoryFilter, table, typeFilter]);
+  }, [categoryFilter, search, subcategoryFilter, table, typeFilter, startDate, endDate, setRowSelection]);
 
-  const selectedIds = Object.entries(rowSelection)
-    .filter(([, selected]) => selected)
-    .map(([id]) => Number(id));
   const selectedRecord = selectedIds.length === 1
     ? allRows.find((row) => row.id === selectedIds[0]) ?? null
     : null;
@@ -180,25 +223,54 @@ export function LedgerPage() {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">账目</h1>
-          <p className="mt-1 text-sm text-neutral-500">筛选、排序、翻页和勾选都在本地完成。</p>
+          <p className="mt-1 text-sm text-neutral-500">查看与管理收支记录。</p>
         </div>
         <Button variant="outline" onClick={exportCsv} disabled={!filteredRows.length}>
           <Download size={16} />导出当前结果
         </Button>
       </header>
 
-      <div className="grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-2 xl:grid-cols-[160px_180px_180px_minmax(240px,1fr)]">
+      <div className="space-y-4 rounded-lg border border-neutral-200 bg-white p-4">
+        <div className="grid gap-3 md:grid-cols-[140px_180px_180px_minmax(200px,1fr)]">
         <FilterSelect label="类型" value={typeFilter} options={[...transactionTypes]} onChange={(value) => {
-          setTypeFilter(value); setCategoryFilter("全部"); setSubcategoryFilter("全部");
+          updateFilters({ type: value, category: "", subcategory: "" });
         }} />
         <FilterSelect label="主类别" value={categoryFilter} options={categoryOptions} onChange={(value) => {
-          setCategoryFilter(value); setSubcategoryFilter("全部");
+          updateFilters({ category: value, subcategory: "" });
         }} />
-        <FilterSelect label="子类别" value={subcategoryFilter} options={subcategoryOptions} onChange={setSubcategoryFilter} />
+        <FilterSelect label="子类别" value={subcategoryFilter} options={subcategoryOptions} onChange={(value) => updateFilters({ subcategory: value })} />
         <label className="space-y-1 text-sm font-medium">
           <span>搜索</span>
-          <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="描述、分类或备注" />
+          <Input ref={searchInput} value={searchDraft}
+            onCompositionStart={() => { composing.current = true; }}
+            onCompositionEnd={(event) => {
+              composing.current = false;
+              setSearchDraft(event.currentTarget.value);
+              updateFilters({ q: event.currentTarget.value });
+            }}
+            onChange={(event) => {
+              setSearchDraft(event.target.value);
+              if (!composing.current) updateFilters({ q: event.target.value });
+            }} placeholder="搜索描述、分类或备注" />
         </label>
+        </div>
+        <div className="flex flex-wrap items-end gap-3 border-t border-neutral-100 pt-4">
+        <label className="w-44 space-y-1 text-sm font-medium">
+          <span>开始日期</span>
+          <Input type="date" resetKey={dateResetKey} value={startDate} max={endDate || undefined} onChange={(event) => updateFilters({ from: event.target.value })} />
+        </label>
+        <label className="w-44 space-y-1 text-sm font-medium">
+          <span>结束日期</span>
+          <Input type="date" resetKey={dateResetKey} value={endDate} min={startDate || undefined} onChange={(event) => updateFilters({ to: event.target.value })} />
+        </label>
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => selectMonth(0)}>本月</Button>
+          <Button variant="outline" onClick={() => selectMonth(-1)}>上月</Button>
+          <Button variant="outline" onClick={() => updateFilters({ from: "", to: "" })}>全部日期</Button>
+          <Button className="ml-auto" variant="ghost" onClick={() => updateFilters({ type: "", category: "", subcategory: "", q: "", from: "", to: "" })}>重置筛选</Button>
+        </div>
+        </div>
+        {invalidRange && <p role="alert" className="text-sm text-red-600 sm:col-span-2">开始日期不能晚于结束日期。</p>}
       </div>
 
       <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
@@ -240,7 +312,7 @@ export function LedgerPage() {
                 <TableMessage columns={columns.length} danger>{transactions.error.message}</TableMessage>
               ) : table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className={cn("border-b border-neutral-100 last:border-0 hover:bg-neutral-50", row.getIsSelected() && "bg-amber-50 hover:bg-amber-50")}>
+                  <tr key={row.id} aria-selected={row.getIsSelected()} {...rowEvents(row.original.id, () => setEditing(row.original))} className={cn("cursor-pointer border-b border-neutral-100 last:border-0 hover:bg-neutral-50", row.getIsSelected() && "bg-amber-50 hover:bg-amber-50")}>
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id} className="max-w-80 truncate px-3 py-2.5">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -256,17 +328,9 @@ export function LedgerPage() {
         </div>
       </div>
 
-      {selectedIds.length > 0 && (
-        <div className="sticky bottom-4 z-20 flex flex-wrap items-center gap-3 rounded-lg border border-neutral-300 bg-white p-3 shadow-lg">
-          <strong className="mr-auto text-sm">已选择 {selectedIds.length} 条</strong>
-          <Button variant="outline" onClick={() => selectedRecord ? setEditing(selectedRecord) : setBulkEditing(true)}>
-            <Pencil size={15} />编辑
-          </Button>
-          <Button variant="danger" onClick={deleteSelected} disabled={deletion.isPending}>
-            <Trash2 size={15} />{deletion.isPending ? "删除中…" : "批量删除"}
-          </Button>
-        </div>
-      )}
+      <RecordActions count={selectedIds.length} busy={deletion.isPending} error={deletion.error}
+        onEdit={() => selectedRecord ? setEditing(selectedRecord) : setBulkEditing(true)}
+        onDelete={deleteSelected} onClear={() => setRowSelection({})} />
 
       {bulkEditing && (
         <BulkTransactionEditor
@@ -338,7 +402,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
   const initialCategory = commonValue(transactions.map((transaction) => transaction.category)) ?? "";
   const initialSubcategory = commonValue(transactions.map((transaction) => transaction.subcategory)) ?? "";
   const initialNotes = commonValue(transactions.map((transaction) => transaction.notes)) ?? "";
-  const [changeCategory, setChangeCategory] = useState(Boolean(transactionType));
+  const [changeCategory, setChangeCategory] = useState(false);
   const [changeNotes, setChangeNotes] = useState(false);
   const [category, setCategory] = useState(initialCategory);
   const [subcategory, setSubcategory] = useState(initialSubcategory);
@@ -360,7 +424,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
 
   return (
     <Dialog open onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent>
+      <DialogContent layout="center">
         <DialogHeader>
           <DialogTitle>编辑 {ids.length} 条账目</DialogTitle>
           <DialogDescription>不可安全批量修改的字段已锁定；只会保存你主动勾选的项目。</DialogDescription>
@@ -373,14 +437,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
             <LockedField label="金额" value={`合计 ${formatMoney(totalAmount)}`} />
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Checkbox
-              checked={changeCategory}
-              disabled={!transactionType}
-              onCheckedChange={(checked) => setChangeCategory(Boolean(checked))}
-            />
-            修改分类
-          </label>
+          <BulkFieldToggle label="修改分类" checked={changeCategory} disabled={!transactionType} onChange={setChangeCategory} />
           {!transactionType && <p className="text-xs text-neutral-500">所选记录包含不同类型，无法共用同一套分类。</p>}
           <div className="grid grid-cols-2 gap-3">
             <FormField label="主类别">
@@ -405,10 +462,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
             </FormField>
           </div>
 
-          <label className="flex items-center gap-2 text-sm font-medium">
-            <Checkbox checked={changeNotes} onCheckedChange={(checked) => setChangeNotes(Boolean(checked))} />
-            覆盖备注
-          </label>
+          <BulkFieldToggle label="覆盖备注" checked={changeNotes} onChange={setChangeNotes} />
           <textarea
             className="min-h-20 w-full rounded-md border border-neutral-300 p-3 text-sm outline-none disabled:bg-neutral-100 disabled:text-neutral-500"
             value={notes}
@@ -417,7 +471,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
             onChange={(event) => setNotes(event.target.value)}
           />
           {update.isError && <p className="text-sm text-red-600">{update.error.message}</p>}
-          <div className="flex justify-end gap-2">
+          <EditorFooter>
             <Button variant="outline" onClick={onClose}>取消</Button>
             <Button
               onClick={() => update.mutate()}
@@ -425,7 +479,7 @@ function BulkTransactionEditor({ transactions, categories, onClose, onSaved }: {
             >
               {update.isPending ? "保存中…" : `修改 ${ids.length} 条记录`}
             </Button>
-          </div>
+          </EditorFooter>
         </div>
       </DialogContent>
     </Dialog>
@@ -478,10 +532,10 @@ function TransactionEditor({ transaction, transactions, categories, onClose, onS
 
   return (
     <Dialog open={Boolean(transaction)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent>
+      <DialogContent layout="center">
         <DialogHeader>
           <DialogTitle>编辑账目</DialogTitle>
-          <DialogDescription>保存后只更新本地缓存中的这一行，不重新加载整个页面。</DialogDescription>
+          <DialogDescription>修改收支信息，保存后生效。</DialogDescription>
         </DialogHeader>
         {transaction && (
           <>
@@ -524,7 +578,7 @@ function TransactionEditor({ transaction, transactions, categories, onClose, onS
                 <Input type="number" min="0.01" step="0.01" {...form.register("amount", { valueAsNumber: true })} />
               </FormField>
               <FormField label="日期" error={form.formState.errors.date?.message}>
-                <Input type="date" {...form.register("date")} />
+                <Input type="date" {...form.register("date")} value={form.watch("date") ?? ""} />
               </FormField>
             </div>
             <FormField label="主类别">
@@ -550,10 +604,10 @@ function TransactionEditor({ transaction, transactions, categories, onClose, onS
               <textarea className="min-h-24 w-full rounded-md border border-neutral-300 p-3 text-sm outline-none focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200" {...form.register("notes")} />
             </FormField>
             {update.isError && <p className="text-sm text-red-600">{update.error.message}</p>}
-            <div className="flex justify-end gap-2 pt-2">
+            <EditorFooter>
               <Button type="button" variant="outline" onClick={onClose}>取消</Button>
               <Button type="submit" disabled={update.isPending}>{update.isPending ? "保存中…" : "保存修改"}</Button>
-            </div>
+            </EditorFooter>
             </form>}
             {tab === "amortization" && <AmortizationForm transaction={transaction} onSaved={onSaved} />}
             {tab === "recurring" && <RecurringForm transaction={transaction} onSaved={onRefresh} />}
