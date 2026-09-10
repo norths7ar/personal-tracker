@@ -555,6 +555,32 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AnalysisEntry */
+        AnalysisEntry: {
+            /** Id */
+            id: number;
+            /** Date */
+            date: string;
+            /** Allocation Date */
+            allocation_date: string;
+            /** Description */
+            description: string;
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Amount */
+            amount: number;
+            /** Contribution */
+            contribution: number;
+            /** Type */
+            type: string;
+            /**
+             * Bucket
+             * @enum {string}
+             */
+            bucket: "income" | "expense";
+        };
         /** AuthenticationState */
         AuthenticationState: {
             /** Authenticated */
@@ -908,14 +934,14 @@ export interface components {
             selected_period: string | null;
             /** Days */
             days?: number | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
             current?: components["schemas"]["PeriodData"] | null;
-            previous?: components["schemas"]["PeriodData"] | null;
             cash_current?: components["schemas"]["PeriodData"] | null;
-            cash_previous?: components["schemas"]["PeriodData"] | null;
             /** Timeline */
             timeline?: components["schemas"]["PeriodSummary"][];
-            /** Comparison */
-            comparison?: components["schemas"]["PeriodSummary"][];
             /** Fixed Monthly Cost */
             fixed_monthly_cost?: number | null;
             budget?: components["schemas"]["MonthBudget"] | null;
@@ -1080,6 +1106,8 @@ export interface components {
             expense_breakdown: components["schemas"]["BreakdownItem"][];
             /** Income Breakdown */
             income_breakdown: components["schemas"]["BreakdownItem"][];
+            /** Entries */
+            entries?: components["schemas"]["AnalysisEntry"][];
         };
         /** PeriodSummary */
         PeriodSummary: {

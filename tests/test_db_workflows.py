@@ -12,6 +12,7 @@ import core.subscription.db as subscription_db
 from core.constants import (
     PENDING_CATEGORY,
     RECURRING_PAYMENT_PREPAID,
+    REFUND_CATEGORY,
     REIMBURSEMENT_CATEGORY,
     RENEWAL_MODE_FIXED_DAYS,
     RENEWAL_MODE_SAME_DAY,
@@ -529,7 +530,7 @@ class DatabaseWorkflowTest(unittest.TestCase):
             self.assertEqual(period["expense_breakdown"][0]["category"], "旅行")
             self.assertEqual(period["income_breakdown"], [])
 
-    def test_reimbursements_reduce_net_expense_without_counting_as_income(self):
+    def test_reimbursements_count_as_independent_income(self):
         expense_db.add_transaction(
             TYPE_EXPENSE,
             "trip",
@@ -548,17 +549,86 @@ class DatabaseWorkflowTest(unittest.TestCase):
 
         for basis in ("cash", "amortized"):
             period = expense_db.get_period_data("2026-08-01", "2026-08-31", basis)
-            self.assertEqual(period["expense"], -4)
-            self.assertEqual(period["income"], 0)
+            self.assertEqual(period["expense"], 1296)
+            self.assertEqual(period["income"], 1300)
             self.assertEqual(period["balance"], 4)
             self.assertEqual(
                 sum(row["total"] for row in period["expense_breakdown"]), 1296
             )
             self.assertNotIn(
+                REFUND_CATEGORY,
                 REIMBURSEMENT_CATEGORY,
                 {row["category"] for row in period["expense_breakdown"]},
             )
-            self.assertEqual(period["income_breakdown"], [])
+            self.assertEqual(period["income_breakdown"][0]["total"], 1300)
+
+    def test_analysis_entries_reconcile_across_period_refunds_and_allocations(self):
+        original = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "annual",
+            100,
+            "2026-07-15",
+            category="通讯",
+            subcategory="话费",
+            amortization_months=3,
+            amortization_start="2026-07-01",
+        )
+        refund = expense_db.add_refund(original, "partial", 10, "2026-08-02")
+        expense_db.add_transaction(
+            TYPE_INCOME,
+            "unlinked",
+            5,
+            "2026-08-03",
+            category=REFUND_CATEGORY,
+        )
+        expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "future",
+            100,
+            "2026-08-20",
+            category="餐饮",
+            amortization_months=2,
+            amortization_start="2026-08-01",
+        )
+        for basis, expected in (("cash", -10), ("amortized", 23.33)):
+            data = expense_db.get_period_data("2026-08-01", "2026-08-08", basis)
+            self.assertEqual(data["expense"], expected)
+            self.assertEqual(data["income"], 5)
+            for bucket in ("income", "expense"):
+                detail = [e for e in data["entries"] if e["bucket"] == bucket]
+                self.assertAlmostEqual(
+                    sum(e["contribution"] for e in detail), data[bucket]
+                )
+                self.assertAlmostEqual(
+                    sum(e["total"] for e in data[f"{bucket}_breakdown"]), data[bucket]
+                )
+            entry = next(e for e in data["entries"] if e["id"] == refund)
+            self.assertEqual(entry["category"], "通讯")
+            self.assertEqual(entry["date"], "2026-08-02")
+            self.assertEqual(entry["contribution"], -10)
+            if basis == "amortized":
+                allocation = next(e for e in data["entries"] if e["id"] == original)
+                self.assertEqual(allocation["date"], "2026-07-15")
+                self.assertEqual(allocation["allocation_date"], "2026-08-01")
+
+    def test_annual_amortization_counts_unique_transactions(self):
+        original = expense_db.add_transaction(
+            TYPE_EXPENSE,
+            "annual",
+            100,
+            "2026-01-01",
+            category="通讯",
+            amortization_months=12,
+            amortization_start="2026-01-01",
+        )
+        expense_db.add_refund(original, "partial", 10, "2026-08-02")
+        data = expense_db.get_period_data("2026-01-01", "2026-12-31", "amortized")
+        self.assertEqual(data["expense"], 90)
+        self.assertEqual(data["expense_breakdown"][0]["count"], 1)
+        self.assertEqual(len(data["entries"]), 13)
+        self.assertAlmostEqual(
+            sum(entry["contribution"] for entry in data["entries"]), 90
+        )
 
     def test_fixed_cost_uses_the_selected_month(self):
         subscription_db.add_subscription(

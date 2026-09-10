@@ -1,4 +1,3 @@
-from calendar import isleap
 from datetime import date, timedelta
 
 from core.budget.db import get_month_budget, save_month_budget
@@ -17,11 +16,6 @@ def _month_range(month: str) -> tuple[str, str, int]:
         (next_first - timedelta(days=1)).isoformat(),
         (next_first - first).days,
     )
-
-
-def _previous_month(month: str) -> str:
-    year, month_number = map(int, month.split("-"))
-    return f"{year - 1}-12" if month_number == 1 else f"{year}-{month_number - 1:02d}"
 
 
 def _period_data(start: str, end: str, basis: str) -> dict:
@@ -54,6 +48,11 @@ def _money(value) -> float:
     return round(float(value or 0), 2)
 
 
+def _elapsed_range(start: str, end: str) -> tuple[str, int]:
+    cutoff = min(date.fromisoformat(end), date.today())
+    return cutoff.isoformat(), max(0, (cutoff - date.fromisoformat(start)).days + 1)
+
+
 def get_expense_analysis(
     granularity: str,
     period: str | None,
@@ -61,78 +60,52 @@ def get_expense_analysis(
 ) -> dict:
     months = get_active_months()
     years = get_active_years()
-    if granularity == "month":
-        selected = period if period in months else _default_month(months)
-        if selected is None:
-            return {"months": [], "years": years, "selected_period": None}
-        start, end, days = _month_range(selected)
-        previous_start, previous_end, _ = _month_range(_previous_month(selected))
-        recent = months[:12][::-1]
-        timeline = []
-        for item in recent:
-            item_start, item_end, _ = _month_range(item)
-            data = _period_data(item_start, item_end, basis)
-            timeline.append(
-                {"label": item, "income": data["income"], "expense": data["expense"]}
-            )
-        cash_current = _period_data(start, end, "cash")
-        cash_previous = _period_data(previous_start, previous_end, "cash")
-        return {
-            "months": months,
-            "years": years,
-            "selected_period": selected,
-            "days": days,
-            "current": _period_data(start, end, basis),
-            "previous": _period_data(previous_start, previous_end, basis),
-            "cash_current": cash_current,
-            "cash_previous": cash_previous,
-            "timeline": timeline,
-            "comparison": [],
-            "fixed_monthly_cost": fixed_cost_for_month(selected),
-            "budget": get_month_budget(selected),
-            "cash_expense": cash_current["expense"],
-            "amortized_expense": _period_data(start, end, "amortized")["expense"],
-        }
-
-    selected = period if period in years else _default_year(years)
+    choices = months if granularity == "month" else years
+    default = _default_month(months) if granularity == "month" else _default_year(years)
+    selected = period if period in choices else default
     if selected is None:
-        return {"months": months, "years": [], "selected_period": None}
-    previous_year = str(int(selected) - 1)
-    start, end = f"{selected}-01-01", f"{selected}-12-31"
-    previous_start, previous_end = f"{previous_year}-01-01", f"{previous_year}-12-31"
+        return {"months": months, "years": years, "selected_period": None}
+    if granularity == "month":
+        start, end, _ = _month_range(selected)
+        timeline_months = []
+    else:
+        start, end = f"{selected}-01-01", f"{selected}-12-31"
+        timeline_months = [
+            f"{selected}-{number:02d}"
+            for number in range(1, 13)
+            if f"{selected}-{number:02d}" <= date.today().strftime("%Y-%m")
+        ]
+    end, days = _elapsed_range(start, end)
     timeline = []
-    for month_number in range(1, 13):
-        item = f"{selected}-{month_number:02d}"
+    for item in timeline_months:
         item_start, item_end, _ = _month_range(item)
+        item_end, _ = _elapsed_range(item_start, item_end)
         data = _period_data(item_start, item_end, basis)
         timeline.append(
             {
-                "label": f"{month_number}月",
+                "label": item if granularity == "month" else f"{int(item[-2:])}月",
                 "income": data["income"],
                 "expense": data["expense"],
             }
         )
-    comparison = []
-    for year in years[::-1]:
-        data = _period_data(f"{year}-01-01", f"{year}-12-31", basis)
-        comparison.append(
-            {"label": year, "income": data["income"], "expense": data["expense"]}
-        )
+    cash = _period_data(start, end, "cash")
+    amortized = _period_data(start, end, "amortized")
     return {
         "months": months,
         "years": years,
         "selected_period": selected,
-        "days": 366 if isleap(int(selected)) else 365,
-        "current": _period_data(start, end, basis),
-        "previous": _period_data(previous_start, previous_end, basis),
-        "cash_current": _period_data(start, end, "cash"),
-        "cash_previous": _period_data(previous_start, previous_end, "cash"),
+        "start_date": start,
+        "end_date": end,
+        "days": days,
+        "current": cash if basis == "cash" else amortized,
+        "cash_current": cash,
         "timeline": timeline,
-        "comparison": comparison,
-        "fixed_monthly_cost": None,
-        "budget": None,
-        "cash_expense": None,
-        "amortized_expense": None,
+        "fixed_monthly_cost": fixed_cost_for_month(selected)
+        if granularity == "month"
+        else None,
+        "budget": get_month_budget(selected) if granularity == "month" else None,
+        "cash_expense": cash["expense"] if granularity == "month" else None,
+        "amortized_expense": amortized["expense"] if granularity == "month" else None,
     }
 
 

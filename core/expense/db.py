@@ -3,7 +3,6 @@ from datetime import date, timedelta
 
 from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
-    EXPENSE_OFFSET_INCOME_CATEGORIES,
     PENDING_CATEGORY,
     RECURRING_PAYMENT_PREPAID,
     REFUND_CATEGORY,
@@ -503,213 +502,124 @@ def _week_start(value: str) -> str:
 
 
 def _cash_period_data(start_date: str, end_date: str) -> dict:
-    def bd(conn, type_):
-        offset_placeholders = ", ".join("?" for _ in EXPENSE_OFFSET_INCOME_CATEGORIES)
-        refund_filter = (
-            f" AND COALESCE(category, '') NOT IN ({offset_placeholders})"
-            if type_ == TYPE_INCOME
-            else ""
-        )
-        params = [start_date, end_date, type_]
-        if type_ == TYPE_INCOME:
-            params.extend(EXPENSE_OFFSET_INCOME_CATEGORIES)
-        return conn.execute(
-            f"""SELECT category, subcategory,
-                       SUM({_amount_expr()}) as total, COUNT(*) as count
-               FROM transactions
-               WHERE date >= ? AND date <= ? AND type = ?
-               {refund_filter}
-               GROUP BY category, subcategory ORDER BY total DESC""",
-            params,
-        ).fetchall()
-
-    def expense_bd(conn):
-        amount = "COALESCE(t.amount_cents / 100.0, t.amount)"
-        refund_amount = "COALESCE(r.amount_cents / 100.0, r.amount)"
-        return conn.execute(
-            f"""SELECT category, subcategory,
-                       SUM(total) AS total, SUM(count) AS count
-                FROM (
-                    SELECT t.category, t.subcategory, {amount} AS total, 1 AS count
-                    FROM transactions t
-                    WHERE t.date >= ? AND t.date <= ? AND t.type = ?
-                    UNION ALL
-                    SELECT original.category, original.subcategory,
-                           -{refund_amount} AS total, 0 AS count
-                    FROM transactions r
-                    JOIN transactions original ON original.id = r.refund_for_id
-                    WHERE r.date >= ? AND r.date <= ?
-                      AND r.type = ? AND r.category = ?
-                ) entries
-                GROUP BY category, subcategory
-                HAVING ABS(SUM(total)) >= 0.005
-                ORDER BY total DESC""",
-            (
-                start_date,
-                end_date,
-                TYPE_EXPENSE,
-                start_date,
-                end_date,
-                TYPE_INCOME,
-                REFUND_CATEGORY,
-            ),
-        ).fetchall()
-
-    with closing(_connect()) as conn:
-        totals_rows = conn.execute(
-            f"""SELECT type, category, SUM({_amount_expr()}) as total
-               FROM transactions
-               WHERE date >= ? AND date <= ?
-                 AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
-               GROUP BY type, category""",
-            (start_date, end_date),
-        ).fetchall()
-
-        daily_rows = conn.execute(
-            f"""SELECT date, type, category, SUM({_amount_expr()}) as total
-               FROM transactions
-               WHERE date >= ? AND date <= ?
-                 AND type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
-               GROUP BY date, type, category ORDER BY date""",
-            (start_date, end_date),
-        ).fetchall()
-
-        expense_breakdown = expense_bd(conn)
-        income_bd = bd(conn, TYPE_INCOME)
-
-    income = 0.0
-    expense = 0.0
-    for raw in totals_rows:
-        row = dict(raw)
-        total = row["total"] or 0
-        if (
-            row["type"] == TYPE_INCOME
-            and row.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
-        ):
-            expense -= total
-        elif row["type"] == TYPE_INCOME:
-            income += total
-        elif row["type"] == TYPE_EXPENSE:
-            expense += total
-
-    daily: dict = {}
-    for raw in daily_rows:
-        r = dict(raw)
-        d = r["date"]
-        if d not in daily:
-            daily[d] = {"date": d, TYPE_INCOME: 0.0, TYPE_EXPENSE: 0.0}
-        if (
-            r["type"] == TYPE_INCOME
-            and r.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
-        ):
-            daily[d][TYPE_EXPENSE] -= r["total"] or 0
-        else:
-            daily[d][r["type"]] += r["total"] or 0
-
-    return {
-        "income": income,
-        "expense": expense,
-        "balance": income - expense,
-        "daily": list(daily.values()),
-        "expense_breakdown": [dict(r) for r in expense_breakdown],
-        "income_breakdown": [dict(r) for r in income_bd],
-    }
-
-
-def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict:
-    if basis != "amortized":
-        return _cash_period_data(start_date, end_date)
-    return get_amortized_period_data(start_date, end_date)
+    return get_period_data(start_date, end_date, "cash")
 
 
 def get_amortized_period_data(start_date: str, end_date: str) -> dict:
+    return get_period_data(start_date, end_date, "amortized")
+
+
+def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict:
+    """Aggregate the same signed contributions used for transaction drilldown."""
     with closing(_connect()) as conn:
         rows = conn.execute(
-            f"""SELECT * FROM transactions
-               WHERE type IN ('{TYPE_INCOME}','{TYPE_EXPENSE}')
-               ORDER BY date""",
+            "SELECT * FROM transactions WHERE type IN (?, ?) ORDER BY date, id",
+            (TYPE_INCOME, TYPE_EXPENSE),
         ).fetchall()
-
-    normalized_rows = [_normalize_transaction(raw) for raw in rows]
-    rows_by_id = {row["id"]: row for row in normalized_rows}
-    daily: dict = {}
-    breakdown: dict[tuple[str, str], dict] = {}
-    income = 0.0
-    expense = 0.0
-
-    for row in normalized_rows:
-        type_ = row.get("type")
+    transactions = [_normalize_transaction(row) for row in rows]
+    by_id = {row["id"]: row for row in transactions}
+    entries = []
+    for row in transactions:
+        if row["date"] > end_date:
+            continue
+        original = by_id.get(row.get("refund_for_id"))
+        linked_refund = (
+            row["type"] == TYPE_INCOME
+            and row.get("category") == REFUND_CATEGORY
+            and original is not None
+            and original["type"] == TYPE_EXPENSE
+        )
+        bucket = "expense" if row["type"] == TYPE_EXPENSE or linked_refund else "income"
+        category_source = original if linked_refund else row
         amount = float(row.get("amount") or 0)
-        if type_ == TYPE_EXPENSE and int(row.get("amortization_months") or 0) > 1:
-            months = int(row.get("amortization_months") or 1)
-            allocation = amount / months
-            starts = _month_starts(
-                row.get("amortization_start") or row.get("date"), months
-            )
-            entries = [(month, allocation) for month in starts]
-        else:
-            entries = [(row.get("date"), amount)]
-
-        for entry_date, entry_amount in entries:
-            if not entry_date or entry_date < start_date or entry_date > end_date:
+        allocations = [(row["date"], amount)]
+        if (
+            basis == "amortized"
+            and row["type"] == TYPE_EXPENSE
+            and int(row.get("amortization_months") or 1) > 1
+        ):
+            months = int(row["amortization_months"])
+            # Integer cents keep daily, category and detail totals consistent.
+            cents, remainder = divmod(to_cents(amount), months)
+            allocations = [
+                (month, (cents + (index < remainder)) / 100)
+                for index, month in enumerate(
+                    _month_starts(row.get("amortization_start") or row["date"], months)
+                )
+            ]
+        for allocation_date, allocation in allocations:
+            if not start_date <= allocation_date <= end_date:
                 continue
-            day = daily.setdefault(
-                entry_date, {"date": entry_date, TYPE_INCOME: 0.0, TYPE_EXPENSE: 0.0}
+            entries.append(
+                {
+                    "id": row["id"],
+                    "date": row["date"],
+                    "allocation_date": allocation_date,
+                    "description": row["description"],
+                    "category": category_source.get("category") or "",
+                    "subcategory": category_source.get("subcategory") or "",
+                    "amount": amount,
+                    "contribution": -allocation if linked_refund else allocation,
+                    "type": row["type"],
+                    "bucket": bucket,
+                }
             )
-            if (
-                type_ == TYPE_INCOME
-                and row.get("category") in EXPENSE_OFFSET_INCOME_CATEGORIES
-            ):
-                day[TYPE_EXPENSE] -= entry_amount
-                expense -= entry_amount
-                original = rows_by_id.get(row.get("refund_for_id")) or {}
-                if not original:
-                    continue
-                key = (
-                    original.get("category") or "",
-                    original.get("subcategory") or "",
-                )
-                current = breakdown.setdefault(
-                    key,
-                    {
-                        "category": key[0],
-                        "subcategory": key[1],
-                        "total": 0.0,
-                        "count": 0,
-                    },
-                )
-                current["total"] -= entry_amount
-            elif type_ == TYPE_INCOME:
-                day[TYPE_INCOME] += entry_amount
-                income += entry_amount
-            elif type_ == TYPE_EXPENSE:
-                day[TYPE_EXPENSE] += entry_amount
-                expense += entry_amount
-                key = (row.get("category") or "", row.get("subcategory") or "")
-                current = breakdown.setdefault(
-                    key,
-                    {
-                        "category": key[0],
-                        "subcategory": key[1],
-                        "total": 0.0,
-                        "count": 0,
-                    },
-                )
-                current["total"] += entry_amount
-                current["count"] += 1
-
-    income_breakdown = _cash_period_data(start_date, end_date)["income_breakdown"]
+    daily = {}
+    breakdown = {"income": {}, "expense": {}}
+    totals = {"income": 0, "expense": 0}
+    counted_ids = {"income": {}, "expense": {}}
+    for entry in entries:
+        bucket = entry["bucket"]
+        cents = to_cents(entry["contribution"])
+        totals[bucket] += cents
+        day = daily.setdefault(
+            entry["allocation_date"],
+            {
+                "date": entry["allocation_date"],
+                TYPE_INCOME: 0,
+                TYPE_EXPENSE: 0,
+            },
+        )
+        day[TYPE_INCOME if bucket == "income" else TYPE_EXPENSE] += cents
+        key = (entry["category"], entry["subcategory"])
+        group = breakdown[bucket].setdefault(
+            key,
+            {
+                "category": key[0],
+                "subcategory": key[1],
+                "total": 0,
+                "count": 0,
+            },
+        )
+        group["total"] += cents
+        ids = counted_ids[bucket].setdefault(key, set())
+        if entry["contribution"] >= 0:
+            ids.add(entry["id"])
+        group["count"] = len(ids)
     return {
-        "income": income,
-        "expense": expense,
-        "balance": income - expense,
-        "daily": sorted(daily.values(), key=lambda r: r["date"]),
-        "expense_breakdown": sorted(
-            (row for row in breakdown.values() if abs(float(row["total"])) >= 0.005),
-            key=lambda r: r["total"],
-            reverse=True,
+        "income": totals["income"] / 100,
+        "expense": totals["expense"] / 100,
+        "balance": (totals["income"] - totals["expense"]) / 100,
+        "daily": [
+            {
+                "date": row["date"],
+                TYPE_INCOME: row[TYPE_INCOME] / 100,
+                TYPE_EXPENSE: row[TYPE_EXPENSE] / 100,
+            }
+            for row in sorted(daily.values(), key=lambda row: row["date"])
+        ],
+        **{
+            f"{bucket}_breakdown": [
+                {**row, "total": row["total"] / 100}
+                for row in sorted(
+                    groups.values(), key=lambda row: row["total"], reverse=True
+                )
+            ]
+            for bucket, groups in breakdown.items()
+        },
+        "entries": sorted(
+            entries, key=lambda row: (row["allocation_date"], row["id"]), reverse=True
         ),
-        "income_breakdown": income_breakdown,
     }
 
 

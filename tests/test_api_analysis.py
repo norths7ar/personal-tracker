@@ -1,4 +1,5 @@
 import unittest
+from datetime import date
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -67,6 +68,50 @@ class ExpenseAnalysisApiTest(unittest.TestCase):
         self.assertEqual(payload["current"]["daily"][0]["expense"], 26.0)
         self.assertEqual(payload["fixed_monthly_cost"], 12.0)
         self.assertEqual(payload["budget"]["cash_total"], 1200.0)
+
+    def test_analysis_uses_elapsed_periods_without_previous_comparisons(self):
+        class Today(date):
+            @classmethod
+            def today(cls):
+                return cls(2026, 9, 8)
+
+        months = ["2026-10", "2026-09", "2026-08", "2024-02"]
+        with (
+            patch.object(analysis_service, "date", Today),
+            patch.object(analysis_service, "get_active_months", return_value=months),
+            patch.object(
+                analysis_service, "get_active_years", return_value=["2026", "2024"]
+            ),
+            patch.object(
+                analysis_service, "get_period_data", side_effect=lambda *_: _period(26)
+            ) as query,
+        ):
+            for period, days, end in (
+                ("2026-09", 8, "2026-09-08"),
+                ("2026-08", 31, "2026-08-31"),
+                ("2024-02", 29, "2024-02-29"),
+                ("2026-10", 0, "2026-09-08"),
+            ):
+                query.reset_mock()
+                data = analysis_service.get_expense_analysis("month", period, "cash")
+                self.assertEqual(data["days"], days)
+                self.assertEqual(data["end_date"], end)
+                self.assertNotIn("previous", data)
+                self.assertNotIn("cash_previous", data)
+                self.assertNotIn("comparison", data)
+                self.assertTrue(
+                    all(call.args[1] <= "2026-09-08" for call in query.call_args_list)
+                )
+                self.assertTrue(
+                    all(point["label"] <= "2026-09" for point in data["timeline"])
+                )
+            data = analysis_service.get_expense_analysis("year", "2026", "amortized")
+            self.assertEqual(data["days"], 251)
+            self.assertEqual(data["end_date"], "2026-09-08")
+            self.assertEqual(len(data["timeline"]), 9)
+            data = analysis_service.get_expense_analysis("year", "2024", "cash")
+            self.assertEqual(data["days"], 366)
+            self.assertEqual(len(data["timeline"]), 12)
 
     def test_budget_update_rejects_unknown_month(self):
         response = self.client.put(

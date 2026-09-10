@@ -26,6 +26,19 @@ class DailyPoint(BaseModel):
     expense: float
 
 
+class AnalysisEntry(BaseModel):
+    id: int
+    date: str
+    allocation_date: str
+    description: str
+    category: str
+    subcategory: str
+    amount: float
+    contribution: float
+    type: str
+    bucket: Literal["income", "expense"]
+
+
 class PeriodData(BaseModel):
     income: float
     expense: float
@@ -33,6 +46,7 @@ class PeriodData(BaseModel):
     daily: list[DailyPoint]
     expense_breakdown: list[BreakdownItem]
     income_breakdown: list[BreakdownItem]
+    entries: list[AnalysisEntry] = Field(default_factory=list)
 
 
 class PeriodSummary(BaseModel):
@@ -51,12 +65,11 @@ class ExpenseAnalysisResponse(BaseModel):
     years: list[str]
     selected_period: str | None
     days: int | None = None
+    start_date: str | None = None
+    end_date: str | None = None
     current: PeriodData | None = None
-    previous: PeriodData | None = None
     cash_current: PeriodData | None = None
-    cash_previous: PeriodData | None = None
     timeline: list[PeriodSummary] = Field(default_factory=list)
-    comparison: list[PeriodSummary] = Field(default_factory=list)
     fixed_monthly_cost: float | None = None
     budget: MonthBudget | None = None
     cash_expense: float | None = None
