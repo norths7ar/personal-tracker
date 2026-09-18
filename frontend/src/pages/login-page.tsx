@@ -24,12 +24,24 @@ export function LoginPage({ onSuccess }: { onSuccess: () => void }) {
       >
         <h1 className="text-2xl font-semibold">拾记</h1>
         <p className="mb-6 mt-1 text-sm text-neutral-500">登录后访问你的记录</p>
-        <label className="mb-2 block text-sm font-medium" htmlFor="password">密码</label>
-        <Input id="password" type="password" autoFocus {...register("password")} />
+        <label className="mb-2 block text-sm font-medium" htmlFor="password">
+          密码
+        </label>
+        <Input
+          id="password"
+          type="password"
+          autoFocus
+          {...register("password")}
+        />
         <p className="mt-2 min-h-5 text-sm text-red-600">
-          {formState.errors.password?.message ?? (login.error instanceof Error ? login.error.message : "")}
+          {formState.errors.password?.message ??
+            (login.error instanceof Error ? login.error.message : "")}
         </p>
-        <Button className="mt-3 w-full" disabled={login.isPending} type="submit">
+        <Button
+          className="mt-3 w-full"
+          disabled={login.isPending}
+          type="submit"
+        >
           {login.isPending ? "登录中…" : "登录"}
         </Button>
       </form>

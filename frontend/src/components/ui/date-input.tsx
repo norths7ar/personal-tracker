@@ -1,16 +1,33 @@
 import { CalendarDays } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState, type ComponentPropsWithRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ComponentPropsWithRef,
+} from "react";
 
 import { cn } from "@/lib/utils";
 
-function dateError(value: string, min?: string | number, max?: string | number): string {
+function dateError(
+  value: string,
+  min?: string | number,
+  max?: string | number,
+): string {
   if (!value) return "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "请输入完整日期，格式为 YYYY-MM-DD";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
+    return "请输入完整日期，格式为 YYYY-MM-DD";
   const year = Number(value.slice(0, 4));
   const month = Number(value.slice(5, 7));
   const day = Number(value.slice(8, 10));
   const date = new Date(`${value}T00:00:00`);
-  if (year < 1 || date.getFullYear() !== year || date.getMonth() + 1 !== month || date.getDate() !== day) {
+  if (
+    year < 1 ||
+    date.getFullYear() !== year ||
+    date.getMonth() + 1 !== month ||
+    date.getDate() !== day
+  ) {
     return "请输入有效日期";
   }
   if (min && value < String(min)) return `日期不能早于 ${min}`;
@@ -19,8 +36,19 @@ function dateError(value: string, min?: string | number, max?: string | number):
 }
 
 export function DateInput({
-  className, value, defaultValue, onChange, onBlur, ref, min, max,
-  disabled, readOnly, placeholder = "选择日期", resetKey, ...props
+  className,
+  value,
+  defaultValue,
+  onChange,
+  onBlur,
+  ref,
+  min,
+  max,
+  disabled,
+  readOnly,
+  placeholder = "选择日期",
+  resetKey,
+  ...props
 }: ComponentPropsWithRef<"input"> & { resetKey?: string | number }) {
   const controlled = value === undefined ? undefined : String(value);
   const [previousValue, setPreviousValue] = useState(controlled);
@@ -38,11 +66,14 @@ export function DateInput({
     setBlurred(false);
   }
   const error = dateError(draft, min, max);
-  const attachRef = useCallback((node: HTMLInputElement | null) => {
-    textRef.current = node;
-    if (typeof ref === "function") return ref(node);
-    if (ref) ref.current = node;
-  }, [ref]);
+  const attachRef = useCallback(
+    (node: HTMLInputElement | null) => {
+      textRef.current = node;
+      if (typeof ref === "function") return ref(node);
+      if (ref) ref.current = node;
+    },
+    [ref],
+  );
   useEffect(() => {
     textRef.current?.setCustomValidity(error);
   }, [error]);
@@ -58,9 +89,16 @@ export function DateInput({
         readOnly={readOnly}
         placeholder={placeholder}
         title="输入日期（YYYY-MM-DD）或使用右侧日历选择"
-        className={cn("h-9 w-full rounded-md border border-neutral-300 bg-white px-3 pr-10 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50", className)}
+        className={cn(
+          "h-9 w-full rounded-md border border-neutral-300 bg-white px-3 pr-10 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50",
+          className,
+        )}
         aria-invalid={error ? true : props["aria-invalid"]}
-        aria-describedby={[props["aria-describedby"], error && blurred ? errorId : ""].filter(Boolean).join(" ") || undefined}
+        aria-describedby={
+          [props["aria-describedby"], error && blurred ? errorId : ""]
+            .filter(Boolean)
+            .join(" ") || undefined
+        }
         onChange={(event) => {
           const next = event.target.value;
           setDraft(next);
@@ -109,7 +147,11 @@ export function DateInput({
           input.focus();
         }}
       />
-      {error && blurred && <span id={errorId} className="mt-1 block text-xs text-red-600">{error}</span>}
+      {error && blurred && (
+        <span id={errorId} className="mt-1 block text-xs text-red-600">
+          {error}
+        </span>
+      )}
     </span>
   );
 }

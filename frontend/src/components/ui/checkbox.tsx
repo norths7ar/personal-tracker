@@ -4,7 +4,10 @@ import type { ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-export function Checkbox({ className, ...props }: ComponentProps<typeof CheckboxPrimitive.Root>) {
+export function Checkbox({
+  className,
+  ...props
+}: ComponentProps<typeof CheckboxPrimitive.Root>) {
   return (
     <CheckboxPrimitive.Root
       className={cn(
@@ -14,7 +17,11 @@ export function Checkbox({ className, ...props }: ComponentProps<typeof Checkbox
       {...props}
     >
       <CheckboxPrimitive.Indicator className="text-white">
-        {props.checked === "indeterminate" ? <Minus size={12} /> : <Check size={12} />}
+        {props.checked === "indeterminate" ? (
+          <Minus size={12} />
+        ) : (
+          <Check size={12} />
+        )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

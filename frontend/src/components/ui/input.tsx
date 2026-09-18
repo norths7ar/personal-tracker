@@ -3,8 +3,13 @@ import type { ComponentPropsWithRef } from "react";
 import { cn } from "@/lib/utils";
 import { DateInput } from "./date-input";
 
-export function Input({ className, resetKey, ...props }: ComponentPropsWithRef<"input"> & { resetKey?: string | number }) {
-  if (props.type === "date") return <DateInput className={className} resetKey={resetKey} {...props} />;
+export function Input({
+  className,
+  resetKey,
+  ...props
+}: ComponentPropsWithRef<"input"> & { resetKey?: string | number }) {
+  if (props.type === "date")
+    return <DateInput className={className} resetKey={resetKey} {...props} />;
   return (
     <input
       className={cn(

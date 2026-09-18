@@ -1,3 +1,4 @@
+import { invalidateFinance } from "@/api/invalidate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
@@ -19,17 +20,17 @@ import {
 
 const types = ["支出", "收入", "迁移"] as const;
 
-const initialEntry: TransactionCreate = {
+const initialEntry = (): TransactionCreate => ({
   type: "支出",
   description: "",
   amount: 0,
-  date: today,
+  date: today(),
   category: null,
   subcategory: null,
   notes: null,
   confidence: null,
   reviewed: false,
-};
+});
 
 export function TransactionEntry() {
   const queryClient = useQueryClient();
@@ -40,13 +41,21 @@ export function TransactionEntry() {
   const [entry, setEntry] = useState<TransactionCreate>(initialEntry);
   const [review, setReview] = useState<TransactionPreparation | null>(null);
   const [requestKey, setRequestKey] = useState("");
-  const [pendingSave, setPendingSave] = useState<TransactionCreate | null>(null);
+  const [pendingSave, setPendingSave] = useState<TransactionCreate | null>(
+    null,
+  );
   const [message, setMessage] = useState("");
 
   const save = useMutation({
-    mutationFn: ({ payload, key }: { payload: TransactionCreate; key: string }) =>
-      api.createTransaction(payload, key),
+    mutationFn: ({
+      payload,
+      key,
+    }: {
+      payload: TransactionCreate;
+      key: string;
+    }) => api.createTransaction(payload, key),
     onSuccess: (result) => {
+      void invalidateFinance(queryClient);
       setMessage(
         result.duplicate
           ? "该请求已经保存，重复提交已忽略。"
@@ -61,8 +70,6 @@ export function TransactionEntry() {
         amount: 0,
         notes: null,
       }));
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 

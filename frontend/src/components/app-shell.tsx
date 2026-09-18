@@ -1,4 +1,12 @@
-import { BarChart3, BookOpen, CalendarClock, CheckSquare2, LogOut, PencilLine, Utensils } from "lucide-react";
+import {
+  BarChart3,
+  BookOpen,
+  CalendarClock,
+  CheckSquare2,
+  LogOut,
+  PencilLine,
+  Utensils,
+} from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -17,13 +25,29 @@ export function AppShell({ children, onLogout }: AppShellProps) {
         <div className="mb-8 px-2 text-lg font-semibold">拾记</div>
         <nav className="space-y-1">
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
-          <NavItem to="/pending" icon={<CheckSquare2 size={17} />} label="待处理" />
+          <NavItem
+            to="/pending"
+            icon={<CheckSquare2 size={17} />}
+            label="待处理"
+          />
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
-          <NavItem to="/analysis" icon={<BarChart3 size={17} />} label="开销分析" />
-          <NavItem to="/cross-period" icon={<CalendarClock size={17} />} label="跨期费用" />
+          <NavItem
+            to="/analysis"
+            icon={<BarChart3 size={17} />}
+            label="开销分析"
+          />
+          <NavItem
+            to="/cross-period"
+            icon={<CalendarClock size={17} />}
+            label="跨期费用"
+          />
           <NavItem to="/diet" icon={<Utensils size={17} />} label="饮食" />
         </nav>
-        <Button className="mt-auto justify-start" variant="ghost" onClick={onLogout}>
+        <Button
+          className="mt-auto justify-start"
+          variant="ghost"
+          onClick={onLogout}
+        >
           <LogOut size={16} />
           退出登录
         </Button>
@@ -31,7 +55,9 @@ export function AppShell({ children, onLogout }: AppShellProps) {
       <div className="md:pl-56">
         <header className="flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 md:hidden">
           <span className="font-semibold">拾记</span>
-          <Button size="sm" variant="ghost" onClick={onLogout}>退出</Button>
+          <Button size="sm" variant="ghost" onClick={onLogout}>
+            退出
+          </Button>
         </header>
         <main className="app-content">{children}</main>
       </div>
@@ -39,14 +65,24 @@ export function AppShell({ children, onLogout }: AppShellProps) {
   );
 }
 
-function NavItem({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
+function NavItem({
+  to,
+  icon,
+  label,
+}: {
+  to: string;
+  icon: ReactNode;
+  label: string;
+}) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
         cn(
           "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-          isActive ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-100",
+          isActive
+            ? "bg-neutral-900 text-white"
+            : "text-neutral-600 hover:bg-neutral-100",
         )
       }
     >

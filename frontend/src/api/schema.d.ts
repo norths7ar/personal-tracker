@@ -588,12 +588,6 @@ export interface components {
         };
         /** BatchDiagnostics */
         BatchDiagnostics: {
-            /** Raw Count */
-            raw_count: number;
-            /** Block Count */
-            block_count: number;
-            /** Kept Count */
-            kept_count: number;
             /** Rejected Records */
             rejected_records?: {
                 [key: string]: unknown;
@@ -811,13 +805,6 @@ export interface components {
             /** Count */
             count: number;
         };
-        /** CountByMealType */
-        CountByMealType: {
-            /** Meal Type */
-            meal_type: string;
-            /** Count */
-            count: number;
-        };
         /** CreateResponse */
         CreateResponse: {
             /** Id */
@@ -860,8 +847,6 @@ export interface components {
             ingredient_record_count: number;
             /** Daily Meals */
             daily_meals: components["schemas"]["CountByDate"][];
-            /** Meal Type Dist */
-            meal_type_dist: components["schemas"]["CountByMealType"][];
         };
         /** ExpectedRecord */
         ExpectedRecord: {
@@ -1211,13 +1196,6 @@ export interface components {
         SubscriptionCreate: {
             /** Name */
             name: string;
-            /**
-             * Billing Cycle
-             * @enum {string}
-             */
-            billing_cycle: "月付" | "季付" | "年付" | "自定义";
-            /** Billing Interval Months */
-            billing_interval_months?: number | null;
             /**
              * Next Renewal Date
              * Format: date

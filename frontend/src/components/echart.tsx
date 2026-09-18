@@ -2,7 +2,13 @@ import * as echarts from "echarts/core";
 import type { EChartsCoreOption } from "echarts/core";
 import { useEffect, useRef } from "react";
 
-export function EChart({ option, height = 280 }: { option: object; height?: number }) {
+export function EChart({
+  option,
+  height = 280,
+}: {
+  option: object;
+  height?: number;
+}) {
   const container = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

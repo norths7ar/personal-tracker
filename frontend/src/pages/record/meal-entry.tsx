@@ -1,3 +1,4 @@
+import { invalidateMeals } from "@/api/invalidate";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -12,15 +13,15 @@ import {
   today,
 } from "@/pages/record/entry-shared";
 
-const initialEntry: MealCreate = {
-  date: today,
+const initialEntry = (): MealCreate => ({
+  date: today(),
   time: "",
   meal_type: null,
   description: "",
   notes: null,
   confidence: null,
   foods: [],
-};
+});
 
 export function MealEntry() {
   const queryClient = useQueryClient();
@@ -34,7 +35,10 @@ export function MealEntry() {
     mutationFn: ({ payload, key }: { payload: MealCreate; key: string }) =>
       api.createMeal(payload, key),
     onSuccess: (result) => {
-      setMessage(result.duplicate ? "该请求已经保存。" : `已保存饮食 #${result.id}`);
+      void invalidateMeals(queryClient);
+      setMessage(
+        result.duplicate ? "该请求已经保存。" : `已保存饮食 #${result.id}`,
+      );
       setReview(null);
       setRequestKey("");
       setPendingSave(null);
@@ -44,7 +48,6 @@ export function MealEntry() {
         notes: null,
         foods: [],
       }));
-      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 
@@ -139,7 +142,10 @@ export function MealEntry() {
             }
           />
         </Field>
-        <Button data-primary-action={!review} disabled={busy || !entry.description.trim() || !entry.time}>
+        <Button
+          data-primary-action={!review}
+          disabled={busy || !entry.description.trim() || !entry.time}
+        >
           {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "提交"}
         </Button>
       </form>
@@ -160,7 +166,10 @@ export function MealEntry() {
           </Field>
           <div className="space-y-2">
             {entry.foods.map((food, index) => (
-              <div className="grid gap-2 sm:grid-cols-[1fr_1fr_1.3fr_auto]" key={index}>
+              <div
+                className="grid gap-2 sm:grid-cols-[1fr_1fr_1.3fr_auto]"
+                key={index}
+              >
                 <Input
                   value={food.food_name}
                   placeholder="食物"
@@ -191,7 +200,9 @@ export function MealEntry() {
                   onClick={() =>
                     setEntry({
                       ...entry,
-                      foods: entry.foods.filter((_, itemIndex) => itemIndex !== index),
+                      foods: entry.foods.filter(
+                        (_, itemIndex) => itemIndex !== index,
+                      ),
                     })
                   }
                 >
@@ -213,13 +224,16 @@ export function MealEntry() {
               })
             }
           >
-            <Plus size={15} />添加食物
+            <Plus size={15} />
+            添加食物
           </Button>
           <div className="flex gap-2">
             <Button
               data-primary-action="true"
               onClick={() => saveEntry(entry, requestKey)}
-              disabled={busy || !entry.foods.some((food) => food.food_name.trim())}
+              disabled={
+                busy || !entry.foods.some((food) => food.food_name.trim())
+              }
             >
               确认保存
             </Button>

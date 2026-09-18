@@ -1,3 +1,4 @@
+import { invalidateFinance, invalidateMeals } from "@/api/invalidate";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
@@ -14,6 +15,15 @@ import {
 } from "@/pages/record/entry-shared";
 
 type IndexedRecord = { record: BatchRecord; index: number };
+
+function rejectedText(record: unknown): string {
+  if (typeof record === "string") return record;
+  if (record && typeof record === "object") {
+    const item = record as { text?: string; description?: string };
+    return item.text || item.description || "原文中的一条记录";
+  }
+  return "原文中的一条记录";
+}
 
 export function BatchEntry() {
   const queryClient = useQueryClient();
@@ -46,6 +56,8 @@ export function BatchEntry() {
   const save = useMutation({
     mutationFn: () => api.saveBatch(submissionId, records),
     onSuccess: (result) => {
+      void invalidateFinance(queryClient);
+      void invalidateMeals(queryClient);
       setMessage(
         result.duplicate
           ? "该批次已经保存，重复提交已忽略。"
@@ -54,8 +66,6 @@ export function BatchEntry() {
       setRecords([]);
       setDiagnostics(null);
       setText("");
-      queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      queryClient.invalidateQueries({ queryKey: ["home-summary"] });
     },
   });
 
@@ -98,16 +108,25 @@ export function BatchEntry() {
           {prepare.isPending ? "解析中…" : "解析"}
         </Button>
         <Feedback message={message} error={prepare.error ?? save.error} />
-        {diagnostics && (
-          <details className="mt-4 text-sm text-neutral-600">
-            <summary className="cursor-pointer">解析诊断</summary>
-            <p className="mt-2">
-              {diagnostics.block_count} 个语义块；返回 {diagnostics.raw_count} 条事件；
-              保留 {diagnostics.kept_count} 条；过滤 {diagnostics.rejected_records?.length ?? 0} 条。
-            </p>
-            {diagnostics.reasoning && <p>{diagnostics.reasoning}</p>}
-          </details>
-        )}
+        {diagnostics &&
+          ((diagnostics.rejected_records?.length ?? 0) > 0 ||
+            prepare.data?.status === "error") && (
+            <details className="mt-4 text-sm text-neutral-600">
+              <summary className="cursor-pointer">未能识别的内容</summary>
+              <p className="mt-2">
+                这些内容尚未加入待保存记录，请检查原文后重新录入。
+              </p>
+              <ul className="mt-2 list-inside list-disc space-y-1">
+                {diagnostics.rejected_records?.map((item, index) => (
+                  <li key={index}>
+                    {rejectedText(item.record)}：
+                    {String(item.reason ?? "无法识别")}
+                  </li>
+                ))}
+              </ul>
+              {diagnostics.reasoning && <p>{diagnostics.reasoning}</p>}
+            </details>
+          )}
       </div>
 
       {finance.length > 0 && (
@@ -124,7 +143,11 @@ export function BatchEntry() {
           <Button
             data-primary-action="true"
             onClick={() => save.mutate()}
-            disabled={prepare.isPending || save.isPending || !records.some((record) => record.include)}
+            disabled={
+              prepare.isPending ||
+              save.isPending ||
+              !records.some((record) => record.include)
+            }
           >
             {save.isPending ? "保存中…" : "保存所选记录"}
           </Button>
@@ -165,7 +188,9 @@ function FinanceReview({
               <Input
                 type="date"
                 value={record.date}
-                onChange={(event) => update(index, { date: event.target.value })}
+                onChange={(event) =>
+                  update(index, { date: event.target.value })
+                }
               />
             </td>
             <td className="p-2">
@@ -174,7 +199,8 @@ function FinanceReview({
                 value={record.record_type}
                 onChange={(event) =>
                   update(index, {
-                    record_type: event.target.value as BatchRecord["record_type"],
+                    record_type: event.target
+                      .value as BatchRecord["record_type"],
                     category: "",
                     subcategory: "",
                   })
@@ -299,17 +325,28 @@ function MealReview({
   );
 }
 
-function ReviewTable({ title, children }: { title: string; children: React.ReactNode }) {
+function ReviewTable({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      <h2 className="border-b border-neutral-200 px-4 py-3 font-semibold">{title}</h2>
+      <h2 className="border-b border-neutral-200 px-4 py-3 font-semibold">
+        {title}
+      </h2>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1000px] text-sm">
           <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
             <tr>
-              <th className="p-3">保存</th><th className="p-3">日期 / 时间</th>
-              <th className="p-3">类型</th><th className="p-3">描述</th>
-              <th className="p-3">金额 / 食物</th><th className="p-3">主类别</th>
+              <th className="p-3">保存</th>
+              <th className="p-3">日期 / 时间</th>
+              <th className="p-3">类型</th>
+              <th className="p-3">描述</th>
+              <th className="p-3">金额 / 食物</th>
+              <th className="p-3">主类别</th>
               <th className="p-3">子类别 / 餐顿</th>
             </tr>
           </thead>
@@ -320,12 +357,22 @@ function ReviewTable({ title, children }: { title: string; children: React.React
   );
 }
 
-function IncludeCell({ record, index, update }: { record: BatchRecord; index: number; update: (index: number, changes: Partial<BatchRecord>) => void }) {
+function IncludeCell({
+  record,
+  index,
+  update,
+}: {
+  record: BatchRecord;
+  index: number;
+  update: (index: number, changes: Partial<BatchRecord>) => void;
+}) {
   return (
     <td className="p-3">
       <Checkbox
         checked={record.include}
-        onCheckedChange={(checked) => update(index, { include: Boolean(checked) })}
+        onCheckedChange={(checked) =>
+          update(index, { include: Boolean(checked) })
+        }
       />
     </td>
   );
@@ -336,7 +383,8 @@ function foodsToText(foods: NonNullable<BatchRecord["foods"]>): string {
     .map((food) => {
       let value = food.food_name;
       if (food.quantity) value += `:${food.quantity}`;
-      if (food.ingredients?.length) value += `【${food.ingredients.join("、")}】`;
+      if (food.ingredients?.length)
+        value += `【${food.ingredients.join("、")}】`;
       return value;
     })
     .join("；");
@@ -350,7 +398,10 @@ function textToFoods(value: string): NonNullable<BatchRecord["foods"]> {
       const withoutIngredients = ingredientMatch
         ? part.slice(0, ingredientMatch.index)
         : part;
-      const [foodName = "", quantity = ""] = withoutIngredients.split(/[:：]/, 2);
+      const [foodName = "", quantity = ""] = withoutIngredients.split(
+        /[:：]/,
+        2,
+      );
       return {
         food_name: foodName.trim(),
         quantity: quantity.trim(),
