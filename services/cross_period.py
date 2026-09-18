@@ -5,10 +5,6 @@ from core.constants import (
     RECURRING_PAYMENT_SUBSCRIPTION,
     RENEWAL_MODE_FIXED_DAYS,
     RENEWAL_MODE_SAME_DAY,
-    SUBSCRIPTION_CYCLE_CUSTOM,
-    SUBSCRIPTION_CYCLE_MONTHLY,
-    SUBSCRIPTION_CYCLE_QUARTERLY,
-    SUBSCRIPTION_CYCLE_YEARLY,
 )
 from core.idempotency import execute_idempotent
 from core.planned_expense.db import (
@@ -22,6 +18,7 @@ from core.subscription.db import (
     _create_prepaid_with_transaction,
     _insert_subscription,
     _record_subscription_payment,
+    cycle_from_months,
     delete_prepaid_subscription,
     delete_subscription,
     get_subscriptions,
@@ -53,7 +50,7 @@ def list_cross_period() -> dict[str, list[dict]]:
 def create_expected(payload: dict, idempotency_key: str) -> dict:
     def insert(conn) -> dict:
         if payload["recurring"]:
-            cycle, interval_months = _cycle_from_months(payload["renewal_interval"])
+            cycle, interval_months = cycle_from_months(payload["renewal_interval"])
             record_id = _insert_subscription(
                 conn,
                 name=payload["description"],
@@ -95,7 +92,7 @@ def create_expected(payload: dict, idempotency_key: str) -> dict:
 def update_expected(source: str, record_id: int, payload: dict) -> None:
     _find_expected(source, record_id)
     if source == "subscription":
-        cycle, interval_months = _cycle_from_months(payload["renewal_interval"])
+        cycle, interval_months = cycle_from_months(payload["renewal_interval"])
         update_subscription(
             record_id,
             name=payload["description"],
@@ -291,16 +288,6 @@ def _prepaid(item: dict) -> dict:
         "subcategory": item.get("subcategory"),
         "notes": item.get("notes"),
     }
-
-
-def _cycle_from_months(months: int) -> tuple[str, int | None]:
-    if months == 1:
-        return SUBSCRIPTION_CYCLE_MONTHLY, None
-    if months == 3:
-        return SUBSCRIPTION_CYCLE_QUARTERLY, None
-    if months == 12:
-        return SUBSCRIPTION_CYCLE_YEARLY, None
-    return SUBSCRIPTION_CYCLE_CUSTOM, months
 
 
 def _month_cycle(months: int) -> str:

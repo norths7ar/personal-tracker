@@ -1,14 +1,12 @@
-from __future__ import annotations
-
 import argparse
-import os
 import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
+from core.config import database_path
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_SOURCE = PROJECT_ROOT / "data" / "expenses.db"
 DEFAULT_DESTINATION = PROJECT_ROOT / "data" / "backup" / "rolling"
 
 
@@ -16,7 +14,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Create a consistent SQLite backup and retain recent snapshots."
     )
-    parser.add_argument("--source", type=Path, default=DEFAULT_SOURCE)
+    parser.add_argument("--source", type=Path, default=database_path())
     parser.add_argument("--destination-dir", type=Path, default=DEFAULT_DESTINATION)
     parser.add_argument("--keep", type=int, default=30)
     return parser.parse_args()
@@ -38,7 +36,9 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
 
     try:
         with (
-            closing(sqlite3.connect(source)) as source_connection,
+            closing(
+                sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)
+            ) as source_connection,
             closing(sqlite3.connect(temporary)) as destination_connection,
         ):
             source_connection.backup(destination_connection)
@@ -55,7 +55,7 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
             raise RuntimeError(
                 f"Backup foreign key check failed with {len(foreign_key_errors)} row(s)"
             )
-        os.replace(temporary, destination)
+        temporary.replace(destination)
     except BaseException:
         temporary.unlink(missing_ok=True)
         raise

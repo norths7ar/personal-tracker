@@ -83,7 +83,7 @@ function Get-ValidatedService {
             (-not $venvBasePython -or $actualPython -ne $venvBasePython)) {
             return $null
         }
-        if ((Get-ListeningProcessIds) -notcontains $process.Id -or -not (Test-Health)) {
+        if ($process.StartTime.ToUniversalTime() -ne ([datetime]$state.started_at).ToUniversalTime()) {
             return $null
         }
         return [PSCustomObject]@{ Process = $process; State = $state }
@@ -119,6 +119,9 @@ function Get-RecentLogPaths {
 function Start-Service {
     $managed = Get-ValidatedService
     if ($null -ne $managed) {
+        if (-not (Test-Health)) {
+            throw 'personal-tracker is running but unhealthy. Use restart to recover.'
+        }
         Write-Output "personal-tracker is already running. PID: $($managed.Process.Id). Port: $port."
         return
     }
@@ -204,6 +207,10 @@ function Stop-Service {
 function Show-ServiceStatus {
     $managed = Get-ValidatedService
     if ($null -ne $managed) {
+        if (-not (Test-Health)) {
+            Write-Output "personal-tracker is unhealthy. PID: $($managed.Process.Id). Use restart to recover."
+            exit 2
+        }
         Write-Output "personal-tracker is running. PID: $($managed.Process.Id). Started: $($managed.Process.StartTime). Port: $port."
         return
     }

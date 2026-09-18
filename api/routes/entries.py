@@ -107,9 +107,6 @@ class BatchPrepareRequest(BaseModel):
 
 
 class BatchDiagnostics(BaseModel):
-    raw_count: int
-    block_count: int
-    kept_count: int
     rejected_records: list[dict] = Field(default_factory=list)
     reasoning: str = ""
 

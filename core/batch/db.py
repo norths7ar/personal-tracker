@@ -1,5 +1,3 @@
-import hashlib
-import json
 import logging
 from contextlib import closing
 
@@ -7,6 +5,7 @@ from core.constants import TRANSACTION_TYPES, TYPE_MEAL
 from core.db import _connect
 from core.diet.db import _insert_meal
 from core.expense.db import _insert_transaction
+from core.idempotency import hash_payload
 
 
 class BatchSubmissionConflict(ValueError):
@@ -24,7 +23,7 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
     if not records:
         raise ValueError("批次没有可保存记录")
 
-    payload_hash = _payload_hash(records)
+    payload_hash = hash_payload(records)
     with closing(_connect()) as conn:
         try:
             inserted = conn.execute(
@@ -68,17 +67,6 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
             raise
 
     return {"saved_count": len(records), "duplicate": False}
-
-
-def _payload_hash(records: list[dict]) -> str:
-    payload = json.dumps(
-        records,
-        ensure_ascii=False,
-        sort_keys=True,
-        separators=(",", ":"),
-        default=str,
-    ).encode("utf-8")
-    return hashlib.sha256(payload).hexdigest()
 
 
 def _insert_record(conn, record: dict) -> int:

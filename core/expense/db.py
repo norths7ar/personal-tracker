@@ -1,63 +1,20 @@
 from contextlib import closing
-from datetime import date, timedelta
+from datetime import date
 
 from core.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
     PENDING_CATEGORY,
-    RECURRING_PAYMENT_PREPAID,
     REFUND_CATEGORY,
     TYPE_EXPENSE,
     TYPE_INCOME,
-    TYPE_TRANSFER,
 )
 from core.db import _connect, to_cents
 
 
-def _amount_expr() -> str:
-    return "COALESCE(amount_cents / 100.0, amount)"
-
-
 def _normalize_transaction(row) -> dict:
     item = dict(row)
-    if item.get("amount_cents") is not None:
-        item["amount"] = item["amount_cents"] / 100
+    item["amount"] = item["amount_cents"] / 100
     return item
-
-
-def add_transaction(
-    type_: str,
-    description: str,
-    amount: float,
-    date_: str,
-    category: str | None = None,
-    subcategory: str | None = None,
-    notes: str | None = None,
-    confidence: float | None = None,
-    refund_for_id: int | None = None,
-    amortization_months: int | None = None,
-    amortization_start: str | None = None,
-    subscription_id: int | None = None,
-    reviewed: bool = False,
-) -> int:
-    with closing(_connect()) as conn:
-        record_id = _insert_transaction(
-            conn,
-            type_,
-            description,
-            amount,
-            date_,
-            category=category,
-            subcategory=subcategory,
-            notes=notes,
-            confidence=confidence,
-            refund_for_id=refund_for_id,
-            amortization_months=amortization_months,
-            amortization_start=amortization_start,
-            subscription_id=subscription_id,
-            reviewed=reviewed,
-        )
-        conn.commit()
-        return record_id
 
 
 def _insert_transaction(
@@ -106,31 +63,22 @@ def _insert_transaction(
 def get_transactions(
     start_date: str | None = None,
     end_date: str | None = None,
-    type_: str | None = None,
     limit: int | None = 500,
-    *,
-    category: str | None = None,
-    subcategory: str | None = None,
-    keyword: str | None = None,
-    offset: int = 0,
 ) -> list[dict]:
-    where, params = _transaction_filters(
-        start_date=start_date,
-        end_date=end_date,
-        type_=type_,
-        category=category,
-        subcategory=subcategory,
-        keyword=keyword,
-    )
-    query = f"SELECT * FROM transactions WHERE {where}"
-    query += " ORDER BY date DESC, created_at DESC"
+    query = "SELECT * FROM transactions WHERE 1=1"
+    params = []
+    if start_date:
+        query += " AND date >= ?"
+        params.append(start_date)
+    if end_date:
+        query += " AND date <= ?"
+        params.append(end_date)
+    query += " ORDER BY date DESC, created_at DESC, id DESC"
     if limit is not None:
-        query += " LIMIT ? OFFSET ?"
-        params.extend([limit, max(0, offset)])
-
+        query += " LIMIT ?"
+        params.append(limit)
     with closing(_connect()) as conn:
-        rows = conn.execute(query, params).fetchall()
-    return [_normalize_transaction(r) for r in rows]
+        return [_normalize_transaction(row) for row in conn.execute(query, params)]
 
 
 def get_transaction(id_: int) -> dict | None:
@@ -139,88 +87,20 @@ def get_transaction(id_: int) -> dict | None:
     return _normalize_transaction(row) if row is not None else None
 
 
-def count_transactions(
-    start_date: str | None = None,
-    end_date: str | None = None,
-    type_: str | None = None,
-    category: str | None = None,
-    subcategory: str | None = None,
-    keyword: str | None = None,
-) -> int:
-    where, params = _transaction_filters(
-        start_date=start_date,
-        end_date=end_date,
-        type_=type_,
-        category=category,
-        subcategory=subcategory,
-        keyword=keyword,
-    )
-    with closing(_connect()) as conn:
-        row = conn.execute(
-            f"SELECT COUNT(*) AS count FROM transactions WHERE {where}", params
-        ).fetchone()
-    return int(row["count"])
-
-
-def _transaction_filters(
-    start_date: str | None = None,
-    end_date: str | None = None,
-    type_: str | None = None,
-    category: str | None = None,
-    subcategory: str | None = None,
-    keyword: str | None = None,
-) -> tuple[str, list]:
-    clauses = ["1=1"]
-    params: list = []
-    if start_date:
-        clauses.append("date >= ?")
-        params.append(start_date)
-    if end_date:
-        clauses.append("date <= ?")
-        params.append(end_date)
-    if type_:
-        clauses.append("type = ?")
-        params.append(type_)
-    if category:
-        clauses.append("category = ?")
-        params.append(category)
-    if subcategory:
-        clauses.append("subcategory = ?")
-        params.append(subcategory)
-    if keyword and keyword.strip():
-        pattern = f"%{keyword.strip().lower()}%"
-        searchable = ("description", "category", "subcategory", "notes")
-        clauses.append(
-            "("
-            + " OR ".join(
-                f"LOWER(COALESCE({field}, '')) LIKE ?" for field in searchable
-            )
-            + ")"
-        )
-        params.extend([pattern] * len(searchable))
-    return " AND ".join(clauses), params
-
-
-def get_monthly_summary(year: int, month: int) -> dict:
-    """返回指定月份的收支结余及三类明细。迁移不参与收支计算。"""
-    start = f"{year:04d}-{month:02d}-01"
-    next_first = date(year + 1, 1, 1) if month == 12 else date(year, month + 1, 1)
-    end = (next_first - timedelta(days=1)).isoformat()
-    summary = _cash_period_data(start, end)
-
-    with closing(_connect()) as conn:
-        transfer_rows = conn.execute(
-            f"""SELECT category, subcategory,
-                       SUM({_amount_expr()}) as total, COUNT(*) as count
-                FROM transactions
-                WHERE date >= ? AND date <= ? AND type = ?
-                GROUP BY category, subcategory ORDER BY total DESC""",
-            (start, end, TYPE_TRANSFER),
-        ).fetchall()
-    return {**summary, "transfer_breakdown": [dict(row) for row in transfer_rows]}
-
-
 def update_transaction(id_: int, **fields) -> None:
+    update_transactions([id_], fields)
+
+
+def update_transactions(ids: list[int], fields: dict) -> None:
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        for id_ in dict.fromkeys(ids):
+            _update_transaction(conn, id_, fields)
+
+
+def _update_transaction(conn, id_: int, fields: dict) -> None:
+    from core.subscription.db import _sync_prepaid_transaction
+
     allowed = {
         "type",
         "description",
@@ -229,73 +109,78 @@ def update_transaction(id_: int, **fields) -> None:
         "category",
         "subcategory",
         "notes",
-        "confidence",
-        "refund_for_id",
         "amortization_months",
         "amortization_start",
-        "subscription_id",
         "reviewed",
     }
-    updates = {k: v for k, v in fields.items() if k in allowed}
+    updates = {key: value for key, value in fields.items() if key in allowed}
     if not updates:
         return
+    original = conn.execute(
+        "SELECT * FROM transactions WHERE id = ?", (id_,)
+    ).fetchone()
+    if original is None:
+        raise LookupError(f"Transaction #{id_} does not exist")
     if "amount" in updates:
-        amount_cents = to_cents(updates["amount"])
-        updates["amount"] = amount_cents / 100
-        updates["amount_cents"] = amount_cents
+        updates["amount_cents"] = to_cents(updates["amount"])
+        if updates["amount_cents"] <= 0:
+            raise ValueError("金额至少为 0.01 元")
+        updates["amount"] = updates["amount_cents"] / 100
     if "reviewed" in updates:
-        updates["reviewed"] = 1 if updates["reviewed"] else 0
-    set_clause = ", ".join(f"{k} = ?" for k in updates)
-    with closing(_connect()) as conn:
-        try:
-            prepaid = conn.execute(
-                """SELECT id FROM subscriptions
-                   WHERE transaction_id = ? AND payment_type = ?""",
-                (id_, RECURRING_PAYMENT_PREPAID),
-            ).fetchone()
-            if (
-                prepaid is not None
-                and updates.get("type", TYPE_EXPENSE) != TYPE_EXPENSE
-            ):
-                raise ValueError("预付摊销关联流水必须保持为支出")
-
-            conn.execute(
-                f"UPDATE transactions SET {set_clause} WHERE id = ?",
-                [*updates.values(), id_],
-            )
-
-            if prepaid is not None:
-                subscription_fields = {
-                    "description": "name",
-                    "amount": "amount",
-                    "amount_cents": "amount_cents",
-                    "category": "category",
-                    "subcategory": "subcategory",
-                    "notes": "notes",
-                    "amortization_months": "billing_interval_months",
-                    "amortization_start": "start_date",
-                }
-                subscription_updates = {
-                    target: updates[source]
-                    for source, target in subscription_fields.items()
-                    if source in updates
-                }
-                if subscription_updates:
-                    subscription_set = ", ".join(
-                        f"{key} = ?" for key in subscription_updates
-                    )
-                    conn.execute(
-                        f"UPDATE subscriptions SET {subscription_set} WHERE id = ?",
-                        [*subscription_updates.values(), prepaid["id"]],
-                    )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
+        updates["reviewed"] = int(updates["reviewed"])
+    current = {**dict(original), **updates}
+    _validate_financial_links(conn, current)
+    months = current["amortization_months"]
+    if months is not None:
+        if current["type"] != TYPE_EXPENSE:
+            raise ValueError("只有支出可以设置摊销")
+        if not 1 <= months <= 120:
+            raise ValueError("摊销月数必须在 1 到 120 之间")
+        if not current["amortization_start"]:
+            current["amortization_start"] = current["date"][:7] + "-01"
+            updates["amortization_start"] = current["amortization_start"]
+    else:
+        if current["amortization_start"] and "amortization_months" not in updates:
+            raise ValueError("设置摊销开始日期时必须提供摊销月数")
+        current["amortization_start"] = None
+        if "amortization_months" in updates:
+            updates["amortization_start"] = None
+    set_clause = ", ".join(f"{key} = ?" for key in updates)
+    conn.execute(
+        f"UPDATE transactions SET {set_clause} WHERE id = ?", [*updates.values(), id_]
+    )
+    _sync_prepaid_transaction(conn, current)
 
 
-def delete_transaction(id_: int) -> None:
-    delete_transactions([id_])
+def _validate_financial_links(conn, current: dict) -> None:
+    refunded = conn.execute(
+        """SELECT COALESCE(SUM(amount_cents), 0), COUNT(*)
+           FROM transactions WHERE refund_for_id = ?""",
+        (current["id"],),
+    ).fetchone()
+    if refunded[1] and (
+        current["type"] != TYPE_EXPENSE or current["amount_cents"] < refunded[0]
+    ):
+        raise ValueError("有关联退款的流水必须保持为支出，金额不能低于已退款总额")
+    if current["subscription_id"] is not None and current["type"] != TYPE_EXPENSE:
+        raise ValueError("周期付款关联流水必须保持为支出")
+    if current["refund_for_id"] is not None:
+        if current["type"] != TYPE_INCOME or current["category"] != REFUND_CATEGORY:
+            raise ValueError("关联退款必须保持为退款收入")
+        original = conn.execute(
+            "SELECT amount_cents FROM transactions WHERE id = ? AND type = ?",
+            (current["refund_for_id"], TYPE_EXPENSE),
+        ).fetchone()
+        others = conn.execute(
+            """SELECT COALESCE(SUM(amount_cents), 0) FROM transactions
+               WHERE refund_for_id = ? AND id <> ?""",
+            (current["refund_for_id"], current["id"]),
+        ).fetchone()[0]
+        if (
+            original is None
+            or current["amount_cents"] + others > original["amount_cents"]
+        ):
+            raise ValueError("退款金额超过原支出剩余可退金额")
 
 
 def delete_transactions(ids: list[int]) -> int:
@@ -382,41 +267,6 @@ def get_pending_transaction_count() -> int:
     return int(row["count"])
 
 
-def get_refunds_for(transaction_id: int) -> list[dict]:
-    with closing(_connect()) as conn:
-        rows = conn.execute(
-            """SELECT * FROM transactions
-               WHERE refund_for_id = ?
-               ORDER BY date DESC, created_at DESC""",
-            (transaction_id,),
-        ).fetchall()
-    return [_normalize_transaction(r) for r in rows]
-
-
-def refund_total_for(transaction_id: int) -> float:
-    refunds = get_refunds_for(transaction_id)
-    return sum(float(r.get("amount") or 0) for r in refunds)
-
-
-def add_refund(
-    transaction_id: int,
-    description: str,
-    amount: float,
-    refund_date: str,
-) -> int:
-    """Create a linked refund without exceeding the original expense."""
-    with closing(_connect()) as conn:
-        try:
-            refund_id = _add_refund(
-                conn, transaction_id, description, amount, refund_date
-            )
-            conn.commit()
-            return refund_id
-        except Exception:
-            conn.rollback()
-            raise
-
-
 def _add_refund(
     conn,
     transaction_id: int,
@@ -435,8 +285,6 @@ def _add_refund(
         raise ValueError("关联支出不存在")
 
     original_cents = original["amount_cents"]
-    if original_cents is None:
-        original_cents = to_cents(original["amount"])
     refunded_row = conn.execute(
         """SELECT COALESCE(SUM(amount_cents), 0) AS refunded_cents
            FROM transactions WHERE refund_for_id = ?""",
@@ -494,19 +342,6 @@ def _amortization_allocation_dates() -> list[str]:
             )
         )
     return dates
-
-
-def _week_start(value: str) -> str:
-    current = date.fromisoformat(value)
-    return (current - timedelta(days=current.weekday())).isoformat()
-
-
-def _cash_period_data(start_date: str, end_date: str) -> dict:
-    return get_period_data(start_date, end_date, "cash")
-
-
-def get_amortized_period_data(start_date: str, end_date: str) -> dict:
-    return get_period_data(start_date, end_date, "amortized")
 
 
 def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict:
@@ -621,17 +456,6 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
             entries, key=lambda row: (row["allocation_date"], row["id"]), reverse=True
         ),
     }
-
-
-def get_active_weeks() -> list:
-    sql = """SELECT DISTINCT date(date, '-6 days', 'weekday 1') as week_start
-             FROM transactions
-             ORDER BY week_start DESC"""
-    with closing(_connect()) as conn:
-        rows = conn.execute(sql).fetchall()
-    weeks = {r["week_start"] for r in rows}
-    weeks.update(_week_start(d) for d in _amortization_allocation_dates())
-    return sorted(weeks, reverse=True)
 
 
 def get_active_years() -> list:

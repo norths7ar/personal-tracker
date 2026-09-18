@@ -1,7 +1,6 @@
 from contextlib import closing
 
 from core.constants import (
-    PLANNED_EXPENSE_STATUS_CANCELLED,
     PLANNED_EXPENSE_STATUS_COMPLETED,
     PLANNED_EXPENSE_STATUS_OPEN,
     TYPE_EXPENSE,
@@ -11,33 +10,8 @@ from core.db import _connect, to_cents
 
 def _normalize(row) -> dict:
     item = dict(row)
-    if item.get("amount_cents") is not None:
-        item["amount"] = item["amount_cents"] / 100
+    item["amount"] = item["amount_cents"] / 100
     return item
-
-
-def add_planned_expense(
-    description: str,
-    amount: float,
-    due_date: str | None = None,
-    category: str | None = None,
-    subcategory: str | None = None,
-    notes: str | None = None,
-    subscription_id: int | None = None,
-) -> int:
-    with closing(_connect()) as conn:
-        planned_id = _insert_planned_expense(
-            conn,
-            description,
-            amount,
-            due_date,
-            category,
-            subcategory,
-            notes,
-            subscription_id,
-        )
-        conn.commit()
-        return planned_id
 
 
 def _insert_planned_expense(
@@ -48,14 +22,13 @@ def _insert_planned_expense(
     category: str | None = None,
     subcategory: str | None = None,
     notes: str | None = None,
-    subscription_id: int | None = None,
 ) -> int:
     amount_cents = to_cents(amount)
     cur = conn.execute(
         """INSERT INTO planned_expenses
            (description, amount, amount_cents, due_date, category, subcategory,
-            notes, subscription_id, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            notes, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             description,
             amount_cents / 100,
@@ -64,7 +37,6 @@ def _insert_planned_expense(
             category,
             subcategory,
             notes,
-            subscription_id,
             PLANNED_EXPENSE_STATUS_OPEN,
         ),
     )
@@ -82,25 +54,6 @@ def get_planned_expenses(include_closed: bool = False, limit: int = 500) -> list
     with closing(_connect()) as conn:
         rows = conn.execute(query, params).fetchall()
     return [_normalize(row) for row in rows]
-
-
-def has_open_subscription_plan(subscription_id: int) -> bool:
-    with closing(_connect()) as conn:
-        row = conn.execute(
-            """SELECT 1 FROM planned_expenses
-               WHERE subscription_id = ? AND status = ? LIMIT 1""",
-            (subscription_id, PLANNED_EXPENSE_STATUS_OPEN),
-        ).fetchone()
-    return row is not None
-
-
-def cancel_planned_expense(id_: int) -> None:
-    with closing(_connect()) as conn:
-        conn.execute(
-            "UPDATE planned_expenses SET status = ? WHERE id = ?",
-            (PLANNED_EXPENSE_STATUS_CANCELLED, id_),
-        )
-        conn.commit()
 
 
 def update_planned_expense(id_: int, **fields) -> None:
@@ -137,31 +90,6 @@ def delete_planned_expense(id_: int) -> None:
             (id_, PLANNED_EXPENSE_STATUS_OPEN),
         )
         conn.commit()
-
-
-def confirm_planned_expense(
-    id_: int,
-    description: str,
-    amount: float,
-    date_: str,
-    category: str | None,
-    subcategory: str | None,
-    notes: str | None,
-) -> int:
-    """Turn an independent plan into one immutable expense transaction."""
-    with closing(_connect()) as conn:
-        transaction_id = _confirm_planned_expense(
-            conn,
-            id_,
-            description,
-            amount,
-            date_,
-            category,
-            subcategory,
-            notes,
-        )
-        conn.commit()
-        return transaction_id
 
 
 def _confirm_planned_expense(

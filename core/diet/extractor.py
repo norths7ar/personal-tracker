@@ -46,8 +46,6 @@ class DietExtractor:
         )
         return {**result, "status": status}
 
-    # ------------------------------------------------------------------
-
     def _build_prompt(self, meal_time: str) -> str:
         meal_types_str = "、".join(self.meal_types)
         return load_prompt(

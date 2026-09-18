@@ -42,35 +42,6 @@ def _insert_foods(conn, meal_id: int, foods: list[dict]) -> None:
             )
 
 
-def add_meal(
-    date: str,
-    time: str,
-    meal_type: str | None,
-    description: str,
-    notes: str | None,
-    confidence: float | None,
-    foods: list[dict],
-) -> int:
-    """
-    Insert one meal + its food items atomically.
-    foods: [{"food_name": str, "quantity": str, "ingredients": [str, ...]}, ...]
-    Returns meal_id.
-    """
-    with closing(_connect()) as conn:
-        meal_id = _insert_meal(
-            conn,
-            date,
-            time,
-            meal_type,
-            description,
-            notes,
-            confidence,
-            foods,
-        )
-        conn.commit()
-    return meal_id
-
-
 def _insert_meal(
     conn,
     date: str,
@@ -104,8 +75,9 @@ def _insert_meal(
 def get_meals(
     start_date: str | None = None,
     end_date: str | None = None,
-    meal_type: str | None = None,
-    limit: int = 200,
+    limit: int | None = 200,
+    *,
+    meal_id: int | None = None,
 ) -> list[dict]:
     """
     Return list of meal dicts, each with a 'foods' key:
@@ -120,11 +92,13 @@ def get_meals(
     if end_date:
         query += " AND date <= ?"
         params.append(end_date)
-    if meal_type:
-        query += " AND meal_type = ?"
-        params.append(meal_type)
-    query += " ORDER BY date DESC, time DESC LIMIT ?"
-    params.append(limit)
+    if meal_id is not None:
+        query += " AND id = ?"
+        params.append(meal_id)
+    query += " ORDER BY date DESC, time DESC, id DESC"
+    if limit is not None:
+        query += " LIMIT ?"
+        params.append(limit)
 
     with closing(_connect()) as conn:
         meals = [dict(r) for r in conn.execute(query, params).fetchall()]
@@ -248,42 +222,6 @@ def delete_meals(meal_ids: list[int]) -> int:
     return len(ids)
 
 
-def get_diet_summary(start_date: str, end_date: str) -> dict:
-    """Sidebar/quick stats: meal_type counts + recent meals with food list."""
-    with closing(_connect()) as conn:
-        meal_stats = conn.execute(
-            """SELECT meal_type, COUNT(*) as count
-               FROM diet_meals
-               WHERE date >= ? AND date <= ?
-                 AND meal_type IS NOT NULL AND meal_type <> ''
-               GROUP BY meal_type ORDER BY count DESC""",
-            (start_date, end_date),
-        ).fetchall()
-
-        recent_sql = """SELECT m.date, m.meal_type, m.time,
-                               GROUP_CONCAT(f.food_name, '、') as foods
-                        FROM diet_meals m
-                        LEFT JOIN diet_foods f ON f.meal_id = m.id
-                        WHERE m.date >= ? AND m.date <= ?
-                        GROUP BY m.id
-                        ORDER BY m.date DESC, m.time DESC
-                        LIMIT 10"""
-        recent = conn.execute(recent_sql, (start_date, end_date)).fetchall()
-
-    return {
-        "meal_stats": [dict(r) for r in meal_stats],
-        "recent": [dict(r) for r in recent],
-    }
-
-
-def get_diet_dates() -> list:
-    with closing(_connect()) as conn:
-        rows = conn.execute(
-            "SELECT DISTINCT date FROM diet_meals ORDER BY date DESC"
-        ).fetchall()
-    return [r["date"] for r in rows]
-
-
 def get_diet_stats(start_date, end_date) -> dict:
     """Data for the analysis page."""
     with closing(_connect()) as conn:
@@ -337,21 +275,10 @@ def get_diet_stats(start_date, end_date) -> dict:
             (start_date, end_date),
         ).fetchall()
 
-        # Meal type distribution
-        meal_type_dist = conn.execute(
-            """SELECT meal_type, COUNT(*) as count
-               FROM diet_meals
-               WHERE date >= ? AND date <= ?
-                 AND meal_type IS NOT NULL AND meal_type <> ''
-               GROUP BY meal_type ORDER BY count DESC""",
-            (start_date, end_date),
-        ).fetchall()
-
     return {
         "meal_times": [dict(r) for r in meal_times],
         "food_freq": [dict(r) for r in food_freq],
         "ingredient_freq": [dict(r) for r in ingredient_freq],
         "ingredient_record_count": ingredient_record_count,
         "daily_meals": [dict(r) for r in daily_meals],
-        "meal_type_dist": [dict(r) for r in meal_type_dist],
     }

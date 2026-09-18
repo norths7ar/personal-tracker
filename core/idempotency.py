@@ -21,15 +21,7 @@ def execute_idempotent(
     key = str(idempotency_key or "").strip()
     if not key:
         raise ValueError("写入请求缺少 Idempotency-Key")
-    payload_hash = hashlib.sha256(
-        json.dumps(
-            payload,
-            ensure_ascii=False,
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        ).encode("utf-8")
-    ).hexdigest()
+    payload_hash = hash_payload(payload)
 
     with closing(_connect()) as conn:
         try:
@@ -74,3 +66,15 @@ def execute_idempotent(
         except Exception:
             conn.rollback()
             raise
+
+
+def hash_payload(payload: object) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        ).encode("utf-8")
+    ).hexdigest()

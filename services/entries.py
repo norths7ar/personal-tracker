@@ -119,9 +119,6 @@ def prepare_batch(text: str, default_date: str) -> dict:
         "status": result["status"],
         "records": result.get("records", []),
         "diagnostics": {
-            "raw_count": len(result.get("raw_records", [])),
-            "block_count": len(result.get("raw_blocks", [])),
-            "kept_count": len(result.get("records", [])),
             "rejected_records": result.get("rejected_records", []),
             "reasoning": result.get("reasoning", ""),
         },

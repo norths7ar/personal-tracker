@@ -6,11 +6,12 @@ class MealNotFound(LookupError):
 
 
 def list_meals() -> list[dict]:
-    return diet_db.get_meals(limit=10_000)
+    return diet_db.get_meals(limit=None)
 
 
 def get_meal(meal_id: int) -> dict:
-    meal = next((item for item in list_meals() if item["id"] == meal_id), None)
+    records = diet_db.get_meals(meal_id=meal_id)
+    meal = records[0] if records else None
     if meal is None:
         raise MealNotFound(f"Meal #{meal_id} does not exist")
     return meal

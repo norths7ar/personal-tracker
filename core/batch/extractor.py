@@ -52,12 +52,10 @@ class BatchExtractor:
             return {"status": "error", "records": [], "reasoning": str(e)}
 
         events = []
-        raw_events = []
         rejected_events = []
         for block in blocks:
             if block["block_type"] == self.BLOCK_MEAL:
                 events.append(self._meal_block_to_event(block))
-                raw_events.append(block)
                 continue
             try:
                 finance_raw = self._llm.invoke(
@@ -69,11 +67,6 @@ class BatchExtractor:
                     defaults=block,
                 )
                 events.extend(block_events)
-                raw_events.extend(
-                    finance_raw.get("events", [])
-                    if isinstance(finance_raw, dict)
-                    else []
-                )
                 rejected_events.extend(block_rejected)
             except Exception as e:
                 rejected_events.append(
@@ -86,8 +79,6 @@ class BatchExtractor:
         return {
             "status": "confirmed" if records else "empty",
             "records": records,
-            "raw_records": raw_events,
-            "raw_blocks": raw.get("blocks", []) if isinstance(raw, dict) else [],
             "rejected_records": rejected,
             "reasoning": raw.get("reasoning", "") if isinstance(raw, dict) else "",
         }
@@ -125,7 +116,6 @@ class BatchExtractor:
             "category_hint": "",
             "subcategory_hint": "",
             "meal_type_hint": block.get("meal_type_hint", ""),
-            "linked_group": block.get("linked_group", ""),
             "confidence": 0.0,
             "reasoning": block.get("reasoning", ""),
         }
@@ -334,7 +324,6 @@ class BatchExtractor:
                     "context": context,
                     "category_hint": self._resolve_expense_category_hint(context),
                     "meal_type_hint": str(item.get("meal_type_hint") or "").strip(),
-                    "linked_group": str(item.get("linked_group") or "").strip(),
                     "reasoning": str(item.get("reasoning") or "").strip(),
                 }
             )
@@ -410,9 +399,6 @@ class BatchExtractor:
                         item.get("meal_type_hint")
                         or defaults.get("meal_type_hint")
                         or ""
-                    ).strip(),
-                    "linked_group": str(
-                        item.get("linked_group") or defaults.get("linked_group") or ""
                     ).strip(),
                     "confidence": self._normalize_confidence(item.get("confidence")),
                     "reasoning": str(item.get("reasoning") or "").strip(),

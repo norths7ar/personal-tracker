@@ -14,12 +14,10 @@ def get_home_reminders(
     today = today or date.today()
     through = today + timedelta(days=max(0, lookahead_days))
     items = []
-    reminded_subscription_ids = set()
 
     for subscription in get_subscriptions(payment_type=RECURRING_PAYMENT_SUBSCRIPTION):
         due_date = _parse_date(subscription.get("next_renewal_date"))
         if due_date is not None and due_date <= through:
-            reminded_subscription_ids.add(subscription["id"])
             items.append(
                 {
                     "source": "subscription",
@@ -32,8 +30,6 @@ def get_home_reminders(
             )
 
     for plan in get_planned_expenses():
-        if plan.get("subscription_id") in reminded_subscription_ids:
-            continue
         due_date = _parse_date(plan.get("due_date"))
         if due_date is not None and due_date <= through:
             items.append(

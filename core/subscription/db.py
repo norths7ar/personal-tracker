@@ -1,11 +1,8 @@
-import logging
 from calendar import monthrange
 from contextlib import closing
 from datetime import date, timedelta
 
 from core.constants import (
-    PLANNED_EXPENSE_STATUS_COMPLETED,
-    PLANNED_EXPENSE_STATUS_OPEN,
     RECURRING_PAYMENT_PREPAID,
     RECURRING_PAYMENT_SUBSCRIPTION,
     RENEWAL_MODE_FIXED_DAYS,
@@ -24,8 +21,7 @@ from core.expense.db import _insert_transaction
 
 def _normalize_subscription(row) -> dict:
     item = dict(row)
-    if item.get("amount_cents") is not None:
-        item["amount"] = item["amount_cents"] / 100
+    item["amount"] = item["amount_cents"] / 100
     item["auto_renew"] = bool(item.get("auto_renew"))
     item["payment_type"] = item.get("payment_type") or RECURRING_PAYMENT_SUBSCRIPTION
     item["renewal_mode"] = item.get("renewal_mode") or RENEWAL_MODE_SAME_DAY
@@ -34,33 +30,25 @@ def _normalize_subscription(row) -> dict:
 
 
 def monthly_equivalent(item: dict) -> float:
-    amount = float(item.get("amount") or 0)
-    payment_type = item.get("payment_type") or RECURRING_PAYMENT_SUBSCRIPTION
+    if item["payment_type"] == RECURRING_PAYMENT_PREPAID:
+        return item["amount"] / item["billing_interval_months"]
+    interval = item["renewal_interval"]
+    if item["renewal_mode"] == RENEWAL_MODE_FIXED_DAYS:
+        return item["amount"] * (365.2425 / 12) / interval
+    return item["amount"] / interval
 
-    if payment_type == RECURRING_PAYMENT_PREPAID:
-        months = int(item.get("billing_interval_months") or 1)
-        return amount / max(1, months)
 
-    if item.get("renewal_mode") == RENEWAL_MODE_FIXED_DAYS:
-        days = max(1, int(item.get("renewal_interval") or 1))
-        return amount * (365.2425 / 12) / days
-
-    cycle = item.get("billing_cycle")
-    if cycle == SUBSCRIPTION_CYCLE_MONTHLY:
-        return amount
-    if cycle == SUBSCRIPTION_CYCLE_QUARTERLY:
-        return amount / 3
-    if cycle == SUBSCRIPTION_CYCLE_YEARLY:
-        return amount / 12
-    if cycle == SUBSCRIPTION_CYCLE_CUSTOM:
-        months = int(item.get("billing_interval_months") or 1)
-        return amount / max(1, months)
-    if cycle == SUBSCRIPTION_CYCLE_ONE_TIME:
-        return 0.0
-    logging.getLogger(__name__).warning(
-        "monthly_equivalent: unknown billing_cycle %r, defaulting to 0", cycle
+def cycle_from_months(months: int) -> tuple[str, int | None]:
+    cycles = {
+        1: SUBSCRIPTION_CYCLE_MONTHLY,
+        3: SUBSCRIPTION_CYCLE_QUARTERLY,
+        12: SUBSCRIPTION_CYCLE_YEARLY,
+    }
+    return (
+        (cycles[months], None)
+        if months in cycles
+        else (SUBSCRIPTION_CYCLE_CUSTOM, months)
     )
-    return 0.0
 
 
 def fixed_cost_for_month(month: str) -> float:
@@ -103,56 +91,6 @@ def fixed_cost_for_month(month: str) -> float:
 
         total += monthly_equivalent(item)
     return total
-
-
-def add_subscription(
-    name: str,
-    amount: float,
-    billing_cycle: str,
-    vendor: str | None = None,
-    billing_interval_months: int | None = None,
-    start_date: str | None = None,
-    next_renewal_date: str | None = None,
-    end_date: str | None = None,
-    category: str | None = None,
-    subcategory: str | None = None,
-    payment_method: str | None = None,
-    auto_renew: bool = True,
-    status: str = SUBSCRIPTION_STATUS_ACTIVE,
-    notes: str | None = None,
-    payment_type: str = RECURRING_PAYMENT_SUBSCRIPTION,
-    transaction_id: int | None = None,
-    renewal_mode: str = RENEWAL_MODE_SAME_DAY,
-    renewal_interval: int | None = None,
-    renewal_anchor_day: int | None = None,
-    last_payment_date: str | None = None,
-) -> int:
-    with closing(_connect()) as conn:
-        subscription_id = _insert_subscription(
-            conn,
-            name=name,
-            amount=amount,
-            billing_cycle=billing_cycle,
-            vendor=vendor,
-            billing_interval_months=billing_interval_months,
-            start_date=start_date,
-            next_renewal_date=next_renewal_date,
-            end_date=end_date,
-            category=category,
-            subcategory=subcategory,
-            payment_method=payment_method,
-            auto_renew=auto_renew,
-            status=status,
-            notes=notes,
-            payment_type=payment_type,
-            transaction_id=transaction_id,
-            renewal_mode=renewal_mode,
-            renewal_interval=renewal_interval,
-            renewal_anchor_day=renewal_anchor_day,
-            last_payment_date=last_payment_date,
-        )
-        conn.commit()
-        return subscription_id
 
 
 def _insert_subscription(
@@ -234,27 +172,6 @@ def get_subscriptions(
     return [_normalize_subscription(row) for row in rows]
 
 
-def get_upcoming_subscriptions(start_date: str, end_date: str) -> list[dict]:
-    with closing(_connect()) as conn:
-        rows = conn.execute(
-            """SELECT * FROM subscriptions
-               WHERE status = ?
-                 AND payment_type = ?
-                 AND auto_renew = 1
-                 AND next_renewal_date IS NOT NULL
-                 AND next_renewal_date >= ?
-                 AND next_renewal_date <= ?
-               ORDER BY next_renewal_date, amount_cents DESC, name""",
-            (
-                SUBSCRIPTION_STATUS_ACTIVE,
-                RECURRING_PAYMENT_SUBSCRIPTION,
-                start_date,
-                end_date,
-            ),
-        ).fetchall()
-    return [_normalize_subscription(row) for row in rows]
-
-
 def update_subscription(id_: int, **fields) -> None:
     allowed = {
         "name",
@@ -331,37 +248,6 @@ def delete_prepaid_subscription(id_: int, transaction_id: int) -> None:
         conn.commit()
 
 
-def create_prepaid_with_transaction(
-    description: str,
-    amount: float,
-    payment_date: str,
-    months: int,
-    amortization_start: str,
-    category: str | None,
-    subcategory: str | None,
-    notes: str | None,
-) -> tuple[int, int]:
-    """Create the paid transaction and prepaid management row atomically."""
-    with closing(_connect()) as conn:
-        try:
-            result = _create_prepaid_with_transaction(
-                conn,
-                description,
-                amount,
-                payment_date,
-                months,
-                amortization_start,
-                category,
-                subcategory,
-                notes,
-            )
-            conn.commit()
-            return result
-        except Exception:
-            conn.rollback()
-            raise
-
-
 def _create_prepaid_with_transaction(
     conn,
     description: str,
@@ -385,21 +271,52 @@ def _create_prepaid_with_transaction(
         amortization_months=months,
         amortization_start=amortization_start,
     )
-    subscription_id = _insert_subscription(
-        conn,
-        name=description,
-        amount=amount,
-        billing_cycle=SUBSCRIPTION_CYCLE_ONE_TIME,
-        billing_interval_months=months,
-        start_date=amortization_start,
-        category=category,
-        subcategory=subcategory,
-        auto_renew=False,
-        notes=notes,
-        payment_type=RECURRING_PAYMENT_PREPAID,
-        transaction_id=transaction_id,
+    transaction = dict(
+        conn.execute(
+            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
+        ).fetchone()
     )
+    subscription_id = _sync_prepaid_transaction(conn, transaction)
     return transaction_id, subscription_id
+
+
+def _sync_prepaid_transaction(conn, transaction: dict) -> int | None:
+    """Keep both prepaid entry points attached to the same actual payment."""
+    existing = conn.execute(
+        "SELECT id FROM subscriptions WHERE transaction_id = ? AND payment_type = ?",
+        (transaction["id"], RECURRING_PAYMENT_PREPAID),
+    ).fetchone()
+    if transaction["amortization_months"] is None:
+        if existing:
+            conn.execute("DELETE FROM subscriptions WHERE id = ?", (existing["id"],))
+        return None
+    if transaction["type"] != TYPE_EXPENSE:
+        raise ValueError("预付摊销关联流水必须保持为支出")
+    fields = {
+        "name": transaction["description"],
+        "amount": transaction["amount"],
+        "billing_interval_months": transaction["amortization_months"],
+        "start_date": transaction["amortization_start"],
+        "category": transaction["category"],
+        "subcategory": transaction["subcategory"],
+        "notes": transaction["notes"],
+    }
+    if existing is None:
+        return _insert_subscription(
+            conn,
+            **fields,
+            billing_cycle=SUBSCRIPTION_CYCLE_ONE_TIME,
+            auto_renew=False,
+            payment_type=RECURRING_PAYMENT_PREPAID,
+            transaction_id=transaction["id"],
+        )
+    fields["amount_cents"] = transaction["amount_cents"]
+    set_clause = ", ".join(f"{field} = ?" for field in fields)
+    conn.execute(
+        f"UPDATE subscriptions SET {set_clause} WHERE id = ?",
+        [*fields.values(), existing["id"]],
+    )
+    return existing["id"]
 
 
 def update_prepaid_with_transaction(
@@ -412,54 +329,30 @@ def update_prepaid_with_transaction(
     subcategory: str | None,
     notes: str | None,
 ) -> None:
-    """Update prepaid management metadata and its transaction atomically."""
-    with closing(_connect()) as conn:
-        try:
-            linked = conn.execute(
-                """SELECT 1 FROM subscriptions
-                   WHERE id = ? AND transaction_id = ? AND payment_type = ?""",
-                (
-                    subscription_id,
-                    transaction_id,
-                    RECURRING_PAYMENT_PREPAID,
-                ),
-            ).fetchone()
-            if linked is None:
-                raise ValueError("预付摊销与关联流水不匹配")
-            conn.execute(
-                """UPDATE subscriptions
-                   SET name = ?, billing_interval_months = ?, start_date = ?,
-                       category = ?, subcategory = ?, notes = ?
-                   WHERE id = ?""",
-                (
-                    description,
-                    months,
-                    amortization_start,
-                    category,
-                    subcategory,
-                    notes,
-                    subscription_id,
-                ),
-            )
-            conn.execute(
-                """UPDATE transactions
-                   SET description = ?, category = ?, subcategory = ?, notes = ?,
-                       amortization_months = ?, amortization_start = ?
-                   WHERE id = ?""",
-                (
-                    description,
-                    category,
-                    subcategory,
-                    notes,
-                    months,
-                    amortization_start,
-                    transaction_id,
-                ),
-            )
-            conn.commit()
-        except Exception:
-            conn.rollback()
-            raise
+    """Edit the actual payment and its management record in one transaction."""
+    from core.expense.db import _update_transaction
+
+    with closing(_connect()) as conn, conn:
+        conn.execute("BEGIN IMMEDIATE")
+        linked = conn.execute(
+            """SELECT 1 FROM subscriptions
+               WHERE id = ? AND transaction_id = ? AND payment_type = ?""",
+            (subscription_id, transaction_id, RECURRING_PAYMENT_PREPAID),
+        ).fetchone()
+        if linked is None:
+            raise ValueError("预付摊销与关联流水不匹配")
+        _update_transaction(
+            conn,
+            transaction_id,
+            {
+                "description": description,
+                "amortization_months": months,
+                "amortization_start": amortization_start,
+                "category": category,
+                "subcategory": subcategory,
+                "notes": notes,
+            },
+        )
 
 
 def next_renewal_date(subscription: dict, payment_date: str) -> str:
@@ -477,35 +370,6 @@ def next_renewal_date(subscription: dict, payment_date: str) -> str:
     return date(year, month, min(anchor_day, monthrange(year, month)[1])).isoformat()
 
 
-def record_subscription_payment(
-    subscription_id: int,
-    description: str,
-    amount: float,
-    payment_date: str,
-    category: str | None,
-    subcategory: str | None,
-    notes: str | None,
-    next_renewal_override: str | None = None,
-    planned_expense_id: int | None = None,
-) -> int:
-    """Record a confirmed payment and advance its subscription in one transaction."""
-    with closing(_connect()) as conn:
-        transaction_id = _record_subscription_payment(
-            conn,
-            subscription_id,
-            description,
-            amount,
-            payment_date,
-            category,
-            subcategory,
-            notes,
-            next_renewal_override,
-            planned_expense_id,
-        )
-        conn.commit()
-        return transaction_id
-
-
 def _record_subscription_payment(
     conn,
     subscription_id: int,
@@ -515,8 +379,6 @@ def _record_subscription_payment(
     category: str | None,
     subcategory: str | None,
     notes: str | None,
-    next_renewal_override: str | None = None,
-    planned_expense_id: int | None = None,
 ) -> int:
     amount_cents = to_cents(amount)
     raw_subscription = conn.execute(
@@ -546,7 +408,7 @@ def _record_subscription_payment(
         ),
     )
     transaction_id = cur.lastrowid
-    next_date = next_renewal_override or next_renewal_date(subscription, payment_date)
+    next_date = next_renewal_date(subscription, payment_date)
     conn.execute(
         """UPDATE subscriptions
            SET last_payment_date = ?,
@@ -555,90 +417,13 @@ def _record_subscription_payment(
            WHERE id = ?""",
         (payment_date, payment_date, next_date, subscription_id),
     )
-    if planned_expense_id is not None:
-        updated = conn.execute(
-            """UPDATE planned_expenses
-               SET status = ?, transaction_id = ?
-               WHERE id = ? AND subscription_id = ? AND status = ?""",
-            (
-                PLANNED_EXPENSE_STATUS_COMPLETED,
-                transaction_id,
-                planned_expense_id,
-                subscription_id,
-                PLANNED_EXPENSE_STATUS_OPEN,
-            ),
-        )
-        if updated.rowcount != 1:
-            raise ValueError("预计支出不存在或已处理")
     return transaction_id
-
-
-def link_existing_transaction(
-    subscription_id: int, transaction_id: int, payment_date: str | None = None
-) -> None:
-    """Explicitly link an existing expense to a subscription; never infer it."""
-    with closing(_connect()) as conn:
-        subscription_row = conn.execute(
-            "SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)
-        ).fetchone()
-        transaction = conn.execute(
-            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
-        ).fetchone()
-        if subscription_row is None or transaction is None:
-            raise ValueError("订阅或账目不存在")
-        transaction_data = dict(transaction)
-        if transaction_data.get("type") != TYPE_EXPENSE:
-            raise ValueError("只能关联支出流水")
-        paid = payment_date or transaction_data["date"]
-        subscription = _normalize_subscription(subscription_row)
-        conn.execute(
-            "UPDATE transactions SET subscription_id = ? WHERE id = ?",
-            (subscription_id, transaction_id),
-        )
-        conn.execute(
-            """UPDATE subscriptions
-               SET last_payment_date = ?,
-                   start_date = COALESCE(start_date, ?),
-                   next_renewal_date = ?
-               WHERE id = ?""",
-            (paid, paid, next_renewal_date(subscription, paid), subscription_id),
-        )
-        conn.commit()
-
-
-def create_subscription_from_transaction(
-    transaction_id: int,
-    name: str,
-    billing_cycle: str,
-    billing_interval_months: int | None,
-    next_renewal_date: str,
-    renewal_mode: str,
-    renewal_interval: int,
-    renewal_anchor_day: int | None,
-) -> int:
-    """Use an existing expense as the first confirmed subscription payment."""
-    with closing(_connect()) as conn:
-        subscription_id = _create_subscription_from_transaction(
-            conn,
-            transaction_id,
-            name,
-            billing_cycle,
-            billing_interval_months,
-            next_renewal_date,
-            renewal_mode,
-            renewal_interval,
-            renewal_anchor_day,
-        )
-        conn.commit()
-        return subscription_id
 
 
 def _create_subscription_from_transaction(
     conn,
     transaction_id: int,
     name: str,
-    billing_cycle: str,
-    billing_interval_months: int | None,
     next_renewal_date: str,
     renewal_mode: str,
     renewal_interval: int,
@@ -655,11 +440,8 @@ def _create_subscription_from_transaction(
     if item.get("subscription_id") is not None:
         raise ValueError("这笔支出已经关联周期性付款")
 
-    amount_cents = int(
-        item.get("amount_cents")
-        if item.get("amount_cents") is not None
-        else to_cents(item.get("amount") or 0)
-    )
+    amount_cents = item["amount_cents"]
+    billing_cycle, billing_interval_months = cycle_from_months(renewal_interval)
     cur = conn.execute(
         """INSERT INTO subscriptions
            (name, amount, amount_cents, billing_cycle,

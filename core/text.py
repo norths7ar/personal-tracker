@@ -15,9 +15,3 @@ def is_blank(value: Any) -> bool:
 
 def display_text(value: Any) -> str:
     return "" if is_blank(value) else str(value)
-
-
-def optional_text(value: Any) -> str | None:
-    if is_blank(value):
-        return None
-    return str(value).strip() or None

@@ -1,19 +1,10 @@
 import sqlite3
 from contextlib import closing
-from pathlib import Path
 
+from core.config import database_path
 from core.constants import TRANSACTION_TYPE_SQL_LIST
-from core.secrets import get_secret
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-_configured_db_path = get_secret("DATABASE_PATH")
-DB_PATH = (
-    Path(_configured_db_path).expanduser()
-    if _configured_db_path
-    else PROJECT_ROOT / "data" / "expenses.db"
-)
-if not DB_PATH.is_absolute():
-    DB_PATH = PROJECT_ROOT / DB_PATH
+DB_PATH = database_path()
 
 
 def _connect() -> sqlite3.Connection:

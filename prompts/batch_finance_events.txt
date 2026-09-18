@@ -17,7 +17,6 @@ ${categories}
       "category_hint": "旅行",
       "subcategory_hint": "旅行交通",
       "confidence": 0.95,
-      "linked_group": "trip_1",
       "reasoning": "一句话说明"
     }
   ],

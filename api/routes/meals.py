@@ -81,11 +81,6 @@ class CountByDate(BaseModel):
     count: int
 
 
-class CountByMealType(BaseModel):
-    meal_type: str
-    count: int
-
-
 class CountByFood(BaseModel):
     food_name: str
     count: int
@@ -107,7 +102,6 @@ class DietStatsResponse(BaseModel):
     ingredient_freq: list[CountByIngredient]
     ingredient_record_count: int
     daily_meals: list[CountByDate]
-    meal_type_dist: list[CountByMealType]
 
 
 @router.get("", response_model=list[MealResponse])

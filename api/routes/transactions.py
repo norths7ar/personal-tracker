@@ -2,7 +2,7 @@ from datetime import date as Date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from api.routes.entries import IdempotencyKey
 from api.security import require_api_auth
@@ -48,6 +48,13 @@ class TransactionUpdate(BaseModel):
     amortization_months: int | None = Field(default=None, ge=2, le=120)
     amortization_start: Date | None = None
 
+    @field_validator("type", "description", "amount", "date", "reviewed")
+    @classmethod
+    def require_non_null(cls, value):
+        if value is None:
+            raise ValueError("该字段不能清空")
+        return value
+
     @model_validator(mode="after")
     def require_a_change(self):
         if not self.model_fields_set:
@@ -88,8 +95,6 @@ class RefundCreate(BaseModel):
 
 class SubscriptionCreate(BaseModel):
     name: str = Field(min_length=1)
-    billing_cycle: Literal["月付", "季付", "年付", "自定义"]
-    billing_interval_months: int | None = Field(default=None, ge=1, le=120)
     next_renewal_date: Date
     renewal_mode: Literal["same_day", "fixed_days"]
     renewal_interval: int = Field(ge=1, le=730)

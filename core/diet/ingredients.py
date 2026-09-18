@@ -17,7 +17,3 @@ def normalize_ingredients(value) -> list[str]:
                 seen.add(name)
                 normalized.append(name)
     return normalized
-
-
-def ingredients_to_text(value) -> str:
-    return "、".join(normalize_ingredients(value))

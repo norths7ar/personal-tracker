@@ -8,17 +8,22 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
 $pythonPath = Join-Path $projectRoot '.venv\Scripts\python.exe'
-$backupScriptPath = Join-Path $PSScriptRoot 'backup_sqlite.py'
 $taskName = 'PersonalTrackerBackup'
 
 function Invoke-Backup {
     if (-not (Test-Path -LiteralPath $pythonPath)) {
         throw "Cannot find project Python interpreter: $pythonPath. Run 'uv sync' first."
     }
-    $nativeArgs = @($backupScriptPath, '--keep', '30')
-    & $pythonPath @nativeArgs
-    if ($LASTEXITCODE -ne 0) {
-        throw "SQLite backup failed with exit code $LASTEXITCODE."
+    Push-Location -LiteralPath $projectRoot
+    try {
+        & $pythonPath -m scripts.backup_sqlite --keep 30
+        $backupExitCode = $LASTEXITCODE
+        if ($backupExitCode -ne 0) {
+            throw "SQLite backup failed with exit code $backupExitCode."
+        }
+    }
+    finally {
+        Pop-Location
     }
 }
 

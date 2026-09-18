@@ -24,7 +24,7 @@ class Classifier:
             "reasoning": str,
             "candidates": [{"category", "subcategory", "confidence"}, ...]
         }
-        未知类别视为 low_confidence，由用户从 selectbox 中确认。
+        未知类别需要用户确认。
         """
         forced_category = category_hint if category_hint in self.categories else None
         try:
@@ -46,15 +46,13 @@ class Classifier:
         confidence = result["confidence"]
 
         if not self._is_known(result["category"], result["subcategory"]):
-            status = "new_category"  # page 1 handles this identically to low_confidence
+            status = "low_confidence"
         elif confidence < self.threshold:
             status = "low_confidence"
         else:
             status = "confirmed"
 
         return {**result, "status": status}
-
-    # ------------------------------------------------------------------
 
     def _build_prompt(self, category_hint: str | None = None) -> str:
         lines = []

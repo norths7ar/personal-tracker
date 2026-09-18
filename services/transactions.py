@@ -16,10 +16,10 @@ def list_transactions() -> list[dict]:
 
 
 def update_transaction(transaction_id: int, changes: dict) -> dict:
-    if expense_db.get_transaction(transaction_id) is None:
-        raise TransactionNotFound(f"Transaction #{transaction_id} does not exist")
     try:
         expense_db.update_transaction(transaction_id, **changes)
+    except LookupError as exc:
+        raise TransactionNotFound(str(exc)) from exc
     except ValueError as exc:
         raise TransactionConflict(str(exc)) from exc
     updated = expense_db.get_transaction(transaction_id)
@@ -30,19 +30,13 @@ def update_transaction(transaction_id: int, changes: dict) -> dict:
 
 def update_transactions(transaction_ids: list[int], changes: dict) -> int:
     ids = list(dict.fromkeys(transaction_ids))
-    missing = [
-        transaction_id
-        for transaction_id in ids
-        if expense_db.get_transaction(transaction_id) is None
-    ]
-    if missing:
-        raise TransactionNotFound(f"Transaction #{missing[0]} does not exist")
     updates = dict(changes)
     if "category" in updates or "subcategory" in updates:
         updates["reviewed"] = True
     try:
-        for transaction_id in ids:
-            expense_db.update_transaction(transaction_id, **updates)
+        expense_db.update_transactions(ids, updates)
+    except LookupError as exc:
+        raise TransactionNotFound(str(exc)) from exc
     except ValueError as exc:
         raise TransactionConflict(str(exc)) from exc
     return len(ids)
@@ -83,8 +77,6 @@ def create_subscription(
             conn,
             transaction_id,
             payload["name"],
-            payload["billing_cycle"],
-            payload.get("billing_interval_months"),
             payload["next_renewal_date"],
             payload["renewal_mode"],
             payload["renewal_interval"],
