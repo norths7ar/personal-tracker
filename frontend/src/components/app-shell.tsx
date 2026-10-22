@@ -4,6 +4,7 @@ import {
   CalendarClock,
   CheckSquare2,
   LogOut,
+  ListTodo,
   PencilLine,
   Utensils,
 } from "lucide-react";
@@ -24,6 +25,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
       <aside className="fixed inset-y-0 left-0 hidden w-56 border-r border-neutral-200 bg-white p-4 md:flex md:flex-col">
         <div className="mb-8 px-2 text-lg font-semibold">拾记</div>
         <nav className="space-y-1">
+          <NavItem to="/todo" icon={<ListTodo size={17} />} label="待办" />
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
           <NavItem
             to="/pending"
@@ -59,6 +61,35 @@ export function AppShell({ children, onLogout }: AppShellProps) {
             退出
           </Button>
         </header>
+        <nav
+          aria-label="页面导航"
+          className="flex gap-1 overflow-x-auto border-b border-neutral-200 bg-white p-2 md:hidden"
+        >
+          {(
+            [
+              ["/todo", "待办"],
+              ["/record", "记录"],
+              ["/pending", "待处理"],
+              ["/ledger", "账目"],
+              ["/analysis", "开销分析"],
+              ["/cross-period", "跨期费用"],
+              ["/diet", "饮食"],
+            ] as const
+          ).map(([to, label]) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                cn(
+                  "shrink-0 rounded-md px-3 py-2 text-sm",
+                  isActive ? "bg-neutral-900 text-white" : "text-neutral-600",
+                )
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
         <main className="app-content">{children}</main>
       </div>
     </div>

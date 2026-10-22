@@ -30,6 +30,10 @@ export type PrepaidUpdate = components["schemas"]["PrepaidUpdate"];
 export type HomeSummary = components["schemas"]["HomeSummary"];
 export type RefundCreate = components["schemas"]["RefundCreate"];
 export type SubscriptionCreate = components["schemas"]["SubscriptionCreate"];
+export type Todo = components["schemas"]["TodoResponse"];
+export type TodoWrite = components["schemas"]["TodoWrite"];
+export type TodoState = components["schemas"]["TodoState"];
+export type TodoMove = components["schemas"]["TodoMove"];
 
 export class ApiError extends Error {
   constructor(
@@ -61,6 +65,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  todos: () => request<Todo[]>("/api/todos"),
+  createTodo: (entry: TodoWrite) =>
+    request<Todo>("/api/todos", {
+      method: "POST",
+      body: JSON.stringify(entry),
+    }),
+  updateTodo: (id: number, entry: TodoWrite) =>
+    request<Todo>(`/api/todos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(entry),
+    }),
+  setTodoState: (id: number, state: TodoState) =>
+    request<Todo>(`/api/todos/${id}/state`, {
+      method: "POST",
+      body: JSON.stringify(state),
+    }),
+  moveTodo: (id: number, move: TodoMove) =>
+    request<void>(`/api/todos/${id}/move`, {
+      method: "POST",
+      body: JSON.stringify(move),
+    }),
+  deleteTodo: (id: number) =>
+    request<void>(`/api/todos/${id}`, { method: "DELETE" }),
   currentUser: () => request<{ authenticated: boolean }>("/api/auth/me"),
   login: (password: string) =>
     request<{ authenticated: boolean }>("/api/auth/login", {

@@ -13,6 +13,7 @@ from api.routes.entries import router as entries_router
 from api.routes.home import router as home_router
 from api.routes.meals import router as meals_router
 from api.routes.pending import router as pending_router
+from api.routes.todos import router as todos_router
 from api.routes.transactions import router as transactions_router
 from core.db import init_db
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     application.include_router(meals_router)
     application.include_router(pending_router)
     application.include_router(transactions_router)
+    application.include_router(todos_router)
 
     @application.get("/api/health", tags=["system"])
     def health() -> dict[str, str]:

@@ -31,6 +31,22 @@ def init_db() -> None:
 
 
 def _create_tables(connection: sqlite3.Connection) -> None:
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS todos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL CHECK(length(trim(title)) > 0),
+            notes TEXT NOT NULL DEFAULT '',
+            status TEXT NOT NULL DEFAULT 'pending'
+                CHECK(status IN ('pending', 'active', 'completed')),
+            position INTEGER NOT NULL,
+            completed_at TEXT,
+            CHECK((status = 'completed') = (completed_at IS NOT NULL))
+        )
+    """)
+    connection.execute("""
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_todos_one_active
+        ON todos(status) WHERE status = 'active'
+    """)
     connection.execute(f"""
         CREATE TABLE IF NOT EXISTS transactions (
             id                  INTEGER PRIMARY KEY AUTOINCREMENT,

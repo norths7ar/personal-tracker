@@ -11,6 +11,9 @@ const LedgerPage = lazy(() =>
     default: module.LedgerPage,
   })),
 );
+const TodoPage = lazy(() =>
+  import("@/pages/todo-page").then((module) => ({ default: module.TodoPage })),
+);
 const RecordPage = lazy(() =>
   import("@/pages/record-page").then((module) => ({
     default: module.RecordPage,
@@ -83,6 +86,7 @@ export function App() {
       >
         <Routes>
           <Route path="/record" element={<RecordPage />} />
+          <Route path="/todo" element={<TodoPage />} />
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
