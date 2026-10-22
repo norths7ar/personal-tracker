@@ -43,4 +43,4 @@ Copy-Item .env.example .env
 
 先停止后台服务，再在两个终端分别运行后端 `uv run uvicorn api.main:app --host 127.0.0.1 --port 18080 --reload` 和前端 `npm --prefix frontend run dev`。后端运行时，可用 `npm --prefix frontend run generate:api` 更新 API 类型。
 
-Python 使用 Ruff 检查与格式化，前端使用 ESLint、Prettier 和 TypeScript。测试集中保护数据库写入的原子性、重复提交、退款约束、摊销关联与备份，可通过 `uv run python -m unittest discover -s tests -v` 运行。
+Python 使用 Ruff 检查与格式化，前端使用 ESLint、Prettier 和 TypeScript。`uv run python -m unittest discover -s tests -v` 检查数据库写入、关联一致性、备份与开销统计；`npm --prefix frontend test` 检查净支出及累计走势计算，使用 Node.js 24 的内置测试工具。

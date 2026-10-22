@@ -1,4 +1,4 @@
-"""只保留会造成重复入账、部分写入或关联数据损坏的数据库保护。"""
+"""保护数据库写入与关联完整性，并核对现金、摊销分析口径。"""
 
 import tempfile
 import unittest
@@ -11,8 +11,8 @@ import core.db as core_db
 import core.diet.db as diet_db
 import core.expense.db as expense_db
 import core.subscription.db as subscription_db
-from core.constants import TYPE_EXPENSE
-from services import cross_period, entries, meals, transactions
+from core.constants import TYPE_EXPENSE, TYPE_INCOME
+from services import analysis, cross_period, entries, meals, transactions
 
 
 class DatabaseProtectionTest(unittest.TestCase):
@@ -134,6 +134,13 @@ class DatabaseProtectionTest(unittest.TestCase):
             {
                 "record_type": "饮食",
                 "date": "2026-08-30",
+                "time": "12:00",
+                "description": "noodles",
+                "foods": [{"food_name": "noodles", "ingredients": ["wheat"]}],
+            },
+            {
+                "record_type": "饮食",
+                "date": "2026-08-30",
                 "time": "12:30",
                 "description": "invalid meal",
                 "foods": [],
@@ -150,6 +157,12 @@ class DatabaseProtectionTest(unittest.TestCase):
         self.assertEqual(
             self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 0
         )
+        for table in ("diet_meals", "diet_foods", "diet_ingredients"):
+            self.assertEqual(
+                self.raw.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0],
+                0,
+                table,
+            )
 
         valid_records = [invalid_records[0]]
         result = batch_db.save_batch("batch-retry", valid_records)
@@ -288,9 +301,99 @@ class DatabaseProtectionTest(unittest.TestCase):
 
     def test_bulk_delete_cascades_and_counts_unique_ids(self):
         """删除饮食记录同时清理食物和食材，重复选择不会误删其他记录。"""
+        self._meals()
+        tables = ("diet_meals", "diet_foods", "diet_ingredients")
+        unselected = {
+            table: [
+                dict(row)
+                for row in self.raw.execute(f"SELECT * FROM {table} ORDER BY id")
+            ]
+            for table in tables
+        }
         ids = self._meals()
         self.assertEqual(meals.delete_meals([*ids, ids[0]]), 2)
-        for table in ("diet_meals", "diet_foods", "diet_ingredients"):
+        for table in tables:
+            self.assertTrue(unselected[table], table)
             self.assertEqual(
-                self.raw.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0], 0
+                [
+                    dict(row)
+                    for row in self.raw.execute(f"SELECT * FROM {table} ORDER BY id")
+                ],
+                unselected[table],
+                table,
+            )
+
+    def test_analysis_reconciles_prepaid_refund_and_income_without_new_transactions(
+        self,
+    ):
+        """摊销只改变分析口径，退款抵扣支出，各视图与真实流水一致。"""
+        self._prepaid(
+            "quarterly rent", 9000, "2025-01-15", 3, "2025-01-01", "居住", "房租", None
+        )
+        spending_id = self._transaction(
+            TYPE_EXPENSE, "groceries", 300, "2025-01-20", category="生活"
+        )
+        refund_id = self._refund(spending_id, "grocery refund", 60, "2025-01-21")
+        self._transaction(TYPE_INCOME, "salary", 2000, "2025-01-25", category="工资")
+        before = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
+        self.assertEqual(before, 4)
+
+        for basis in ("cash", "amortized"):
+            january = analysis.get_expense_analysis("month", "2025-01", basis)
+            current = january["current"]
+            expected_expense = 9240 if basis == "cash" else 3240
+            self.assertEqual(january["cash_expense"], 9240)
+            self.assertEqual(january["amortized_expense"], 3240)
+            self.assertEqual(current["expense"], expected_expense)
+            self.assertEqual(current["income"], 2000)
+            self.assertEqual(current["balance"], 2000 - expected_expense)
+            self.assertEqual(
+                {row["category"]: row["total"] for row in current["expense_breakdown"]},
+                {"居住": 9000 if basis == "cash" else 3000, "生活": 240},
+            )
+            refunds = [row for row in current["entries"] if row["id"] == refund_id]
+            self.assertEqual(len(refunds), 1)
+            self.assertEqual(
+                (refunds[0]["bucket"], refunds[0]["contribution"]), ("expense", -60)
+            )
+
+            for month in ("2025-02", "2025-03"):
+                later = analysis.get_expense_analysis("month", month, basis)
+                self.assertEqual(later["cash_expense"], 0)
+                self.assertEqual(later["amortized_expense"], 3000)
+                self.assertEqual(
+                    later["current"]["expense"], 0 if basis == "cash" else 3000
+                )
+                self.assertEqual(later["current"]["income"], 0)
+
+            yearly = analysis.get_expense_analysis("year", "2025", basis)
+            self.assertEqual(yearly["current"]["expense"], 9240)
+            self.assertEqual(yearly["current"]["income"], 2000)
+            for data in (current, yearly["current"]):
+                for bucket in ("income", "expense"):
+                    self.assertEqual(
+                        sum(
+                            row["contribution"]
+                            for row in data["entries"]
+                            if row["bucket"] == bucket
+                        ),
+                        data[bucket],
+                    )
+                    self.assertEqual(
+                        sum(row[bucket] for row in data["daily"]), data[bucket]
+                    )
+                    self.assertEqual(
+                        sum(row["total"] for row in data[f"{bucket}_breakdown"]),
+                        data[bucket],
+                    )
+                self.assertEqual(data["balance"], data["income"] - data["expense"])
+            for bucket in ("income", "expense"):
+                self.assertEqual(
+                    sum(row[bucket] for row in yearly["timeline"]),
+                    yearly["current"][bucket],
+                )
+            analysis.get_expense_analysis("year", "2025", basis)
+            self.assertEqual(
+                self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0],
+                before,
             )
