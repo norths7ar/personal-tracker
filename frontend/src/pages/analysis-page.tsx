@@ -23,6 +23,10 @@ import { EChart } from "@/components/echart";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Feedback, Field, selectClass } from "@/pages/record/entry-shared";
+import {
+  cumulativeNetExpense,
+  netExpense,
+} from "@/pages/analysis-calculations";
 
 echarts.use([
   BarChart,
@@ -136,6 +140,7 @@ function AnalysisContent({
 }) {
   const current = data.current!;
   const cash = data.cash_current!;
+  const cashNetExpense = netExpense(cash);
   const [level, setLevel] = useState<BreakdownLevel>("category");
   const [detail, setDetail] = useState<DetailSelection | null>(null);
   const daily = useMemo(() => cumulativeNetExpense(fillDaily(data)), [data]);
@@ -146,21 +151,21 @@ function AnalysisContent({
         <div>
           <h2 className="font-semibold">现金收支</h2>
           <p className="mt-1 text-xs text-neutral-500">
-            独立报销计入收入；关联原支出的退款抵减支出，不重复计入收入。
+            净支出 = 支出（已扣关联退款）− 收入。
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <Metric label="现金流净支出" value={money(cash.expense)} />
+          <Metric label="现金流净支出" value={money(cashNetExpense)} />
           <Metric label="现金流收入" value={money(cash.income)} />
           <Metric
             label="日均现金流净支出"
-            value={data.days ? money(cash.expense / data.days) : "—"}
+            value={data.days ? money(cashNetExpense / data.days) : "—"}
             hint={data.days ? `按期间已过 ${data.days} 天计算` : "期间尚未开始"}
           />
           <Metric
             label="收支结余"
             value={money(cash.balance)}
-            hint="收入 − 现金流净支出"
+            hint="收入 − 付款口径支出（已扣关联退款）"
           />
         </div>
       </section>
@@ -187,12 +192,15 @@ function AnalysisContent({
             </div>
             <BudgetStatus
               label="现金流净支出"
-              actual={data.cash_expense ?? 0}
+              actual={cashNetExpense}
               budget={data.budget?.cash_total}
             />
             <BudgetStatus
               label="摊销后净支出"
-              actual={data.amortized_expense ?? 0}
+              actual={netExpense({
+                expense: data.amortized_expense ?? 0,
+                income: cash.income,
+              })}
               budget={data.budget?.amortized_total}
             />
           </div>
@@ -224,7 +232,7 @@ function AnalysisContent({
               {basisLabel}
             </h3>
             <span className="text-lg font-semibold">
-              {money(current.expense)}
+              {money(netExpense(current))}
             </span>
           </div>
           {data.days ? (
@@ -245,7 +253,7 @@ function AnalysisContent({
           <div>
             <h3 className="font-medium">分类明细</h3>
             <p className="mt-1 text-xs text-neutral-500">
-              点击分类查看组成金额的具体记录。
+              净支出 = 支出（已扣关联退款）− 收入。点击分类查看具体记录。
             </p>
           </div>
           <Segmented
@@ -649,13 +657,6 @@ function fillDaily(data: ExpenseAnalysis) {
     return byDate.get(date) ?? { date, income: 0, expense: 0 };
   });
 }
-function cumulativeNetExpense(rows: { date: string; expense: number }[]) {
-  let total = 0;
-  return rows.map((row) => {
-    total += row.expense;
-    return { ...row, expense: Math.round(total * 100) / 100 };
-  });
-}
 function lineOption(rows: { date: string; expense: number }[]) {
   return {
     tooltip: {
@@ -681,7 +682,7 @@ function lineOption(rows: { date: string; expense: number }[]) {
     ],
   };
 }
-function barOption(rows: { label: string; expense: number }[]) {
+function barOption(rows: { label: string; expense: number; income: number }[]) {
   return {
     tooltip: {
       trigger: "axis",
@@ -695,7 +696,7 @@ function barOption(rows: { label: string; expense: number }[]) {
         name: "净支出",
         type: "bar",
         barMaxWidth: 40,
-        data: rows.map((row) => row.expense),
+        data: rows.map(netExpense),
         itemStyle: { color: "#737373" },
       },
     ],
