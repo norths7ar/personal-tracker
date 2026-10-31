@@ -1,22 +1,15 @@
-import { invalidateFinance } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/transaction-entry.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
-import {
-  api,
-  type TransactionCreate,
-  type TransactionPreparation,
-} from "@/api/client";
+import { api, type TransactionCreate, type TransactionPreparation } from "@/api/client";
+import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  Feedback,
-  Field,
-  selectClass,
-  textareaClass,
-  today,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, selectClass, textareaClass, today } from "@/pages/record/entry-shared";
 
 const types = ["支出", "收入", "迁移"] as const;
 
@@ -41,25 +34,16 @@ export function TransactionEntry() {
   const [entry, setEntry] = useState<TransactionCreate>(initialEntry);
   const [review, setReview] = useState<TransactionPreparation | null>(null);
   const [requestKey, setRequestKey] = useState("");
-  const [pendingSave, setPendingSave] = useState<TransactionCreate | null>(
-    null,
-  );
+  const [pendingSave, setPendingSave] = useState<TransactionCreate | null>(null);
   const [message, setMessage] = useState("");
 
   const save = useMutation({
-    mutationFn: ({
-      payload,
-      key,
-    }: {
-      payload: TransactionCreate;
-      key: string;
-    }) => api.createTransaction(payload, key),
+    mutationFn: ({ payload, key }: { payload: TransactionCreate; key: string }) =>
+      api.createTransaction(payload, key),
     onSuccess: (result) => {
       void invalidateFinance(queryClient);
       setMessage(
-        result.duplicate
-          ? "该请求已经保存，重复提交已忽略。"
-          : `已保存账目 #${result.id}`,
+        result.duplicate ? "该请求已经保存，重复提交已忽略。" : `已保存账目 #${result.id}`,
       );
       setReview(null);
       setRequestKey("");
@@ -114,15 +98,13 @@ export function TransactionEntry() {
   };
 
   const categoryMap = categories.data?.[entry.type] ?? {};
-  const subcategories = entry.category
-    ? (categoryMap[entry.category] ?? [])
-    : [];
+  const subcategories = entry.category ? (categoryMap[entry.category] ?? []) : [];
   const busy = prepare.isPending || save.isPending;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
-      <form className="space-y-4" onSubmit={submit}>
-        <div className="flex gap-2">
+    <div className="content-panel">
+      <form className="form-stack" onSubmit={submit}>
+        <div className="entry-actions">
           {types.map((type) => (
             <button
               type="button"
@@ -136,10 +118,8 @@ export function TransactionEntry() {
                 })
               }
               className={cn(
-                "rounded-md border px-4 py-2 text-sm",
-                entry.type === type
-                  ? "border-neutral-900 bg-neutral-900 text-white"
-                  : "border-neutral-300",
+                "transaction-type",
+                entry.type === type ? "transaction-type-selected" : "transaction-type-idle",
               )}
             >
               {type}
@@ -150,13 +130,11 @@ export function TransactionEntry() {
           <Input
             value={entry.description}
             required
-            onChange={(event) =>
-              setEntry({ ...entry, description: event.target.value })
-            }
+            onChange={(event) => setEntry({ ...entry, description: event.target.value })}
             placeholder="例：中午麦当劳"
           />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="entry-fields">
           <Field label="金额">
             <Input
               type="number"
@@ -164,9 +142,7 @@ export function TransactionEntry() {
               step="0.01"
               required
               value={entry.amount || ""}
-              onChange={(event) =>
-                setEntry({ ...entry, amount: Number(event.target.value) })
-              }
+              onChange={(event) => setEntry({ ...entry, amount: Number(event.target.value) })}
             />
           </Field>
           <Field label="日期">
@@ -174,19 +150,15 @@ export function TransactionEntry() {
               type="date"
               required
               value={entry.date}
-              onChange={(event) =>
-                setEntry({ ...entry, date: event.target.value })
-              }
+              onChange={(event) => setEntry({ ...entry, date: event.target.value })}
             />
           </Field>
         </div>
         <Field label="备注">
-          <textarea
+          <TextArea
             className={textareaClass}
             value={entry.notes ?? ""}
-            onChange={(event) =>
-              setEntry({ ...entry, notes: event.target.value || null })
-            }
+            onChange={(event) => setEntry({ ...entry, notes: event.target.value || null })}
           />
         </Field>
         <Button
@@ -198,12 +170,12 @@ export function TransactionEntry() {
       </form>
 
       {review && (
-        <div className="mt-5 space-y-4 rounded-lg border border-amber-300 bg-amber-50 p-4">
+        <div className="entry-review">
           <div>
             <strong>请确认分类</strong>
-            <p className="text-sm text-neutral-600">{review.reasoning}</p>
+            <p className="entry-description">{review.reasoning}</p>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="entry-fields">
             <Field label="主类别">
               <select
                 className={selectClass}
@@ -240,7 +212,7 @@ export function TransactionEntry() {
               </select>
             </Field>
           </div>
-          <div className="flex gap-2">
+          <div className="entry-actions">
             <Button
               data-primary-action="true"
               onClick={() => saveEntry(entry, requestKey)}
@@ -257,7 +229,7 @@ export function TransactionEntry() {
 
       {save.isError && pendingSave && requestKey && !review && (
         <Button
-          className="mt-3"
+          className="entry-primary-action"
           variant="outline"
           onClick={() => saveEntry(pendingSave, requestKey)}
         >

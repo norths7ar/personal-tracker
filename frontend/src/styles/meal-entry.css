@@ -1,0 +1,10 @@
+.meal-food-fields {
+  display: grid;
+  gap: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .meal-food-fields {
+    grid-template-columns: 1fr 1fr 1.3fr auto;
+  }
+}

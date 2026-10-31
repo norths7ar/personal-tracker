@@ -1,0 +1,57 @@
+.pending-bulk-panel > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-3);
+}
+
+.pending-bulk-panel {
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-4);
+}
+
+.pending-bulk-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.pending-empty {
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--gray-11);
+}
+
+.pending-layout {
+  display: grid;
+  gap: 1.25rem;
+}
+
+@media (min-width: 1024px) {
+  .pending-layout {
+    grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  }
+}
+
+.record-link {
+  text-align: left;
+  text-underline-offset: 4px;
+}
+
+.record-link:hover {
+  text-decoration: underline;
+}
+
+.pending-editor > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-4);
+}
+
+.pending-editor {
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: 1.25rem;
+}

@@ -1,23 +1,12 @@
+import { TextField, IconButton } from "@radix-ui/themes";
 import { CalendarDays } from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ComponentPropsWithRef,
-} from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ComponentProps } from "react";
 
 import { cn } from "@/lib/utils";
 
-function dateError(
-  value: string,
-  min?: string | number,
-  max?: string | number,
-): string {
+function dateError(value: string, min?: string | number, max?: string | number): string {
   if (!value) return "";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value))
-    return "请输入完整日期，格式为 YYYY-MM-DD";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return "请输入完整日期，格式为 YYYY-MM-DD";
   const year = Number(value.slice(0, 4));
   const month = Number(value.slice(5, 7));
   const day = Number(value.slice(8, 10));
@@ -49,7 +38,7 @@ export function DateInput({
   placeholder = "选择日期",
   resetKey,
   ...props
-}: ComponentPropsWithRef<"input"> & { resetKey?: string | number }) {
+}: ComponentProps<typeof TextField.Root> & { resetKey?: string | number }) {
   const controlled = value === undefined ? undefined : String(value);
   const [previousValue, setPreviousValue] = useState(controlled);
   const [previousResetKey, setPreviousResetKey] = useState(resetKey);
@@ -79,8 +68,8 @@ export function DateInput({
   }, [error]);
 
   return (
-    <span className="relative block">
-      <input
+    <span className="date-field">
+      <TextField.Root
         {...props}
         ref={attachRef}
         type="text"
@@ -89,15 +78,11 @@ export function DateInput({
         readOnly={readOnly}
         placeholder={placeholder}
         title="输入日期（YYYY-MM-DD）或使用右侧日历选择"
-        className={cn(
-          "h-9 w-full rounded-md border border-neutral-300 bg-white px-3 pr-10 text-sm outline-none placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-200 disabled:opacity-50",
-          className,
-        )}
+        className={cn("date-field-input", className)}
         aria-invalid={error ? true : props["aria-invalid"]}
         aria-describedby={
-          [props["aria-describedby"], error && blurred ? errorId : ""]
-            .filter(Boolean)
-            .join(" ") || undefined
+          [props["aria-describedby"], error && blurred ? errorId : ""].filter(Boolean).join(" ") ||
+          undefined
         }
         onChange={(event) => {
           const next = event.target.value;
@@ -111,11 +96,12 @@ export function DateInput({
           onBlur?.(event);
         }}
       />
-      <button
+      <IconButton
+        variant="ghost"
         type="button"
         aria-label="打开日历选择日期"
         disabled={disabled || readOnly}
-        className="absolute right-1 top-1 flex h-7 w-7 items-center justify-center rounded text-neutral-500 hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-neutral-500 disabled:opacity-50"
+        className="date-picker-trigger"
         onClick={() => {
           const picker = pickerRef.current;
           if (!picker) return;
@@ -123,14 +109,14 @@ export function DateInput({
           else picker.click();
         }}
       >
-        <CalendarDays className="h-4 w-4" />
-      </button>
+        <CalendarDays size={16} />
+      </IconButton>
       <input
         ref={pickerRef}
         type="date"
         tabIndex={-1}
         aria-hidden="true"
-        className="pointer-events-none absolute right-1 top-1 h-7 w-7 opacity-0"
+        className="date-picker-native"
         value={dateError(draft) ? "" : draft}
         min={min}
         max={max}
@@ -148,7 +134,7 @@ export function DateInput({
         }}
       />
       {error && blurred && (
-        <span id={errorId} className="mt-1 block text-xs text-red-600">
+        <span id={errorId} className="date-field-error">
           {error}
         </span>
       )}

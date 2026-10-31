@@ -1,0 +1,80 @@
+.batch-preview-description {
+  max-width: 13rem;
+}
+
+.batch-result {
+  margin-top: var(--space-4);
+}
+
+.batch-explanation {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.batch-disclosure {
+  cursor: pointer;
+}
+
+.batch-rejected {
+  margin-top: var(--space-2);
+}
+
+.batch-rejected-list {
+  margin-top: var(--space-2);
+  list-style-position: inside;
+  list-style-type: disc;
+}
+
+.batch-rejected-list > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-1);
+}
+
+.batch-actions {
+  position: sticky;
+  bottom: 1rem;
+  z-index: 20;
+  display: flex;
+  gap: var(--space-2);
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-7);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-3);
+}
+
+.batch-cell {
+  padding: var(--space-2);
+}
+
+.batch-editor-cell > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-1);
+}
+
+.batch-editor-cell {
+  padding: var(--space-2);
+}
+
+.batch-muted-cell {
+  padding: var(--space-2);
+  color: var(--gray-11);
+}
+
+.batch-heading {
+  border-bottom: 1px solid var(--gray-5);
+  padding-inline: var(--space-4);
+  padding-block: var(--space-3);
+  font-weight: 600;
+}
+
+.batch-table {
+  width: 100%;
+  min-width: 1000px;
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.batch-input {
+  min-height: 10rem;
+}

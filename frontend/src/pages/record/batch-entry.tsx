@@ -1,18 +1,15 @@
-import { invalidateFinance, invalidateMeals } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/batch-entry.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { api, type BatchPreparation, type BatchRecord } from "@/api/client";
+import { invalidateFinance, invalidateMeals } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Feedback,
-  Field,
-  selectClass,
-  textareaClass,
-  today,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, selectClass, textareaClass, today } from "@/pages/record/entry-shared";
 
 type IndexedRecord = { record: BatchRecord; index: number };
 
@@ -34,9 +31,7 @@ export function BatchEntry() {
   const [text, setText] = useState("");
   const [defaultDate, setDefaultDate] = useState(today);
   const [records, setRecords] = useState<BatchRecord[]>([]);
-  const [diagnostics, setDiagnostics] = useState<
-    BatchPreparation["diagnostics"] | null
-  >(null);
+  const [diagnostics, setDiagnostics] = useState<BatchPreparation["diagnostics"] | null>(null);
   const [submissionId, setSubmissionId] = useState("");
   const [message, setMessage] = useState("");
 
@@ -81,19 +76,19 @@ export function BatchEntry() {
   const meals = indexed.filter(({ record }) => record.record_type === "饮食");
 
   return (
-    <div className="space-y-5">
-      <div className="rounded-lg border border-neutral-200 bg-white p-5">
+    <div className="page-stack">
+      <div className="content-panel">
         <Field label="默认日期">
           <Input
-            className="max-w-52"
+            className="batch-preview-description"
             type="date"
             value={defaultDate}
             onChange={(event) => setDefaultDate(event.target.value)}
           />
         </Field>
-        <Field label="批量描述" className="mt-4">
-          <textarea
-            className={`${textareaClass} min-h-40`}
+        <Field label="批量描述" className="batch-result">
+          <TextArea
+            className={`${textareaClass} batch-input`}
             value={text}
             onChange={(event) => setText(event.target.value)}
             placeholder="例：【旅游】火车票、打车、吃饭……上层语义会保留到第二阶段。"
@@ -101,7 +96,7 @@ export function BatchEntry() {
         </Field>
         <Button
           data-primary-action={records.length === 0}
-          className="mt-4"
+          className="batch-result"
           onClick={() => prepare.mutate()}
           disabled={prepare.isPending || save.isPending || !text.trim()}
         >
@@ -109,18 +104,14 @@ export function BatchEntry() {
         </Button>
         <Feedback message={message} error={prepare.error ?? save.error} />
         {diagnostics &&
-          ((diagnostics.rejected_records?.length ?? 0) > 0 ||
-            prepare.data?.status === "error") && (
-            <details className="mt-4 text-sm text-neutral-600">
-              <summary className="cursor-pointer">未能识别的内容</summary>
-              <p className="mt-2">
-                这些内容尚未加入待保存记录，请检查原文后重新录入。
-              </p>
-              <ul className="mt-2 list-inside list-disc space-y-1">
+          ((diagnostics.rejected_records?.length ?? 0) > 0 || prepare.data?.status === "error") && (
+            <details className="batch-explanation">
+              <summary className="batch-disclosure">未能识别的内容</summary>
+              <p className="batch-rejected">这些内容尚未加入待保存记录，请检查原文后重新录入。</p>
+              <ul className="batch-rejected-list">
                 {diagnostics.rejected_records?.map((item, index) => (
                   <li key={index}>
-                    {rejectedText(item.record)}：
-                    {String(item.reason ?? "无法识别")}
+                    {rejectedText(item.record)}：{String(item.reason ?? "无法识别")}
                   </li>
                 ))}
               </ul>
@@ -130,23 +121,17 @@ export function BatchEntry() {
       </div>
 
       {finance.length > 0 && (
-        <FinanceReview
-          rows={finance}
-          categories={categories.data ?? {}}
-          update={update}
-        />
+        <FinanceReview rows={finance} categories={categories.data ?? {}} update={update} />
       )}
       {meals.length > 0 && <MealReview rows={meals} update={update} />}
 
       {records.length > 0 && (
-        <div className="sticky bottom-4 z-20 flex gap-2 rounded-lg border border-neutral-300 bg-white p-3 shadow-lg">
+        <div className="batch-actions">
           <Button
             data-primary-action="true"
             onClick={() => save.mutate()}
             disabled={
-              prepare.isPending ||
-              save.isPending ||
-              !records.some((record) => record.include)
+              prepare.isPending || save.isPending || !records.some((record) => record.include)
             }
           >
             {save.isPending ? "保存中…" : "保存所选记录"}
@@ -182,25 +167,22 @@ function FinanceReview({
         const categoryMap = categories[record.record_type] ?? {};
         const subcategories = categoryMap[record.category] ?? [];
         return (
-          <tr className="border-t border-neutral-100" key={index}>
+          <tr className="data-row" key={index}>
             <IncludeCell record={record} index={index} update={update} />
-            <td className="p-2">
+            <td className="batch-cell">
               <Input
                 type="date"
                 value={record.date}
-                onChange={(event) =>
-                  update(index, { date: event.target.value })
-                }
+                onChange={(event) => update(index, { date: event.target.value })}
               />
             </td>
-            <td className="p-2">
+            <td className="batch-cell">
               <select
                 className={selectClass}
                 value={record.record_type}
                 onChange={(event) =>
                   update(index, {
-                    record_type: event.target
-                      .value as BatchRecord["record_type"],
+                    record_type: event.target.value as BatchRecord["record_type"],
                     category: "",
                     subcategory: "",
                   })
@@ -211,26 +193,22 @@ function FinanceReview({
                 ))}
               </select>
             </td>
-            <td className="p-2">
+            <td className="batch-cell">
               <Input
                 value={record.description}
-                onChange={(event) =>
-                  update(index, { description: event.target.value })
-                }
+                onChange={(event) => update(index, { description: event.target.value })}
               />
             </td>
-            <td className="p-2">
+            <td className="batch-cell">
               <Input
                 type="number"
                 min="0.01"
                 step="0.01"
                 value={record.amount ?? ""}
-                onChange={(event) =>
-                  update(index, { amount: Number(event.target.value) })
-                }
+                onChange={(event) => update(index, { amount: Number(event.target.value) })}
               />
             </td>
-            <td className="p-2">
+            <td className="batch-cell">
               <select
                 className={selectClass}
                 value={record.category}
@@ -247,13 +225,11 @@ function FinanceReview({
                 ))}
               </select>
             </td>
-            <td className="p-2">
+            <td className="batch-cell">
               <select
                 className={selectClass}
                 value={record.subcategory}
-                onChange={(event) =>
-                  update(index, { subcategory: event.target.value })
-                }
+                onChange={(event) => update(index, { subcategory: event.target.value })}
               >
                 <option value="">无</option>
                 {subcategories.map((subcategory) => (
@@ -278,9 +254,9 @@ function MealReview({
   return (
     <ReviewTable title="饮食">
       {rows.map(({ record, index }) => (
-        <tr className="border-t border-neutral-100" key={index}>
+        <tr className="data-row" key={index}>
           <IncludeCell record={record} index={index} update={update} />
-          <td className="space-y-1 p-2">
+          <td className="batch-editor-cell">
             <Input
               type="date"
               value={record.date}
@@ -292,30 +268,24 @@ function MealReview({
               onChange={(event) => update(index, { time: event.target.value })}
             />
           </td>
-          <td className="p-2 text-neutral-500">饮食</td>
-          <td className="p-2">
+          <td className="batch-muted-cell">饮食</td>
+          <td className="batch-cell">
             <Input
               value={record.description}
-              onChange={(event) =>
-                update(index, { description: event.target.value })
-              }
+              onChange={(event) => update(index, { description: event.target.value })}
             />
           </td>
-          <td className="p-2" colSpan={2}>
+          <td className="batch-cell" colSpan={2}>
             <Input
               value={foodsToText(record.foods ?? [])}
-              onChange={(event) =>
-                update(index, { foods: textToFoods(event.target.value) })
-              }
+              onChange={(event) => update(index, { foods: textToFoods(event.target.value) })}
               placeholder="菜品:份量【食材1、食材2】；…"
             />
           </td>
-          <td className="p-2">
+          <td className="batch-cell">
             <Input
               value={record.meal_type ?? ""}
-              onChange={(event) =>
-                update(index, { meal_type: event.target.value })
-              }
+              onChange={(event) => update(index, { meal_type: event.target.value })}
               placeholder="餐顿标签"
             />
           </td>
@@ -325,29 +295,21 @@ function MealReview({
   );
 }
 
-function ReviewTable({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function ReviewTable({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-      <h2 className="border-b border-neutral-200 px-4 py-3 font-semibold">
-        {title}
-      </h2>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px] text-sm">
-          <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
+    <div className="table-panel">
+      <h2 className="batch-heading">{title}</h2>
+      <div className="table-scroll">
+        <table className="batch-table">
+          <thead className="data-table-heading">
             <tr>
-              <th className="p-3">保存</th>
-              <th className="p-3">日期 / 时间</th>
-              <th className="p-3">类型</th>
-              <th className="p-3">描述</th>
-              <th className="p-3">金额 / 食物</th>
-              <th className="p-3">主类别</th>
-              <th className="p-3">子类别 / 餐顿</th>
+              <th className="data-cell">保存</th>
+              <th className="data-cell">日期 / 时间</th>
+              <th className="data-cell">类型</th>
+              <th className="data-cell">描述</th>
+              <th className="data-cell">金额 / 食物</th>
+              <th className="data-cell">主类别</th>
+              <th className="data-cell">子类别 / 餐顿</th>
             </tr>
           </thead>
           <tbody>{children}</tbody>
@@ -367,12 +329,10 @@ function IncludeCell({
   update: (index: number, changes: Partial<BatchRecord>) => void;
 }) {
   return (
-    <td className="p-3">
+    <td className="data-cell">
       <Checkbox
         checked={record.include}
-        onCheckedChange={(checked) =>
-          update(index, { include: Boolean(checked) })
-        }
+        onCheckedChange={(checked) => update(index, { include: Boolean(checked) })}
       />
     </td>
   );
@@ -383,8 +343,7 @@ function foodsToText(foods: NonNullable<BatchRecord["foods"]>): string {
     .map((food) => {
       let value = food.food_name;
       if (food.quantity) value += `:${food.quantity}`;
-      if (food.ingredients?.length)
-        value += `【${food.ingredients.join("、")}】`;
+      if (food.ingredients?.length) value += `【${food.ingredients.join("、")}】`;
       return value;
     })
     .join("；");
@@ -395,13 +354,8 @@ function textToFoods(value: string): NonNullable<BatchRecord["foods"]> {
     .split(/[；;]/)
     .map((part) => {
       const ingredientMatch = part.match(/【(.*)】$/);
-      const withoutIngredients = ingredientMatch
-        ? part.slice(0, ingredientMatch.index)
-        : part;
-      const [foodName = "", quantity = ""] = withoutIngredients.split(
-        /[:：]/,
-        2,
-      );
+      const withoutIngredients = ingredientMatch ? part.slice(0, ingredientMatch.index) : part;
+      const [foodName = "", quantity = ""] = withoutIngredients.split(/[:：]/, 2);
       return {
         food_name: foodName.trim(),
         quantity: quantity.trim(),

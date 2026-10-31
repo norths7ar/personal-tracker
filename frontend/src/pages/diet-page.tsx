@@ -1,4 +1,6 @@
-import { invalidateMeals } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/diet-page.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
@@ -14,13 +16,11 @@ import {
   type MealUpdate,
   type MealBulkChanges,
 } from "@/api/client";
-import {
-  RecordActions,
-  BulkFieldToggle,
-  EditorFooter,
-} from "@/components/record-actions";
-import { Checkbox } from "@/components/ui/checkbox";
+import { invalidateMeals } from "@/api/invalidate";
+import { EChart } from "@/components/echart";
+import { RecordActions, BulkFieldToggle, EditorFooter } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -28,27 +28,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { EChart } from "@/components/echart";
 import { Input } from "@/components/ui/input";
 import { useRecordSelection } from "@/lib/use-record-selection";
 import { cn } from "@/lib/utils";
-import {
-  Feedback,
-  Field,
-  selectClass,
-  textareaClass,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, selectClass, textareaClass } from "@/pages/record/entry-shared";
 
 type Tab = "ledger" | "analysis";
 
-echarts.use([
-  BarChart,
-  LineChart,
-  ScatterChart,
-  GridComponent,
-  TooltipComponent,
-  CanvasRenderer,
-]);
+echarts.use([BarChart, LineChart, ScatterChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 export function DietPage() {
   const queryClient = useQueryClient();
@@ -57,8 +44,7 @@ export function DietPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(0);
-  const { rowSelection, setRowSelection, selectedIds, rowEvents } =
-    useRecordSelection();
+  const { rowSelection, setRowSelection, selectedIds, rowEvents } = useRecordSelection();
   const [editing, setEditing] = useState<Meal | null>(null);
   const [bulkEditing, setBulkEditing] = useState(false);
   const invalidRange = Boolean(startDate && endDate && startDate > endDate);
@@ -75,9 +61,7 @@ export function DietPage() {
   const pageCount = Math.max(1, Math.ceil(filtered.length / 50));
   const currentPage = Math.min(page, pageCount - 1);
   const visible = filtered.slice(currentPage * 50, (currentPage + 1) * 50);
-  const selected = (meals.data ?? []).filter((meal) =>
-    selectedIds.includes(meal.id),
-  );
+  const selected = (meals.data ?? []).filter((meal) => selectedIds.includes(meal.id));
   const refresh = () => {
     void invalidateMeals(queryClient);
     setEditing(null);
@@ -94,10 +78,7 @@ export function DietPage() {
     onSuccess: refresh,
   });
   const deleteSelected = () => {
-    if (
-      selectedIds.length &&
-      window.confirm(`确定删除选中的 ${selectedIds.length} 条饮食记录吗？`)
-    )
+    if (selectedIds.length && window.confirm(`确定删除选中的 ${selectedIds.length} 条饮食记录吗？`))
       deletion.mutate(selectedIds);
   };
   const openEditor = (meal: Meal) => {
@@ -110,15 +91,11 @@ export function DietPage() {
     setRowSelection({});
   };
   return (
-    <section className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <section className="page-stack">
+      <header className="page-heading">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            饮食
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            饮食记录、食材和趋势分析。
-          </p>
+          <h1 className="page-title">饮食</h1>
+          <p className="page-description">饮食记录、食材和趋势分析。</p>
         </div>
         {tab === "ledger" && (
           <Button
@@ -131,7 +108,7 @@ export function DietPage() {
           </Button>
         )}
       </header>
-      <div className="flex gap-1 rounded-lg bg-neutral-200/70 p-1">
+      <div className="page-tabs">
         <TabButton
           active={tab === "ledger"}
           onClick={() => {
@@ -153,15 +130,13 @@ export function DietPage() {
       </div>
       {tab === "ledger" ? (
         <>
-          <div className="grid gap-3 rounded-lg border border-neutral-200 bg-white p-4 sm:grid-cols-[176px_176px]">
+          <div className="diet-filters">
             <Field label="开始日期">
               <Input
                 type="date"
                 value={startDate}
                 max={endDate || undefined}
-                onChange={(event) =>
-                  selectDate(event.target.value, setStartDate)
-                }
+                onChange={(event) => selectDate(event.target.value, setStartDate)}
               />
             </Field>
             <Field label="结束日期">
@@ -173,20 +148,20 @@ export function DietPage() {
               />
             </Field>
             {invalidRange && (
-              <p role="alert" className="text-sm text-red-600 sm:col-span-2">
+              <p role="alert" className="filter-error">
                 开始日期不能晚于结束日期。
               </p>
             )}
           </div>
           {meals.isPending ? (
-            <p className="text-sm text-neutral-500">正在读取…</p>
+            <p className="muted-text">正在读取…</p>
           ) : meals.isError ? (
             <Feedback error={meals.error} />
           ) : (
-            <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-              <div className="flex items-center justify-between gap-3 border-b border-neutral-200 px-4 py-3 text-sm text-neutral-500">
+            <div className="table-panel">
+              <div className="table-toolbar">
                 <span>共 {filtered.length} 条</span>
-                <div className="flex items-center gap-2">
+                <div className="pagination-controls">
                   <Button
                     variant="outline"
                     size="sm"
@@ -208,19 +183,18 @@ export function DietPage() {
                   </Button>
                 </div>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[700px] text-sm">
-                  <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
+              <div className="table-scroll">
+                <table className="diet-table">
+                  <thead className="data-table-heading">
                     <tr>
-                      <th className="w-10 p-3">
+                      <th className="diet-selection-cell">
                         <Checkbox
                           aria-label="选择当前页"
                           disabled={!visible.length}
                           checked={
                             visible.length > 0 &&
                             (visible.every((meal) => rowSelection[meal.id]) ||
-                              (visible.some((meal) => rowSelection[meal.id]) &&
-                                "indeterminate"))
+                              (visible.some((meal) => rowSelection[meal.id]) && "indeterminate"))
                           }
                           onCheckedChange={(checked) =>
                             setRowSelection((current) => {
@@ -234,11 +208,11 @@ export function DietPage() {
                           }
                         />
                       </th>
-                      <th className="p-3">日期</th>
-                      <th className="p-3">时间</th>
-                      <th className="p-3">餐顿</th>
-                      <th className="p-3">食物</th>
-                      <th className="w-48 whitespace-nowrap p-3">备注</th>
+                      <th className="data-cell">日期</th>
+                      <th className="data-cell">时间</th>
+                      <th className="data-cell">餐顿</th>
+                      <th className="data-cell">食物</th>
+                      <th className="diet-foods-cell">备注</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -248,13 +222,11 @@ export function DietPage() {
                         aria-selected={Boolean(rowSelection[meal.id])}
                         {...rowEvents(meal.id, () => openEditor(meal))}
                         className={cn(
-                          "cursor-pointer border-t border-neutral-100",
-                          rowSelection[meal.id]
-                            ? "bg-amber-50"
-                            : "hover:bg-neutral-50",
+                          "selectable-row",
+                          rowSelection[meal.id] ? "row-selected" : "row-interactive",
                         )}
                       >
-                        <td className="p-3">
+                        <td className="data-cell">
                           <Checkbox
                             aria-label={`选择记录 ${meal.id}`}
                             checked={Boolean(rowSelection[meal.id])}
@@ -266,29 +238,16 @@ export function DietPage() {
                             }
                           />
                         </td>
-                        <td className="w-32 whitespace-nowrap p-3">
-                          {meal.date}
-                        </td>
-                        <td className="w-24 whitespace-nowrap p-3">
-                          {meal.time || "—"}
-                        </td>
-                        <td className="w-24 whitespace-nowrap p-3">
-                          {meal.meal_type || "—"}
-                        </td>
-                        <td className="p-3">
-                          {meal.foods.map(foodLabel).join("、")}
-                        </td>
-                        <td className="w-48 break-words p-3">
-                          {meal.notes || ""}
-                        </td>
+                        <td className="diet-date-cell">{meal.date}</td>
+                        <td className="diet-time-cell">{meal.time || "—"}</td>
+                        <td className="diet-time-cell">{meal.meal_type || "—"}</td>
+                        <td className="data-cell">{meal.foods.map(foodLabel).join("、")}</td>
+                        <td className="diet-note-cell">{meal.notes || ""}</td>
                       </tr>
                     ))}
                     {!visible.length && (
                       <tr>
-                        <td
-                          colSpan={6}
-                          className="p-8 text-center text-neutral-500"
-                        >
+                        <td colSpan={6} className="table-empty">
                           该范围内没有饮食记录。
                         </td>
                       </tr>
@@ -302,11 +261,7 @@ export function DietPage() {
             count={selectedIds.length}
             busy={deletion.isPending}
             error={deletion.error}
-            onEdit={() =>
-              selected.length === 1
-                ? openEditor(selected[0]!)
-                : setBulkEditing(true)
-            }
+            onEdit={() => (selected.length === 1 ? openEditor(selected[0]!) : setBulkEditing(true))}
             onDelete={deleteSelected}
             onClear={() => setRowSelection({})}
           />
@@ -324,9 +279,7 @@ export function DietPage() {
           <DialogContent layout="center">
             <DialogHeader>
               <DialogTitle>编辑饮食记录</DialogTitle>
-              <DialogDescription>
-                修改日期、食物与备注，保存后生效。
-              </DialogDescription>
+              <DialogDescription>修改日期、食物与备注，保存后生效。</DialogDescription>
             </DialogHeader>
             <MealEditor
               key={editing.id}
@@ -340,11 +293,7 @@ export function DietPage() {
         )}
       </Dialog>
       {bulkEditing && (
-        <BulkMealEditor
-          meals={selected}
-          onClose={() => setBulkEditing(false)}
-          onSaved={refresh}
-        />
+        <BulkMealEditor meals={selected} onClose={() => setBulkEditing(false)} onSaved={refresh} />
       )}
     </section>
   );
@@ -394,7 +343,7 @@ function BulkMealEditor({
           </DialogDescription>
         </DialogHeader>
         <form
-          className="space-y-4"
+          className="form-stack"
           onSubmit={(event) => {
             event.preventDefault();
             update.mutate();
@@ -408,41 +357,28 @@ function BulkMealEditor({
               ["notes", "备注"],
             ] as const
           ).map(([key, label]) => (
-            <div key={key} className="space-y-2">
+            <div key={key} className="editor-group">
               <BulkFieldToggle
                 label={`修改${label}`}
                 checked={Boolean(enabled[key])}
-                onChange={(checked) =>
-                  setEnabled({ ...enabled, [key]: checked })
-                }
+                onChange={(checked) => setEnabled({ ...enabled, [key]: checked })}
               />
               <Input
                 aria-label={label}
                 type={key === "date" || key === "time" ? key : "text"}
                 value={values[key]}
                 disabled={!enabled[key]}
-                required={
-                  Boolean(enabled[key]) && (key === "date" || key === "time")
-                }
+                required={Boolean(enabled[key]) && (key === "date" || key === "time")}
                 placeholder={
-                  key === "notes" || key === "meal_type"
-                    ? "留空将清除所选记录的此字段"
-                    : undefined
+                  key === "notes" || key === "meal_type" ? "留空将清除所选记录的此字段" : undefined
                 }
-                onChange={(event) =>
-                  setValues({ ...values, [key]: event.target.value })
-                }
+                onChange={(event) => setValues({ ...values, [key]: event.target.value })}
               />
             </div>
           ))}
           <Feedback error={update.error} />
           <EditorFooter>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={update.isPending}
-              onClick={onClose}
-            >
+            <Button type="button" variant="outline" disabled={update.isPending} onClick={onClose}>
               取消
             </Button>
             <Button disabled={update.isPending || !Object.keys(changes).length}>
@@ -476,10 +412,7 @@ function MealEditor({
     notes: meal.notes,
     foods: meal.foods,
   });
-  const updateFood = (
-    index: number,
-    changes: Partial<MealUpdate["foods"][number]>,
-  ) =>
+  const updateFood = (index: number, changes: Partial<MealUpdate["foods"][number]>) =>
     setForm({
       ...form,
       foods: form.foods.map((food, foodIndex) =>
@@ -496,8 +429,8 @@ function MealEditor({
     });
   };
   return (
-    <form className="space-y-4" onSubmit={submit}>
-      <div className="grid grid-cols-2 gap-3">
+    <form className="form-stack" onSubmit={submit}>
+      <div className="paired-fields">
         <Field label="日期">
           <Input
             type="date"
@@ -516,38 +449,30 @@ function MealEditor({
       <Field label="餐顿标签">
         <Input
           value={form.meal_type ?? ""}
-          onChange={(event) =>
-            setForm({ ...form, meal_type: event.target.value || null })
-          }
+          onChange={(event) => setForm({ ...form, meal_type: event.target.value || null })}
         />
       </Field>
       <Field label="原始描述">
-        <textarea
+        <TextArea
           className={textareaClass}
           value={form.description}
-          onChange={(event) =>
-            setForm({ ...form, description: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
         />
       </Field>
-      <div className="space-y-2">
-        <span className="text-sm font-medium">食物清单</span>
+      <div className="editor-group">
+        <span className="field-label">食物清单</span>
         {form.foods.map((food, index) => (
-          <div className="grid gap-2" key={index}>
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+          <div className="ingredient-list" key={index}>
+            <div className="ingredient-row">
               <Input
                 value={food.food_name}
                 placeholder="食物"
-                onChange={(event) =>
-                  updateFood(index, { food_name: event.target.value })
-                }
+                onChange={(event) => updateFood(index, { food_name: event.target.value })}
               />
               <Input
                 value={food.quantity}
                 placeholder="份量"
-                onChange={(event) =>
-                  updateFood(index, { quantity: event.target.value })
-                }
+                onChange={(event) => updateFood(index, { quantity: event.target.value })}
               />
               <Button
                 type="button"
@@ -556,9 +481,7 @@ function MealEditor({
                 onClick={() =>
                   setForm({
                     ...form,
-                    foods: form.foods.filter(
-                      (_, itemIndex) => itemIndex !== index,
-                    ),
+                    foods: form.foods.filter((_, itemIndex) => itemIndex !== index),
                   })
                 }
               >
@@ -583,10 +506,7 @@ function MealEditor({
         onClick={() =>
           setForm({
             ...form,
-            foods: [
-              ...form.foods,
-              { food_name: "", quantity: "", ingredients: [] },
-            ],
+            foods: [...form.foods, { food_name: "", quantity: "", ingredients: [] }],
           })
         }
       >
@@ -594,29 +514,20 @@ function MealEditor({
         添加食物
       </Button>
       <Field label="备注">
-        <textarea
+        <TextArea
           className={textareaClass}
           value={form.notes ?? ""}
-          onChange={(event) =>
-            setForm({ ...form, notes: event.target.value || null })
-          }
+          onChange={(event) => setForm({ ...form, notes: event.target.value || null })}
         />
       </Field>
       <Feedback error={error} />
       <EditorFooter>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={saving}
-          onClick={onClose}
-        >
+        <Button type="button" variant="outline" disabled={saving} onClick={onClose}>
           取消
         </Button>
         <Button
           disabled={
-            saving ||
-            !form.description.trim() ||
-            !form.foods.some((food) => food.food_name.trim())
+            saving || !form.description.trim() || !form.foods.some((food) => food.food_name.trim())
           }
         >
           {saving ? "保存中…" : "保存修改"}
@@ -627,13 +538,9 @@ function MealEditor({
 }
 
 function DietAnalysis({ meals }: { meals: Meal[] }) {
-  const months = [...new Set(meals.map((meal) => meal.date.slice(0, 7)))]
-    .sort()
-    .reverse();
-  const today = formatDate(new Date());
-  const [selectedMonth, setSelectedMonth] = useState(
-    months[0] ?? today.slice(0, 7),
-  );
+  const months = [...new Set(meals.map((meal) => meal.date.slice(0, 7)))].sort().reverse();
+  const [today] = useState(() => formatDate(new Date()));
+  const [selectedMonth, setSelectedMonth] = useState(months[0] ?? today.slice(0, 7));
   const [year, month] = selectedMonth.split("-").map(Number);
   const startDate = `${selectedMonth}-01`;
   const monthEnd = formatDate(new Date(year!, month!, 0));
@@ -648,28 +555,17 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
     queryKey: ["diet-stats", startDate, endDate],
     queryFn: () => api.dietStats(startDate, endDate),
   });
-  if (!months.length)
-    return (
-      <div className="rounded-lg border bg-white p-8 text-center text-neutral-500">
-        暂无饮食记录。
-      </div>
-    );
-  if (stats.isPending)
-    return <p className="text-sm text-neutral-500">正在分析…</p>;
+  if (!months.length) return <div className="empty-panel">暂无饮食记录。</div>;
+  if (stats.isPending) return <p className="muted-text">正在分析…</p>;
   if (stats.isError) return <Feedback error={stats.error} />;
-  const totalRecords = stats.data.daily_meals.reduce(
-    (sum, item) => sum + item.count,
-    0,
-  );
-  const dailyCounts = new Map(
-    stats.data.daily_meals.map((item) => [item.date, item.count]),
-  );
+  const totalRecords = stats.data.daily_meals.reduce((sum, item) => sum + item.count, 0);
+  const dailyCounts = new Map(stats.data.daily_meals.map((item) => [item.date, item.count]));
   const topFood = stats.data.food_freq[0]?.food_name ?? "—";
   return (
-    <div className="space-y-4">
+    <div className="form-stack">
       <Field label="月份">
         <select
-          className={`${selectClass} max-w-52`}
+          className={`${selectClass} diet-period-select`}
           value={selectedMonth}
           onChange={(event) => setSelectedMonth(event.target.value)}
         >
@@ -678,13 +574,13 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
           ))}
         </select>
       </Field>
-      <p className="text-sm text-neutral-500">
+      <p className="muted-text">
         {days.length
           ? `统计范围：${startDate} 至 ${endDate}，共 ${days.length} 天。`
           : "所选期间尚未开始。"}
         按记录次数统计，零食记录不视为一餐；未记录不代表没有进食。
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="metrics-grid">
         <Metric
           label="记录天数 / 期间天数"
           value={`${stats.data.daily_meals.length} / ${days.length}`}
@@ -696,7 +592,7 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
         />
         <Metric label="最高频食物" value={topFood} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="diet-charts">
         <Chart
           title="用餐时间分布"
           description="从上到下由早到晚，仅展示已记录的时间。"
@@ -728,7 +624,7 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
           }}
         />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="diet-charts">
         <Chart
           title="高频食物"
           description="按食物／菜名原文统计出现次数，不合并相似名称。"
@@ -767,26 +663,18 @@ function Chart({
   empty?: boolean;
 }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <h2 className="font-medium">{title}</h2>
-      <p className="mb-2 mt-1 min-h-10 text-xs leading-5 text-neutral-500">
-        {description}
-      </p>
-      {empty ? (
-        <p className="flex h-[280px] items-center justify-center text-sm text-neutral-500">
-          该期间尚无食材数据。
-        </p>
-      ) : (
-        <EChart option={option} />
-      )}
+    <div className="metric-panel">
+      <h2 className="content-label">{title}</h2>
+      <p className="chart-description">{description}</p>
+      {empty ? <p className="chart-empty">该期间尚无食材数据。</p> : <EChart option={option} />}
     </div>
   );
 }
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
+    <div className="metric-panel">
+      <p className="muted-text">{label}</p>
+      <p className="metric-value">{value}</p>
     </div>
   );
 }
@@ -800,13 +688,7 @@ function TabButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      className={cn(
-        "flex-1 rounded-md px-3 py-2 text-sm font-medium",
-        active && "bg-white shadow-sm",
-      )}
-      onClick={onClick}
-    >
+    <button className={cn("page-tab", active && "page-tab-selected")} onClick={onClick}>
       {children}
     </button>
   );
@@ -851,11 +733,7 @@ function mealTimeOption(rows: DietStats["meal_times"], days: string[]) {
         symbolSize: 9,
         data: rows.map((item) => {
           const [hour = 0, minute = 0] = item.time.split(":").map(Number);
-          return [item.date, hour + minute / 60, item.time] as [
-            string,
-            number,
-            string,
-          ];
+          return [item.date, hour + minute / 60, item.time] as [string, number, string];
         }),
       },
     ],
@@ -869,7 +747,7 @@ function frequencyOption(rows: { name: string; count: number }[]) {
       type: "category",
       inverse: true,
       data: visible.map((item) => item.name),
-      axisLabel: { width: 120, overflow: "truncate" },
+      axisLabel: { width: 120, overflow: "chart-label" },
     },
     xAxis: { type: "value", minInterval: 1 },
     series: [
@@ -902,14 +780,10 @@ function exportMeals(meals: Meal[]) {
     ]),
   ];
   const csv = rows
-    .map((row) =>
-      row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","),
-    )
+    .map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))
     .join("\r\n");
   const link = document.createElement("a");
-  link.href = URL.createObjectURL(
-    new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }),
-  );
+  link.href = URL.createObjectURL(new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8" }));
   link.download = "diet.csv";
   link.click();
   URL.revokeObjectURL(link.href);

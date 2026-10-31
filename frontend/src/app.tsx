@@ -1,3 +1,4 @@
+import "@/styles/app.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -37,6 +38,9 @@ const CrossPeriodPage = lazy(() =>
     default: module.CrossPeriodPage,
   })),
 );
+const SettingsPage = lazy(() =>
+  import("@/pages/settings-page").then((module) => ({ default: module.SettingsPage })),
+);
 
 export function App() {
   const queryClient = useQueryClient();
@@ -47,30 +51,15 @@ export function App() {
   });
 
   if (currentUser.isPending) {
-    return (
-      <div className="grid min-h-screen place-items-center text-sm text-neutral-500">
-        正在载入…
-      </div>
-    );
+    return <div className="app-loading">正在载入…</div>;
   }
-  if (
-    currentUser.error instanceof ApiError &&
-    currentUser.error.status === 401
-  ) {
+  if (currentUser.error instanceof ApiError && currentUser.error.status === 401) {
     return (
-      <LoginPage
-        onSuccess={() =>
-          queryClient.invalidateQueries({ queryKey: ["current-user"] })
-        }
-      />
+      <LoginPage onSuccess={() => queryClient.invalidateQueries({ queryKey: ["current-user"] })} />
     );
   }
   if (currentUser.isError) {
-    return (
-      <div className="grid min-h-screen place-items-center text-sm text-red-600">
-        {currentUser.error.message}
-      </div>
-    );
+    return <div className="app-error">{currentUser.error.message}</div>;
   }
 
   const logout = async () => {
@@ -81,9 +70,7 @@ export function App() {
 
   return (
     <AppShell onLogout={logout}>
-      <Suspense
-        fallback={<p className="text-sm text-neutral-500">正在载入页面…</p>}
-      >
+      <Suspense fallback={<p className="muted-text">正在载入页面…</p>}>
         <Routes>
           <Route path="/record" element={<RecordPage />} />
           <Route path="/todo" element={<TodoPage />} />
@@ -92,6 +79,7 @@ export function App() {
           <Route path="/diet" element={<DietPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
           <Route path="/cross-period" element={<CrossPeriodPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>
       </Suspense>

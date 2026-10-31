@@ -1,0 +1,121 @@
+.diet-filters {
+  display: grid;
+  gap: var(--space-3);
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .diet-filters {
+    grid-template-columns: 176px 176px;
+  }
+}
+
+.table-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--gray-5);
+  padding-inline: var(--space-4);
+  padding-block: var(--space-3);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.diet-table {
+  width: 100%;
+  min-width: 700px;
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.diet-selection-cell {
+  width: 2.5rem;
+  padding: var(--space-3);
+}
+
+.diet-foods-cell {
+  width: 12rem;
+  white-space: nowrap;
+  padding: var(--space-3);
+}
+
+.diet-date-cell {
+  width: 8rem;
+  white-space: nowrap;
+  padding: var(--space-3);
+}
+
+.diet-time-cell {
+  width: 6rem;
+  white-space: nowrap;
+  padding: var(--space-3);
+}
+
+.diet-note-cell {
+  width: 12rem;
+  overflow-wrap: break-word;
+  padding: var(--space-3);
+}
+
+.table-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--gray-11);
+}
+
+.ingredient-list {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.ingredient-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-2);
+}
+
+.diet-charts {
+  display: grid;
+  gap: var(--space-4);
+}
+
+@media (min-width: 1024px) {
+  .diet-charts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.chart-description {
+  margin-bottom: var(--space-2);
+  margin-top: var(--space-1);
+  min-height: 2.5rem;
+  font-size: var(--font-size-1, 0.75rem);
+  line-height: 1rem;
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.chart-empty {
+  display: flex;
+  height: 280px;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.chart-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diet-period-select {
+  max-width: 13rem;
+}

@@ -1,3 +1,4 @@
+import "@/styles/record-page.css";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
 import { useState } from "react";
@@ -21,7 +22,7 @@ export function RecordPage() {
 
   return (
     <section
-      className="space-y-5"
+      className="page-stack"
       onKeyDown={(event) => {
         if (
           !event.ctrlKey ||
@@ -39,27 +40,17 @@ export function RecordPage() {
       }}
     >
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          记录
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          Ctrl+Enter 执行当前步骤；有待确认内容时请检查后保存。
-        </p>
+        <h1 className="page-title">记录</h1>
+        <p className="page-description">Ctrl+Enter 执行当前步骤；有待确认内容时请检查后保存。</p>
       </header>
       <HomeSummary />
-      <div
-        aria-label="录入方式"
-        className="flex gap-1 rounded-lg bg-neutral-200/70 p-1"
-      >
+      <div aria-label="录入方式" className="page-tabs">
         {tabs.map(({ value, label }) => (
           <button
             key={value}
             aria-pressed={tab === value}
             aria-controls={`record-${value}`}
-            className={cn(
-              "flex-1 rounded-md px-3 py-2 text-sm font-medium",
-              tab === value && "bg-white shadow-sm",
-            )}
+            className={cn("page-tab", tab === value && "page-tab-selected")}
             onClick={() => setTab(value)}
           >
             {label}
@@ -91,39 +82,33 @@ function HomeSummary() {
     today_expense: expense,
     today_meals: meals,
   } = summary.data;
-  if (!reminders.length && !pendingCount && !expense && !meals.length)
-    return null;
+  if (!reminders.length && !pendingCount && !expense && !meals.length) return null;
   return (
     <div
-      className={`grid gap-3 ${reminders.length > 0 || pendingCount > 0 ? "lg:grid-cols-2" : ""}`}
+      className={`home-summary ${reminders.length > 0 || pendingCount > 0 ? "summary-with-reminders" : ""}`}
     >
       {(reminders.length > 0 || pendingCount > 0) && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <h2 className="font-medium text-amber-950">待办提醒</h2>
-          <ul className="mt-2 space-y-1 text-sm text-amber-900">
+        <div className="reminder-panel">
+          <h2 className="reminder-title">待办提醒</h2>
+          <ul className="reminder-list">
             {reminders.slice(0, 4).map((item) => (
               <li key={`${item.source}-${item.id}`}>
                 • {item.description} · {dueLabel(item.days_until_due)}
                 {item.amount ? ` · ${money(item.amount)}` : ""}
               </li>
             ))}
-            {reminders.length > 4 && (
-              <li>• 另有 {reminders.length - 4} 项付款提醒</li>
-            )}
+            {reminders.length > 4 && <li>• 另有 {reminders.length - 4} 项付款提醒</li>}
             {pendingCount > 0 && <li>• 待分类支出 · {pendingCount} 笔</li>}
           </ul>
-          <div className="mt-3 flex flex-wrap gap-3 text-sm font-medium">
+          <div className="reminder-links">
             {reminders.length > 0 && (
-              <Link
-                className="inline-flex items-center gap-1"
-                to="/cross-period"
-              >
+              <Link className="reminder-link" to="/cross-period">
                 处理跨期费用
                 <ArrowRight size={14} />
               </Link>
             )}
             {pendingCount > 0 && (
-              <Link className="inline-flex items-center gap-1" to="/pending">
+              <Link className="reminder-link" to="/pending">
                 处理待分类
                 <ArrowRight size={14} />
               </Link>
@@ -131,16 +116,14 @@ function HomeSummary() {
           </div>
         </div>
       )}
-      <div className="rounded-lg border border-neutral-200 bg-white p-4">
-        <h2 className="font-medium">今日概览</h2>
-        <p className="mt-2 text-sm text-neutral-600">
-          支出 {expense ? money(expense) : "¥0.00"}
-        </p>
-        <div className="mt-2 space-y-1 text-sm text-neutral-600">
+      <div className="metric-panel">
+        <h2 className="content-label">今日概览</h2>
+        <p className="today-expense">支出 {expense ? money(expense) : "¥0.00"}</p>
+        <div className="today-meals">
           {meals.length ? (
             meals.map((meal) => (
               <p key={meal.id}>
-                <span className="font-medium text-neutral-800">
+                <span className="today-meal-time">
                   {meal.time || "--:--"}
                   {meal.meal_type ? ` · ${meal.meal_type}` : ""}
                 </span>{" "}

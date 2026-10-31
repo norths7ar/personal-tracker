@@ -3,19 +3,15 @@ import type { components } from "./schema";
 export type Transaction = components["schemas"]["TransactionResponse"];
 export type TransactionUpdate = components["schemas"]["TransactionUpdate"];
 export type CategoryConfiguration = Record<string, Record<string, string[]>>;
-export type TransactionPreparation =
-  components["schemas"]["TransactionPreparationResponse"];
-export type TransactionCreate =
-  components["schemas"]["TransactionCreateRequest"];
+export type TransactionPreparation = components["schemas"]["TransactionPreparationResponse"];
+export type TransactionCreate = components["schemas"]["TransactionCreateRequest"];
 export type MealPreparation = components["schemas"]["MealPreparationResponse"];
 export type MealCreate = components["schemas"]["MealCreateRequest"];
 export type BatchRecord = components["schemas"]["BatchRecord"];
 export type BatchPreparation = components["schemas"]["BatchPrepareResponse"];
 export type Meal = components["schemas"]["MealResponse"];
 export type MealUpdate = components["schemas"]["MealUpdate"];
-export type MealBulkChanges = Partial<
-  Pick<MealUpdate, "date" | "time" | "meal_type" | "notes">
->;
+export type MealBulkChanges = Partial<Pick<MealUpdate, "date" | "time" | "meal_type" | "notes">>;
 export type DietStats = components["schemas"]["DietStatsResponse"];
 export type ExpenseAnalysis = components["schemas"]["ExpenseAnalysisResponse"];
 export type MonthBudget = components["schemas"]["MonthBudget"];
@@ -44,7 +40,7 @@ export class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const { headers, ...options } = init ?? {};
   const response = await fetch(path, {
     credentials: "include",
@@ -53,11 +49,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as {
-      detail?: string;
+      detail?: string | Array<{ msg?: string }>;
     } | null;
     throw new ApiError(
       response.status,
-      body?.detail ?? `请求失败 (${response.status})`,
+      typeof body?.detail === "string"
+        ? body.detail
+        : Array.isArray(body?.detail)
+          ? body.detail.map((item) => item.msg ?? "输入无效").join("；")
+          : `请求失败 (${response.status})`,
     );
   }
   if (response.status === 204) return undefined as T;
@@ -86,19 +86,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify(move),
     }),
-  deleteTodo: (id: number) =>
-    request<void>(`/api/todos/${id}`, { method: "DELETE" }),
+  deleteTodo: (id: number) => request<void>(`/api/todos/${id}`, { method: "DELETE" }),
   currentUser: () => request<{ authenticated: boolean }>("/api/auth/me"),
   login: (password: string) =>
     request<{ authenticated: boolean }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ password }),
     }),
-  logout: () =>
-    request<{ authenticated: boolean }>("/api/auth/logout", { method: "POST" }),
+  logout: () => request<{ authenticated: boolean }>("/api/auth/logout", { method: "POST" }),
   transactions: () => request<Transaction[]>("/api/transactions"),
-  pendingTransactions: () =>
-    request<Transaction[]>("/api/pending-transactions"),
+  pendingTransactions: () => request<Transaction[]>("/api/pending-transactions"),
   categories: () => request<CategoryConfiguration>("/api/config/categories"),
   updateTransaction: (id: number, changes: TransactionUpdate) =>
     request<Transaction>(`/api/transactions/${id}`, {
@@ -106,27 +103,17 @@ export const api = {
       body: JSON.stringify(changes),
     }),
   createRefund: (id: number, entry: RefundCreate, idempotencyKey: string) =>
-    request<{ id: number; duplicate: boolean }>(
-      `/api/transactions/${id}/refunds`,
-      {
-        method: "POST",
-        headers: { "Idempotency-Key": idempotencyKey },
-        body: JSON.stringify(entry),
-      },
-    ),
-  createSubscription: (
-    id: number,
-    entry: SubscriptionCreate,
-    idempotencyKey: string,
-  ) =>
-    request<{ id: number; duplicate: boolean }>(
-      `/api/transactions/${id}/subscription`,
-      {
-        method: "POST",
-        headers: { "Idempotency-Key": idempotencyKey },
-        body: JSON.stringify(entry),
-      },
-    ),
+    request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/refunds`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(entry),
+    }),
+  createSubscription: (id: number, entry: SubscriptionCreate, idempotencyKey: string) =>
+    request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/subscription`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(entry),
+    }),
   deleteTransactions: (ids: number[]) =>
     request<{ deleted_count: number }>("/api/transactions/bulk-delete", {
       method: "POST",
@@ -134,9 +121,7 @@ export const api = {
     }),
   updateTransactions: (
     ids: number[],
-    changes: Partial<
-      Pick<TransactionUpdate, "category" | "subcategory" | "notes">
-    >,
+    changes: Partial<Pick<TransactionUpdate, "category" | "subcategory" | "notes">>,
   ) =>
     request<{ updated_count: number }>("/api/transactions/bulk-update", {
       method: "PATCH",
@@ -190,8 +175,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
-  deleteMeal: (id: number) =>
-    request<void>(`/api/meals/${id}`, { method: "DELETE" }),
+  deleteMeal: (id: number) => request<void>(`/api/meals/${id}`, { method: "DELETE" }),
   dietStats: (startDate: string, endDate: string) => {
     const query = new URLSearchParams({
       start_date: startDate,
@@ -225,19 +209,12 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
-  confirmExpected: (
-    record: ExpectedRecord,
-    entry: ConfirmExpected,
-    idempotencyKey: string,
-  ) =>
-    request(
-      `/api/cross-period/expected/${record.source}/${record.id}/confirm`,
-      {
-        method: "POST",
-        headers: { "Idempotency-Key": idempotencyKey },
-        body: JSON.stringify(entry),
-      },
-    ),
+  confirmExpected: (record: ExpectedRecord, entry: ConfirmExpected, idempotencyKey: string) =>
+    request(`/api/cross-period/expected/${record.source}/${record.id}/confirm`, {
+      method: "POST",
+      headers: { "Idempotency-Key": idempotencyKey },
+      body: JSON.stringify(entry),
+    }),
   deleteExpected: (record: ExpectedRecord) =>
     request<void>(`/api/cross-period/expected/${record.source}/${record.id}`, {
       method: "DELETE",

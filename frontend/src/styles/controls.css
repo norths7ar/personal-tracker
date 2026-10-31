@@ -1,0 +1,99 @@
+.form-input {
+  width: 100%;
+}
+.app-button.rt-IconButton {
+  margin: 0;
+}
+.app-sidebar .app-logout.rt-Button {
+  margin-top: auto;
+  justify-content: flex-start;
+}
+.form-select {
+  width: 100%;
+  appearance: auto;
+  cursor: pointer;
+  height: var(--space-6);
+  min-height: 32px;
+  color: var(--gray-12);
+  border: 1px solid var(--gray-7);
+  border-radius: var(--radius-2);
+  background: var(--color-surface);
+  padding-inline: var(--space-3);
+  font-size: var(--font-size-2);
+}
+.form-select:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+.form-select:disabled {
+  color: var(--gray-9);
+  background: var(--gray-3);
+  cursor: default;
+}
+.form-textarea,
+.bulk-notes {
+  resize: vertical;
+}
+.form-textarea:focus-visible,
+.bulk-notes:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: -1px;
+}
+.editor-dialog.rt-DialogContent {
+  padding: var(--space-5);
+}
+.editor-dialog-side.rt-DialogContent {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: min(100vw, 448px);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  border-radius: 0;
+  margin: 0;
+}
+.editor-dialog-center.rt-DialogContent {
+  max-width: 672px;
+  max-height: 85dvh;
+}
+.editor-dialog-close.rt-IconButton {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+}
+.editor-dialog-header {
+  margin-bottom: var(--space-5);
+  padding-right: var(--space-5);
+}
+.date-field {
+  display: block;
+  position: relative;
+}
+.date-field-input {
+  width: 100%;
+}
+.date-field-input input {
+  padding-right: var(--space-7);
+}
+.date-picker-trigger.rt-IconButton {
+  position: absolute;
+  inset: 2px 2px auto auto;
+  width: 28px;
+  height: 28px;
+  margin: 0;
+}
+.date-picker-native {
+  pointer-events: none;
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 28px;
+  height: 28px;
+  opacity: 0;
+}
+.date-field-error {
+  display: block;
+  color: var(--red-11);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-1);
+}

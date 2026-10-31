@@ -1,0 +1,119 @@
+.app-shell {
+  min-height: 100vh;
+  background-color: var(--gray-2);
+  color: var(--gray-12);
+}
+
+.app-sidebar {
+  position: fixed;
+  inset-block: 0rem;
+  left: 0rem;
+  display: none;
+  width: var(--app-sidebar-width);
+  border-right: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .app-sidebar {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.app-brand {
+  margin-bottom: var(--space-6);
+  padding-inline: var(--space-2);
+  font-size: var(--font-size-4, 1.125rem);
+  line-height: 1.75rem;
+  font-weight: 600;
+}
+
+.app-navigation > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-1);
+}
+
+.app-logout {
+  margin-top: auto;
+  justify-content: flex-start;
+}
+
+@media (min-width: 768px) {
+  .app-main {
+    padding-left: var(--app-sidebar-width);
+  }
+}
+
+.app-mobile-header {
+  display: flex;
+  height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding-inline: var(--space-4);
+}
+
+@media (min-width: 768px) {
+  .app-mobile-header {
+    display: none;
+  }
+}
+
+.app-mobile-navigation {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+  padding: var(--space-2);
+}
+
+@media (min-width: 768px) {
+  .app-mobile-navigation {
+    display: none;
+  }
+}
+
+.app-mobile-link {
+  flex-shrink: 0;
+  border-radius: var(--radius-2);
+  padding-inline: var(--space-3);
+  padding-block: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.navigation-selected {
+  background-color: var(--gray-3);
+  color: var(--gray-12);
+  font-weight: 600;
+}
+
+.navigation-label {
+  color: var(--gray-11);
+}
+
+.app-navigation-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-2);
+  padding-inline: var(--space-3);
+  padding-block: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  transition:
+    color 0.15s,
+    background-color 0.15s,
+    border-color 0.15s;
+}
+
+.navigation-idle {
+  color: var(--gray-11);
+}
+
+.navigation-idle:hover {
+  background-color: var(--gray-3);
+}

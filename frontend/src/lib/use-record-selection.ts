@@ -8,21 +8,11 @@ export function useRecordSelection() {
     .map(Number);
   const rowEvents = (id: number, edit: () => void) => ({
     onClick: (event: MouseEvent) => {
-      if (
-        (event.target as HTMLElement).closest(
-          "button, input, a, [role=checkbox]",
-        )
-      )
-        return;
+      if ((event.target as HTMLElement).closest("button, input, a, [role=checkbox]")) return;
       setRowSelection({ [id]: true });
     },
     onDoubleClick: (event: MouseEvent) => {
-      if (
-        (event.target as HTMLElement).closest(
-          "button, input, a, [role=checkbox]",
-        )
-      )
-        return;
+      if ((event.target as HTMLElement).closest("button, input, a, [role=checkbox]")) return;
       setRowSelection({ [id]: true });
       edit();
     },

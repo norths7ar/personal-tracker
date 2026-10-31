@@ -1,17 +1,15 @@
-import { invalidateMeals } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/meal-entry.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
 import { api, type MealCreate, type MealPreparation } from "@/api/client";
+import { invalidateMeals } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Feedback,
-  Field,
-  textareaClass,
-  today,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, textareaClass, today } from "@/pages/record/entry-shared";
 
 const initialEntry = (): MealCreate => ({
   date: today(),
@@ -36,9 +34,7 @@ export function MealEntry() {
       api.createMeal(payload, key),
     onSuccess: (result) => {
       void invalidateMeals(queryClient);
-      setMessage(
-        result.duplicate ? "该请求已经保存。" : `已保存饮食 #${result.id}`,
-      );
+      setMessage(result.duplicate ? "该请求已经保存。" : `已保存饮食 #${result.id}`);
       setReview(null);
       setRequestKey("");
       setPendingSave(null);
@@ -84,10 +80,7 @@ export function MealEntry() {
     prepare.mutate();
   };
 
-  const updateFood = (
-    index: number,
-    changes: Partial<MealCreate["foods"][number]>,
-  ) => {
+  const updateFood = (index: number, changes: Partial<MealCreate["foods"][number]>) => {
     setEntry({
       ...entry,
       foods: entry.foods.map((food, foodIndex) =>
@@ -99,16 +92,14 @@ export function MealEntry() {
   const busy = prepare.isPending || save.isPending;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
-      <form className="space-y-4" onSubmit={submit}>
-        <div className="grid gap-3 sm:grid-cols-2">
+    <div className="content-panel">
+      <form className="form-stack" onSubmit={submit}>
+        <div className="entry-fields">
           <Field label="日期">
             <Input
               type="date"
               value={entry.date}
-              onChange={(event) =>
-                setEntry({ ...entry, date: event.target.value })
-              }
+              onChange={(event) => setEntry({ ...entry, date: event.target.value })}
             />
           </Field>
           <Field label="用餐时间">
@@ -116,30 +107,24 @@ export function MealEntry() {
               type="time"
               required
               value={entry.time}
-              onChange={(event) =>
-                setEntry({ ...entry, time: event.target.value })
-              }
+              onChange={(event) => setEntry({ ...entry, time: event.target.value })}
             />
           </Field>
         </div>
         <Field label="饮食描述">
-          <textarea
+          <TextArea
             className={textareaClass}
             required
             value={entry.description}
-            onChange={(event) =>
-              setEntry({ ...entry, description: event.target.value })
-            }
+            onChange={(event) => setEntry({ ...entry, description: event.target.value })}
             placeholder="例：中午吃了鸡腿饭和一杯豆浆"
           />
         </Field>
         <Field label="备注">
-          <textarea
+          <TextArea
             className={textareaClass}
             value={entry.notes ?? ""}
-            onChange={(event) =>
-              setEntry({ ...entry, notes: event.target.value || null })
-            }
+            onChange={(event) => setEntry({ ...entry, notes: event.target.value || null })}
           />
         </Field>
         <Button
@@ -151,38 +136,29 @@ export function MealEntry() {
       </form>
 
       {review && (
-        <div className="mt-5 space-y-4 rounded-lg border border-amber-300 bg-amber-50 p-4">
+        <div className="entry-review">
           <div>
             <strong>请确认饮食信息</strong>
-            <p className="text-sm text-neutral-600">{review.reasoning}</p>
+            <p className="entry-description">{review.reasoning}</p>
           </div>
           <Field label="餐顿标签">
             <Input
               value={entry.meal_type ?? ""}
-              onChange={(event) =>
-                setEntry({ ...entry, meal_type: event.target.value || null })
-              }
+              onChange={(event) => setEntry({ ...entry, meal_type: event.target.value || null })}
             />
           </Field>
-          <div className="space-y-2">
+          <div className="editor-group">
             {entry.foods.map((food, index) => (
-              <div
-                className="grid gap-2 sm:grid-cols-[1fr_1fr_1.3fr_auto]"
-                key={index}
-              >
+              <div className="meal-food-fields" key={index}>
                 <Input
                   value={food.food_name}
                   placeholder="食物"
-                  onChange={(event) =>
-                    updateFood(index, { food_name: event.target.value })
-                  }
+                  onChange={(event) => updateFood(index, { food_name: event.target.value })}
                 />
                 <Input
                   value={food.quantity}
                   placeholder="份量"
-                  onChange={(event) =>
-                    updateFood(index, { quantity: event.target.value })
-                  }
+                  onChange={(event) => updateFood(index, { quantity: event.target.value })}
                 />
                 <Input
                   value={(food.ingredients ?? []).join("、")}
@@ -200,9 +176,7 @@ export function MealEntry() {
                   onClick={() =>
                     setEntry({
                       ...entry,
-                      foods: entry.foods.filter(
-                        (_, itemIndex) => itemIndex !== index,
-                      ),
+                      foods: entry.foods.filter((_, itemIndex) => itemIndex !== index),
                     })
                   }
                 >
@@ -217,23 +191,18 @@ export function MealEntry() {
             onClick={() =>
               setEntry({
                 ...entry,
-                foods: [
-                  ...entry.foods,
-                  { food_name: "", quantity: "", ingredients: [] },
-                ],
+                foods: [...entry.foods, { food_name: "", quantity: "", ingredients: [] }],
               })
             }
           >
             <Plus size={15} />
             添加食物
           </Button>
-          <div className="flex gap-2">
+          <div className="entry-actions">
             <Button
               data-primary-action="true"
               onClick={() => saveEntry(entry, requestKey)}
-              disabled={
-                busy || !entry.foods.some((food) => food.food_name.trim())
-              }
+              disabled={busy || !entry.foods.some((food) => food.food_name.trim())}
             >
               确认保存
             </Button>
@@ -246,7 +215,7 @@ export function MealEntry() {
 
       {save.isError && pendingSave && requestKey && !review && (
         <Button
-          className="mt-3"
+          className="entry-primary-action"
           variant="outline"
           onClick={() => saveEntry(pendingSave, requestKey)}
         >

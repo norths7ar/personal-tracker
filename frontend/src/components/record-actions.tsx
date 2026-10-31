@@ -1,3 +1,4 @@
+import "@/styles/record-actions.css";
 import { Pencil, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -21,9 +22,9 @@ export function RecordActions({
 }) {
   if (!count) return null;
   return (
-    <div className="sticky bottom-4 z-20 rounded-lg border border-neutral-300 bg-white p-3 shadow-lg">
-      <div className="flex flex-wrap items-center gap-3">
-        <strong className="mr-auto text-sm">已选择 {count} 条</strong>
+    <div className="record-actions">
+      <div className="record-actions-row">
+        <strong className="record-actions-count">已选择 {count} 条</strong>
         <Button variant="ghost" disabled={busy} onClick={onClear}>
           取消选择
         </Button>
@@ -37,7 +38,7 @@ export function RecordActions({
         </Button>
       </div>
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
+        <p role="alert" className="action-error">
           {error.message}
         </p>
       )}
@@ -57,7 +58,7 @@ export function BulkFieldToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex items-center gap-2 text-sm font-medium">
+    <label className="bulk-field-toggle">
       <Checkbox
         checked={checked}
         disabled={disabled}
@@ -69,9 +70,5 @@ export function BulkFieldToggle({
 }
 
 export function EditorFooter({ children }: { children: ReactNode }) {
-  return (
-    <div className="sticky -bottom-6 -mx-6 z-10 flex justify-end gap-2 border-t border-neutral-200 bg-white px-6 py-4">
-      {children}
-    </div>
-  );
+  return <div className="editor-footer">{children}</div>;
 }

@@ -1,17 +1,15 @@
-import { invalidateFinance } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/pending-page.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 
 import { api, type Transaction, type TransactionUpdate } from "@/api/client";
+import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import {
-  Feedback,
-  Field,
-  selectClass,
-  textareaClass,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, selectClass, textareaClass } from "@/pages/record/entry-shared";
 
 const pendingCategory = "待分类";
 
@@ -49,24 +47,19 @@ export function PendingPage() {
     },
   });
   const effectiveSelectedId = selectedId ?? pending.data?.[0]?.id ?? null;
-  const selected =
-    pending.data?.find((row) => row.id === effectiveSelectedId) ?? null;
+  const selected = pending.data?.find((row) => row.id === effectiveSelectedId) ?? null;
 
   const update = useMutation({
     mutationFn: ({ id, changes }: { id: number; changes: TransactionUpdate }) =>
       api.updateTransaction(id, changes),
     onSuccess: (updated) => {
-      queryClient.setQueryData<Transaction[]>(
-        ["transactions"],
-        (current = []) =>
-          current.map((row) => (row.id === updated.id ? updated : row)),
+      queryClient.setQueryData<Transaction[]>(["transactions"], (current = []) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
       );
-      queryClient.setQueryData<Transaction[]>(
-        ["pending-transactions"],
-        (current = []) =>
-          isPending(updated)
-            ? current.map((row) => (row.id === updated.id ? updated : row))
-            : current.filter((row) => row.id !== updated.id),
+      queryClient.setQueryData<Transaction[]>(["pending-transactions"], (current = []) =>
+        isPending(updated)
+          ? current.map((row) => (row.id === updated.id ? updated : row))
+          : current.filter((row) => row.id !== updated.id),
       );
       setSelectedId(null);
       setCheckedIds((ids) => ids.filter((id) => id !== updated.id));
@@ -76,28 +69,22 @@ export function PendingPage() {
   });
 
   return (
-    <section className="space-y-5">
+    <section className="page-stack">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          待处理
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          处理待分类、缺失分类或低置信度支出。
-        </p>
+        <h1 className="page-title">待处理</h1>
+        <p className="page-description">处理待分类、缺失分类或低置信度支出。</p>
       </header>
       <Feedback message={message} error={bulkUpdate.error} />
       {Boolean(checkedIds.length) && (
         <form
-          className="space-y-3 rounded-lg border border-neutral-200 bg-white p-4"
+          className="pending-bulk-panel"
           onSubmit={(event) => {
             event.preventDefault();
             if (!bulkUpdate.isPending && !update.isPending) bulkUpdate.mutate();
           }}
         >
-          <p className="text-sm font-medium">
-            已选择 {checkedIds.length} 笔，统一确认分类为：
-          </p>
-          <div className="flex flex-wrap items-end gap-3">
+          <p className="field-label">已选择 {checkedIds.length} 笔，统一确认分类为：</p>
+          <div className="pending-bulk-fields">
             <Field label="批量主类别">
               <select
                 required
@@ -139,9 +126,7 @@ export function PendingPage() {
                 (bulkSubcategories.length > 0 && !bulkSubcategory)
               }
             >
-              {bulkUpdate.isPending
-                ? "保存中…"
-                : `确认 ${checkedIds.length} 笔分类`}
+              {bulkUpdate.isPending ? "保存中…" : `确认 ${checkedIds.length} 笔分类`}
             </Button>
             <Button
               type="button"
@@ -155,20 +140,18 @@ export function PendingPage() {
         </form>
       )}
       {pending.isPending ? (
-        <p className="text-sm text-neutral-500">正在读取…</p>
+        <p className="muted-text">正在读取…</p>
       ) : pending.isError ? (
         <Feedback error={pending.error} />
       ) : !pending.data.length ? (
-        <div className="rounded-lg border border-neutral-200 bg-white p-8 text-center text-neutral-500">
-          暂无待处理支出。
-        </div>
+        <div className="pending-empty">暂无待处理支出。</div>
       ) : (
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(340px,0.75fr)]">
-          <div className="overflow-hidden rounded-lg border border-neutral-200 bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
+        <div className="pending-layout">
+          <div className="table-panel">
+            <table className="data-table">
+              <thead className="data-table-heading">
                 <tr>
-                  <th className="p-3">
+                  <th className="data-cell">
                     <Checkbox
                       aria-label="选择全部待处理支出"
                       disabled={bulkUpdate.isPending || update.isPending}
@@ -177,55 +160,48 @@ export function PendingPage() {
                         (checkedIds.length > 0 && "indeterminate")
                       }
                       onCheckedChange={(checked) =>
-                        setCheckedIds(
-                          checked ? pending.data.map((row) => row.id) : [],
-                        )
+                        setCheckedIds(checked ? pending.data.map((row) => row.id) : [])
                       }
                     />
                   </th>
-                  <th className="p-3">日期</th>
-                  <th className="p-3">描述</th>
-                  <th className="p-3">金额</th>
-                  <th className="p-3">当前分类</th>
+                  <th className="data-cell">日期</th>
+                  <th className="data-cell">描述</th>
+                  <th className="data-cell">金额</th>
+                  <th className="data-cell">当前分类</th>
                 </tr>
               </thead>
               <tbody>
                 {pending.data.map((row) => (
                   <tr
                     key={row.id}
-                    className={`cursor-pointer border-t border-neutral-100 ${row.id === effectiveSelectedId ? "bg-amber-50" : "hover:bg-neutral-50"}`}
+                    className={`selectable-row ${row.id === effectiveSelectedId ? "row-selected" : "row-interactive"}`}
                     onClick={() => setSelectedId(row.id)}
                   >
-                    <td
-                      className="p-3"
-                      onClick={(event) => event.stopPropagation()}
-                    >
+                    <td className="data-cell" onClick={(event) => event.stopPropagation()}>
                       <Checkbox
                         aria-label={`选择待处理支出 ${row.id}`}
                         disabled={bulkUpdate.isPending || update.isPending}
                         checked={checkedIds.includes(row.id)}
                         onCheckedChange={(checked) =>
                           setCheckedIds((ids) =>
-                            checked
-                              ? [...ids, row.id]
-                              : ids.filter((id) => id !== row.id),
+                            checked ? [...ids, row.id] : ids.filter((id) => id !== row.id),
                           )
                         }
                       />
                     </td>
-                    <td className="p-3">{row.date}</td>
-                    <td className="p-3">
+                    <td className="data-cell">{row.date}</td>
+                    <td className="data-cell">
                       <button
                         type="button"
-                        className="text-left underline-offset-4 hover:underline"
+                        className="record-link"
                         aria-pressed={row.id === effectiveSelectedId}
                         onClick={() => setSelectedId(row.id)}
                       >
                         {row.description}
                       </button>
                     </td>
-                    <td className="p-3">¥{row.amount.toFixed(2)}</td>
-                    <td className="p-3">{row.category || "未分类"}</td>
+                    <td className="data-cell">¥{row.amount.toFixed(2)}</td>
+                    <td className="data-cell">{row.category || "未分类"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -269,7 +245,9 @@ function PendingEditor({
     notes: transaction.notes || "",
   });
   const subcategories =
-    form.category === pendingCategory ? [] : (categories[form.category] ?? []);
+    form.category === pendingCategory
+      ? []
+      : [...new Set([...(categories[form.category] ?? []), form.subcategory].filter(Boolean))];
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const unresolved = form.category === pendingCategory;
@@ -285,33 +263,26 @@ function PendingEditor({
   };
 
   return (
-    <form
-      className="space-y-4 rounded-lg border border-neutral-200 bg-white p-5"
-      onSubmit={submit}
-    >
+    <form className="pending-editor" onSubmit={submit}>
       <div>
-        <h2 className="font-semibold">确认分类</h2>
-        <p className="text-sm text-neutral-500">#{transaction.id}</p>
+        <h2 className="section-title">确认分类</h2>
+        <p className="muted-text">#{transaction.id}</p>
       </div>
       <Field label="描述">
         <Input
           value={form.description}
           required
-          onChange={(event) =>
-            setForm({ ...form, description: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
         />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="paired-fields">
         <Field label="金额">
           <Input
             type="number"
             min="0.01"
             step="0.01"
             value={form.amount}
-            onChange={(event) =>
-              setForm({ ...form, amount: Number(event.target.value) })
-            }
+            onChange={(event) => setForm({ ...form, amount: Number(event.target.value) })}
           />
         </Field>
         <Field label="日期">
@@ -326,25 +297,23 @@ function PendingEditor({
         <select
           className={selectClass}
           value={form.category}
-          onChange={(event) =>
-            setForm({ ...form, category: event.target.value, subcategory: "" })
-          }
+          onChange={(event) => setForm({ ...form, category: event.target.value, subcategory: "" })}
         >
-          {[...Object.keys(categories), pendingCategory].map((category) => (
-            <option key={category}>{category}</option>
-          ))}
+          {[...new Set([...Object.keys(categories), pendingCategory, form.category])].map(
+            (category) => (
+              <option key={category}>{category}</option>
+            ),
+          )}
         </select>
       </Field>
       {form.category === pendingCategory ? (
-        <p className="text-xs text-neutral-500">保留后会继续出现在此列表。</p>
+        <p className="help-text">保留后会继续出现在此列表。</p>
       ) : subcategories.length > 0 ? (
         <Field label="子类别">
           <select
             className={selectClass}
             value={form.subcategory}
-            onChange={(event) =>
-              setForm({ ...form, subcategory: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, subcategory: event.target.value })}
           >
             <option value="">请选择</option>
             {subcategories.map((subcategory) => (
@@ -354,7 +323,7 @@ function PendingEditor({
         </Field>
       ) : null}
       <Field label="备注">
-        <textarea
+        <TextArea
           className={textareaClass}
           value={form.notes}
           onChange={(event) => setForm({ ...form, notes: event.target.value })}

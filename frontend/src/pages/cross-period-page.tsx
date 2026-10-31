@@ -1,4 +1,6 @@
-import { invalidateFinance } from "@/api/invalidate";
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/cross-period-page.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
@@ -12,7 +14,9 @@ import {
   type PrepaidUpdate,
   type PrepaidWrite,
 } from "@/api/client";
+import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -22,43 +26,27 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import {
-  Feedback,
-  Field,
-  selectClass,
-  textareaClass,
-  today,
-} from "@/pages/record/entry-shared";
+import { Feedback, Field, selectClass, textareaClass, today } from "@/pages/record/entry-shared";
 
 type Tab = "expected" | "prepaid";
-type ExpectedAction =
-  { mode: "create" } | { mode: "edit" | "confirm"; record: ExpectedRecord };
-type PrepaidAction =
-  { mode: "create" } | { mode: "edit"; record: PrepaidRecord };
+type ExpectedAction = { mode: "create" } | { mode: "edit" | "confirm"; record: ExpectedRecord };
+type PrepaidAction = { mode: "create" } | { mode: "edit"; record: PrepaidRecord };
 
 export function CrossPeriodPage() {
   const [tab, setTab] = useState<Tab>("expected");
-  const [expectedAction, setExpectedAction] = useState<ExpectedAction | null>(
-    null,
-  );
-  const [prepaidAction, setPrepaidAction] = useState<PrepaidAction | null>(
-    null,
-  );
+  const [expectedAction, setExpectedAction] = useState<ExpectedAction | null>(null);
+  const [prepaidAction, setPrepaidAction] = useState<PrepaidAction | null>(null);
   const data = useQuery({
     queryKey: ["cross-period"],
     queryFn: api.crossPeriod,
   });
 
   return (
-    <section className="space-y-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
+    <section className="page-stack">
+      <header className="page-heading">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            跨期费用
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            管理预计支出、周期付款和预付摊销。
-          </p>
+          <h1 className="page-title">跨期费用</h1>
+          <p className="page-description">管理预计支出、周期付款和预付摊销。</p>
         </div>
         <Button
           onClick={() =>
@@ -71,11 +59,8 @@ export function CrossPeriodPage() {
           {tab === "expected" ? "新增预计支出" : "新增预付摊销"}
         </Button>
       </header>
-      <div className="flex gap-1 rounded-lg bg-neutral-200/70 p-1">
-        <TabButton
-          active={tab === "expected"}
-          onClick={() => setTab("expected")}
-        >
+      <div className="page-tabs">
+        <TabButton active={tab === "expected"} onClick={() => setTab("expected")}>
           预计支出
         </TabButton>
         <TabButton active={tab === "prepaid"} onClick={() => setTab("prepaid")}>
@@ -83,14 +68,11 @@ export function CrossPeriodPage() {
         </TabButton>
       </div>
       {data.isPending ? (
-        <p className="text-sm text-neutral-500">正在读取…</p>
+        <p className="muted-text">正在读取…</p>
       ) : data.isError ? (
         <Feedback error={data.error} />
       ) : tab === "expected" ? (
-        <ExpectedTable
-          records={data.data.expected}
-          onAction={setExpectedAction}
-        />
+        <ExpectedTable records={data.data.expected} onAction={setExpectedAction} />
       ) : (
         <PrepaidTable records={data.data.prepaid} onAction={setPrepaidAction} />
       )}
@@ -101,10 +83,7 @@ export function CrossPeriodPage() {
       >
         <DialogContent>
           {expectedAction && (
-            <ExpectedForm
-              action={expectedAction}
-              onDone={() => setExpectedAction(null)}
-            />
+            <ExpectedForm action={expectedAction} onDone={() => setExpectedAction(null)} />
           )}
         </DialogContent>
       </Dialog>
@@ -114,10 +93,7 @@ export function CrossPeriodPage() {
       >
         <DialogContent>
           {prepaidAction && (
-            <PrepaidForm
-              action={prepaidAction}
-              onDone={() => setPrepaidAction(null)}
-            />
+            <PrepaidForm action={prepaidAction} onDone={() => setPrepaidAction(null)} />
           )}
         </DialogContent>
       </Dialog>
@@ -139,45 +115,40 @@ function ExpectedTable({
   });
   if (!records.length) return <Empty text="暂无预计支出。" />;
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-      <table className="w-full min-w-[820px] text-sm">
-        <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
+    <div className="table-panel-scroll">
+      <table className="expected-table">
+        <thead className="data-table-heading">
           <tr>
-            <th className="p-3">描述</th>
-            <th className="p-3">金额</th>
-            <th className="p-3">付款日</th>
-            <th className="p-3">周期</th>
-            <th className="p-3">分类</th>
-            <th className="p-3">状态</th>
-            <th className="p-3 text-right">操作</th>
+            <th className="data-cell">描述</th>
+            <th className="data-cell">金额</th>
+            <th className="data-cell">付款日</th>
+            <th className="data-cell">周期</th>
+            <th className="data-cell">分类</th>
+            <th className="data-cell">状态</th>
+            <th className="data-cell-actions">操作</th>
           </tr>
         </thead>
         <tbody>
           {records.map((record) => (
-            <tr
-              className="border-t border-neutral-100"
-              key={`${record.source}-${record.id}`}
-            >
-              <td className="p-3 font-medium">{record.description}</td>
-              <td className="p-3">{money(record.amount)}</td>
-              <td className="p-3">{record.next_date || "—"}</td>
-              <td className="p-3">{record.cycle}</td>
-              <td className="p-3">{categoryLabel(record)}</td>
-              <td className="p-3">
+            <tr className="data-row" key={`${record.source}-${record.id}`}>
+              <td className="data-cell-title">{record.description}</td>
+              <td className="data-cell">{money(record.amount)}</td>
+              <td className="data-cell">{record.next_date || "—"}</td>
+              <td className="data-cell">{record.cycle}</td>
+              <td className="data-cell">{categoryLabel(record)}</td>
+              <td className="data-cell">
                 <StateBadge state={record.state} />
               </td>
-              <td className="p-3">
-                <div className="flex justify-end gap-1">
-                  <Button
-                    size="sm"
-                    onClick={() => onAction({ mode: "confirm", record })}
-                  >
+              <td className="data-cell">
+                <div className="row-actions">
+                  <Button size="sm" onClick={() => onAction({ mode: "confirm", record })}>
                     <Check size={14} />
                     入账
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`编辑 ${record.description}`}
                     onClick={() => onAction({ mode: "edit", record })}
                   >
                     <Pencil size={15} />
@@ -185,13 +156,10 @@ function ExpectedTable({
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`删除 ${record.description}`}
                     disabled={deletion.isPending}
                     onClick={() => {
-                      if (
-                        window.confirm(
-                          `确认删除“${record.description}”？历史流水不会受影响。`,
-                        )
-                      )
+                      if (window.confirm(`确认删除“${record.description}”？历史流水不会受影响。`))
                         deletion.mutate(record);
                     }}
                   >
@@ -222,33 +190,34 @@ function PrepaidTable({
   });
   if (!records.length) return <Empty text="暂无预付摊销。" />;
   return (
-    <div className="overflow-x-auto rounded-lg border border-neutral-200 bg-white">
-      <table className="w-full min-w-[760px] text-sm">
-        <thead className="bg-neutral-50 text-left text-xs text-neutral-500">
+    <div className="table-panel-scroll">
+      <table className="prepaid-table">
+        <thead className="data-table-heading">
           <tr>
-            <th className="p-3">描述</th>
-            <th className="p-3">总金额</th>
-            <th className="p-3">月均</th>
-            <th className="p-3">剩余月数</th>
-            <th className="p-3">摊销开始</th>
-            <th className="p-3">分类</th>
-            <th className="p-3 text-right">操作</th>
+            <th className="data-cell">描述</th>
+            <th className="data-cell">总金额</th>
+            <th className="data-cell">月均</th>
+            <th className="data-cell">剩余月数</th>
+            <th className="data-cell">摊销开始</th>
+            <th className="data-cell">分类</th>
+            <th className="data-cell-actions">操作</th>
           </tr>
         </thead>
         <tbody>
           {records.map((record) => (
-            <tr className="border-t border-neutral-100" key={record.id}>
-              <td className="p-3 font-medium">{record.description}</td>
-              <td className="p-3">{money(record.amount)}</td>
-              <td className="p-3">{money(record.monthly_equivalent)}</td>
-              <td className="p-3">{record.remaining_months}</td>
-              <td className="p-3">{record.start_month}</td>
-              <td className="p-3">{categoryLabel(record)}</td>
-              <td className="p-3">
-                <div className="flex justify-end gap-1">
+            <tr className="data-row" key={record.id}>
+              <td className="data-cell-title">{record.description}</td>
+              <td className="data-cell">{money(record.amount)}</td>
+              <td className="data-cell">{money(record.monthly_equivalent)}</td>
+              <td className="data-cell">{record.remaining_months}</td>
+              <td className="data-cell">{record.start_month}</td>
+              <td className="data-cell">{categoryLabel(record)}</td>
+              <td className="data-cell">
+                <div className="row-actions">
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`编辑 ${record.description}`}
                     onClick={() => onAction({ mode: "edit", record })}
                   >
                     <Pencil size={15} />
@@ -256,6 +225,7 @@ function PrepaidTable({
                   <Button
                     size="icon"
                     variant="ghost"
+                    aria-label={`删除摊销 ${record.description}`}
                     disabled={deletion.isPending}
                     onClick={() => {
                       if (
@@ -279,13 +249,7 @@ function PrepaidTable({
   );
 }
 
-function ExpectedForm({
-  action,
-  onDone,
-}: {
-  action: ExpectedAction;
-  onDone: () => void;
-}) {
+function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDone: () => void }) {
   const queryClient = useQueryClient();
   const categories = useQuery({
     queryKey: ["categories"],
@@ -311,6 +275,7 @@ function ExpectedForm({
         categories.data?.支出 ?? {},
         form.category,
         form.subcategory,
+        action.mode !== "create",
       );
       if (action.mode === "confirm") {
         const payload: ConfirmExpected = {
@@ -349,28 +314,20 @@ function ExpectedForm({
   };
   const isConfirm = action.mode === "confirm";
   return (
-    <form className="space-y-4" onSubmit={submit}>
+    <form className="form-stack" onSubmit={submit}>
       <DialogHeader>
         <DialogTitle>
-          {isConfirm
-            ? "确认入账"
-            : action.mode === "create"
-              ? "新增预计支出"
-              : "编辑预计支出"}
+          {isConfirm ? "确认入账" : action.mode === "create" ? "新增预计支出" : "编辑预计支出"}
         </DialogTitle>
         <DialogDescription>
-          {isConfirm
-            ? "本次付款只会在确认后写入账目。"
-            : "一次性计划和周期付款共用一张清单。"}
+          {isConfirm ? "本次付款只会在确认后写入账目。" : "一次性计划和周期付款共用一张清单。"}
         </DialogDescription>
       </DialogHeader>
       <Field label="描述">
         <Input
           value={form.description}
           required
-          onChange={(event) =>
-            setForm({ ...form, description: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
         />
       </Field>
       <Field label={isConfirm ? "实际金额" : "预计金额"}>
@@ -384,15 +341,14 @@ function ExpectedForm({
         />
       </Field>
       {!isConfirm && action.mode === "create" && (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label className="checkbox-field">
+          <Checkbox
             checked={form.recurring}
-            onChange={(event) =>
+            onCheckedChange={(checked) =>
               setForm({
                 ...form,
-                recurring: event.target.checked,
-                hasDate: event.target.checked || form.hasDate,
+                recurring: Boolean(checked),
+                hasDate: Boolean(checked) || form.hasDate,
               })
             }
           />
@@ -400,35 +356,26 @@ function ExpectedForm({
         </label>
       )}
       {!isConfirm && !form.recurring && (
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
+        <label className="checkbox-field">
+          <Checkbox
             checked={form.hasDate}
-            onChange={(event) =>
-              setForm({ ...form, hasDate: event.target.checked })
-            }
+            onCheckedChange={(checked) => setForm({ ...form, hasDate: Boolean(checked) })}
           />
           设置预计日期
         </label>
       )}
       {(isConfirm || form.recurring || form.hasDate) && (
-        <Field
-          label={
-            isConfirm ? "付款日期" : form.recurring ? "付款日" : "预计日期"
-          }
-        >
+        <Field label={isConfirm ? "付款日期" : form.recurring ? "付款日" : "预计日期"}>
           <Input
             type="date"
             value={form.dueDate}
             required
-            onChange={(event) =>
-              setForm({ ...form, dueDate: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
           />
         </Field>
       )}
       {!isConfirm && form.recurring && (
-        <div className="grid grid-cols-2 gap-3">
+        <div className="paired-fields">
           <Field label="续费方式">
             <select
               className={selectClass}
@@ -444,43 +391,34 @@ function ExpectedForm({
               <option value="fixed_days">固定天数</option>
             </select>
           </Field>
-          <Field
-            label={form.renewalMode === "same_day" ? "间隔月数" : "间隔天数"}
-          >
+          <Field label={form.renewalMode === "same_day" ? "间隔月数" : "间隔天数"}>
             <Input
               type="number"
               min="1"
               max={form.renewalMode === "same_day" ? "120" : "730"}
               value={form.renewalInterval}
-              onChange={(event) =>
-                setForm({ ...form, renewalInterval: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, renewalInterval: event.target.value })}
             />
           </Field>
         </div>
       )}
       <CategoryFields
         categories={categories.data?.支出 ?? {}}
+        preserveCurrent={action.mode !== "create"}
         category={form.category}
         subcategory={form.subcategory}
-        onChange={(category, subcategory) =>
-          setForm({ ...form, category, subcategory })
-        }
+        onChange={(category, subcategory) => setForm({ ...form, category, subcategory })}
       />
       <Field label="备注">
-        <textarea
+        <TextArea
           className={textareaClass}
           value={form.notes}
           onChange={(event) => setForm({ ...form, notes: event.target.value })}
         />
       </Field>
       <Button
-        className="w-full"
-        disabled={
-          mutation.isPending ||
-          !form.description.trim() ||
-          Number(form.amount) <= 0
-        }
+        className="form-submit"
+        disabled={mutation.isPending || !form.description.trim() || Number(form.amount) <= 0}
       >
         {mutation.isPending ? "提交中…" : isConfirm ? "确认并记账" : "保存"}
       </Button>
@@ -489,13 +427,7 @@ function ExpectedForm({
   );
 }
 
-function PrepaidForm({
-  action,
-  onDone,
-}: {
-  action: PrepaidAction;
-  onDone: () => void;
-}) {
+function PrepaidForm({ action, onDone }: { action: PrepaidAction; onDone: () => void }) {
   const queryClient = useQueryClient();
   const categories = useQuery({
     queryKey: ["categories"],
@@ -519,6 +451,7 @@ function PrepaidForm({
         categories.data?.支出 ?? {},
         form.category,
         form.subcategory,
+        action.mode !== "create",
       );
       const base: PrepaidUpdate = {
         description: form.description.trim(),
@@ -528,8 +461,7 @@ function PrepaidForm({
         subcategory,
         notes: form.notes.trim() || null,
       };
-      if (action.mode === "edit")
-        return api.updatePrepaid(action.record.id, base);
+      if (action.mode === "edit") return api.updatePrepaid(action.record.id, base);
       const payload: PrepaidWrite = {
         ...base,
         amount: Number(form.amount),
@@ -547,11 +479,9 @@ function PrepaidForm({
     mutation.mutate();
   };
   return (
-    <form className="space-y-4" onSubmit={submit}>
+    <form className="form-stack" onSubmit={submit}>
       <DialogHeader>
-        <DialogTitle>
-          {action.mode === "create" ? "新增预付摊销" : "编辑预付摊销"}
-        </DialogTitle>
+        <DialogTitle>{action.mode === "create" ? "新增预付摊销" : "编辑预付摊销"}</DialogTitle>
         <DialogDescription>
           {record
             ? `关联流水 #${record.transaction_id}；金额和付款日期请到账目页修改。`
@@ -562,9 +492,7 @@ function PrepaidForm({
         <Input
           value={form.description}
           required
-          onChange={(event) =>
-            setForm({ ...form, description: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, description: event.target.value })}
         />
       </Field>
       {action.mode === "create" && (
@@ -576,72 +504,59 @@ function PrepaidForm({
               step="0.01"
               value={form.amount}
               required
-              onChange={(event) =>
-                setForm({ ...form, amount: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, amount: event.target.value })}
             />
           </Field>
           <Field label="付款日期">
             <Input
               type="date"
               value={form.paymentDate}
-              onChange={(event) =>
-                setForm({ ...form, paymentDate: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, paymentDate: event.target.value })}
             />
           </Field>
         </>
       )}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="paired-fields">
         <Field label="摊销月数">
           <Input
             type="number"
             min="1"
             max="120"
             value={form.months}
-            onChange={(event) =>
-              setForm({ ...form, months: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, months: event.target.value })}
           />
         </Field>
         <Field label="摊销开始月份">
           <Input
             type="month"
             value={form.startMonth}
-            onChange={(event) =>
-              setForm({ ...form, startMonth: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, startMonth: event.target.value })}
           />
         </Field>
       </div>
       <CategoryFields
         categories={categories.data?.支出 ?? {}}
+        preserveCurrent={action.mode !== "create"}
         category={form.category}
         subcategory={form.subcategory}
-        onChange={(category, subcategory) =>
-          setForm({ ...form, category, subcategory })
-        }
+        onChange={(category, subcategory) => setForm({ ...form, category, subcategory })}
       />
       <Field label="备注">
-        <textarea
+        <TextArea
           className={textareaClass}
           value={form.notes}
           onChange={(event) => setForm({ ...form, notes: event.target.value })}
         />
       </Field>
       <Button
-        className="w-full"
+        className="form-submit"
         disabled={
           mutation.isPending ||
           !form.description.trim() ||
           (action.mode === "create" && Number(form.amount) <= 0)
         }
       >
-        {mutation.isPending
-          ? "提交中…"
-          : action.mode === "create"
-            ? "保存并记账"
-            : "保存修改"}
+        {mutation.isPending ? "提交中…" : action.mode === "create" ? "保存并记账" : "保存修改"}
       </Button>
       <Feedback error={mutation.error} />
     </form>
@@ -653,28 +568,30 @@ function CategoryFields({
   category,
   subcategory,
   onChange,
+  preserveCurrent = false,
 }: {
+  preserveCurrent?: boolean;
   categories: Record<string, string[]>;
   category: string;
   subcategory: string;
   onChange: (category: string, subcategory: string) => void;
 }) {
-  const names = Object.keys(categories);
-  const selected = category || names[0] || "";
-  const children = categories[selected] ?? [];
+  const names = [...new Set([...Object.keys(categories), ...(category ? [category] : [])])];
+  const selected = preserveCurrent ? category : category || names[0] || "";
+  const children = [
+    ...new Set([...(categories[selected] ?? []), ...(subcategory ? [subcategory] : [])]),
+  ];
   return (
-    <div className="grid grid-cols-2 gap-3">
+    <div className="paired-fields">
       <Field label="主类别">
         <select
           className={selectClass}
           value={selected}
           onChange={(event) =>
-            onChange(
-              event.target.value,
-              categories[event.target.value]?.[0] ?? "",
-            )
+            onChange(event.target.value, categories[event.target.value]?.[0] ?? "")
           }
         >
+          {preserveCurrent && <option value="">无</option>}
           {names.map((item) => (
             <option key={item}>{item}</option>
           ))}
@@ -683,13 +600,10 @@ function CategoryFields({
       <Field label="子类别">
         <select
           className={selectClass}
-          value={
-            subcategory && children.includes(subcategory)
-              ? subcategory
-              : (children[0] ?? "")
-          }
+          value={preserveCurrent ? subcategory : subcategory || children[0] || ""}
           onChange={(event) => onChange(selected, event.target.value)}
         >
+          {(preserveCurrent || !children.length) && <option value="">无</option>}
           {children.map((item) => (
             <option key={item}>{item}</option>
           ))}
@@ -708,61 +622,46 @@ function TabButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      className={cn(
-        "flex-1 rounded-md px-3 py-2 text-sm font-medium",
-        active && "bg-white shadow-sm",
-      )}
-      onClick={onClick}
-    >
+    <button className={cn("page-tab", active && "page-tab-selected")} onClick={onClick}>
       {children}
     </button>
   );
 }
 function Empty({ text }: { text: string }) {
-  return (
-    <div className="rounded-lg border bg-white p-8 text-center text-neutral-500">
-      {text}
-    </div>
-  );
+  return <div className="empty-panel">{text}</div>;
 }
 function StateBadge({ state }: { state: string }) {
   return (
     <span
       className={cn(
-        "rounded-full px-2 py-1 text-xs",
+        "status-badge",
         state === "已过期"
-          ? "bg-red-100 text-red-700"
+          ? "status-overdue"
           : state === "今日待确认"
-            ? "bg-amber-100 text-amber-800"
-            : "bg-neutral-100 text-neutral-600",
+            ? "status-due"
+            : "status-neutral",
       )}
     >
       {state}
     </span>
   );
 }
-function categoryLabel(record: {
-  category?: string | null;
-  subcategory?: string | null;
-}) {
-  return (
-    [record.category, record.subcategory].filter(Boolean).join(" / ") || "—"
-  );
+function categoryLabel(record: { category?: string | null; subcategory?: string | null }) {
+  return [record.category, record.subcategory].filter(Boolean).join(" / ") || "—";
 }
 function categoryValues(
   categories: Record<string, string[]>,
   category: string,
   subcategory: string,
+  preserveCurrent = false,
 ): [string | null, string | null] {
+  if (preserveCurrent) return [category || null, subcategory || null];
   const selectedCategory = category || Object.keys(categories)[0] || null;
   if (!selectedCategory) return [null, null];
   const children = categories[selectedCategory] ?? [];
   return [
     selectedCategory,
-    subcategory && children.includes(subcategory)
-      ? subcategory
-      : (children[0] ?? null),
+    subcategory && children.includes(subcategory) ? subcategory : (children[0] ?? null),
   ];
 }
 function money(value: number): string {

@@ -1,0 +1,17 @@
+.feedback-success {
+  margin-top: var(--space-4);
+  border-radius: var(--radius-2);
+  background-color: var(--green-2);
+  padding-inline: var(--space-3);
+  padding-block: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--green-11);
+}
+
+.feedback-error {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--red-11);
+}

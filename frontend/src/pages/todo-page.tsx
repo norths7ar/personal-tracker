@@ -1,3 +1,6 @@
+import { TextArea } from "@radix-ui/themes";
+
+import "@/styles/todo-page.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowDown,
@@ -87,15 +90,11 @@ export function TodoPage() {
   );
 
   return (
-    <section className="mx-auto max-w-4xl space-y-7">
-      <header className="flex items-center justify-between gap-4">
+    <section className="todo-page">
+      <header className="todo-heading">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-            待办
-          </h1>
-          <p className="mt-1 text-sm text-neutral-500">
-            记下想做的事，选一件开始。
-          </p>
+          <h1 className="page-title">待办</h1>
+          <p className="page-description">记下想做的事，选一件开始。</p>
         </div>
         <Button
           disabled={busy}
@@ -110,56 +109,34 @@ export function TodoPage() {
       </header>
 
       {action.isError && editor === null && (
-        <p
-          role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
-        >
+        <p role="alert" className="todo-action-error">
           {action.error.message}
         </p>
       )}
       {todos.isPending ? (
-        <p className="py-12 text-center text-sm text-neutral-500">
-          正在读取待办…
-        </p>
+        <p className="loading-message">正在读取待办…</p>
       ) : todos.isError ? (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-200 bg-white p-6"
-        >
-          <p className="mb-3 text-sm text-red-700">
-            读取失败：{todos.error.message}
-          </p>
+        <div role="alert" className="todo-load-error">
+          <p className="todo-load-error-text">读取失败：{todos.error.message}</p>
           <Button variant="outline" onClick={() => void todos.refetch()}>
             重新读取
           </Button>
         </div>
       ) : (
         <>
-          <section
-            aria-label="当前任务"
-            className="overflow-hidden rounded-2xl border border-stone-300 bg-stone-100/80 p-6 sm:p-8"
-          >
-            <div className="mb-5 flex items-center gap-2 text-xs font-medium tracking-wider text-stone-600">
+          <section aria-label="当前任务" className="todo-focus">
+            <div className="todo-focus-label">
               <span
-                className={`size-2 rounded-full ${active ? "bg-stone-700" : "bg-stone-300"}`}
+                className={`todo-indicator ${active ? "todo-active-indicator" : "todo-idle-indicator"}`}
               />
               {active ? "现在做这件" : "从一件事开始"}
             </div>
             {active ? (
               <>
-                <h2 className="break-words text-xl font-semibold leading-relaxed sm:text-2xl">
-                  {active.title}
-                </h2>
-                {active.notes && (
-                  <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-neutral-600">
-                    {active.notes}
-                  </p>
-                )}
-                <div className="mt-7 flex flex-wrap items-center gap-2">
-                  <Button
-                    disabled={busy}
-                    onClick={() => void changeState(active, "completed")}
-                  >
+                <h2 className="todo-focus-title">{active.title}</h2>
+                {active.notes && <p className="todo-focus-notes">{active.notes}</p>}
+                <div className="todo-focus-actions">
+                  <Button disabled={busy} onClick={() => void changeState(active, "completed")}>
                     <Check size={16} />
                     完成
                   </Button>
@@ -170,26 +147,22 @@ export function TodoPage() {
                   >
                     放回待做
                   </Button>
-                  <div className="ml-auto flex text-neutral-500">
-                    {secondaryActions(active)}
-                  </div>
+                  <div className="todo-secondary-actions">{secondaryActions(active)}</div>
                 </div>
               </>
             ) : (
               <>
-                <h2 className="text-xl font-medium">
-                  {pending.length
-                    ? "选好一件，就可以开始了。"
-                    : "有什么想推进的事？"}
+                <h2 className="todo-empty-title">
+                  {pending.length ? "选好一件，就可以开始了。" : "有什么想推进的事？"}
                 </h2>
-                <p className="mt-2 text-sm leading-6 text-neutral-500">
+                <p className="todo-empty-description">
                   {pending.length
                     ? "从下面的待做中选择，不必一次安排好所有事情。"
                     : "先记下来，不用分类，也不用定一个期限。"}
                 </p>
                 {!pending.length && (
                   <Button
-                    className="mt-5"
+                    className="todo-empty-action"
                     variant="outline"
                     onClick={() => setEditor("new")}
                   >
@@ -202,32 +175,24 @@ export function TodoPage() {
           </section>
 
           <section aria-labelledby="pending-title">
-            <div className="mb-3 flex items-center gap-2">
-              <h2 id="pending-title" className="text-sm font-semibold">
+            <div className="todo-list-heading">
+              <h2 id="pending-title" className="todo-list-title">
                 待做
               </h2>
-              <span className="text-xs text-neutral-400">{pending.length}</span>
+              <span className="todo-count">{pending.length}</span>
               {active && pending.length > 0 && (
-                <span className="ml-auto text-xs text-neutral-500">
-                  开始另一件，当前任务会放回待做
-                </span>
+                <span className="todo-switch-hint">开始另一件，当前任务会放回待做</span>
               )}
             </div>
-            <div className="divide-y divide-neutral-100 overflow-hidden rounded-xl border border-neutral-200 bg-white">
+            <div className="todo-list">
               {pending.length ? (
                 pending.map((todo, index) => (
-                  <article key={todo.id} className="p-4 sm:p-5">
-                    <div className="min-w-0">
-                      <h3 className="break-words font-medium leading-6">
-                        {todo.title}
-                      </h3>
-                      {todo.notes && (
-                        <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-neutral-500">
-                          {todo.notes}
-                        </p>
-                      )}
+                  <article key={todo.id} className="todo-item">
+                    <div className="todo-item-content">
+                      <h3 className="todo-item-title">{todo.title}</h3>
+                      {todo.notes && <p className="todo-item-notes">{todo.notes}</p>}
                     </div>
-                    <div className="mt-3 flex flex-wrap items-center gap-1">
+                    <div className="todo-item-actions">
                       <Button
                         size="sm"
                         variant="outline"
@@ -246,18 +211,14 @@ export function TodoPage() {
                         <Check size={14} />
                         完成
                       </Button>
-                      <div className="ml-auto flex text-neutral-400">
+                      <div className="todo-order-actions">
                         <Button
                           size="icon"
                           variant="ghost"
                           disabled={busy || index === 0}
                           aria-label={`上移 ${todo.title}`}
                           title="上移"
-                          onClick={() =>
-                            void run(() =>
-                              api.moveTodo(todo.id, { direction: "up" }),
-                            )
-                          }
+                          onClick={() => void run(() => api.moveTodo(todo.id, { direction: "up" }))}
                         >
                           <ArrowUp size={15} />
                         </Button>
@@ -268,9 +229,7 @@ export function TodoPage() {
                           aria-label={`下移 ${todo.title}`}
                           title="下移"
                           onClick={() =>
-                            void run(() =>
-                              api.moveTodo(todo.id, { direction: "down" }),
-                            )
+                            void run(() => api.moveTodo(todo.id, { direction: "down" }))
                           }
                         >
                           <ArrowDown size={15} />
@@ -281,10 +240,8 @@ export function TodoPage() {
                   </article>
                 ))
               ) : (
-                <p className="p-6 text-sm text-neutral-400">
-                  {active
-                    ? "没有其他待做，先做眼前这一件。"
-                    : "这里还没有待做的事。"}
+                <p className="todo-list-empty">
+                  {active ? "没有其他待做，先做眼前这一件。" : "这里还没有待做的事。"}
                 </p>
               )}
             </div>
@@ -297,32 +254,22 @@ export function TodoPage() {
                 aria-expanded={completedOpen}
                 aria-controls="completed-todos"
                 onClick={() => setCompletedOpen(!completedOpen)}
-                className="flex w-full items-center gap-2 rounded-md py-2 text-sm text-neutral-500 hover:text-neutral-900"
+                className="todo-completed-toggle"
               >
                 <ChevronDown
                   size={16}
-                  className={`transition-transform ${completedOpen ? "" : "-rotate-90"}`}
+                  className={`todo-disclosure-icon ${completedOpen ? "" : "todo-disclosure-collapsed"}`}
                 />
                 已完成
-                <span className="text-xs text-neutral-400">
-                  {completed.length}
-                </span>
+                <span className="todo-count">{completed.length}</span>
               </button>
               {completedOpen && (
-                <div
-                  id="completed-todos"
-                  className="mt-2 divide-y divide-neutral-200"
-                >
+                <div id="completed-todos" className="todo-completed-list">
                   {completed.map((todo) => (
-                    <article
-                      key={todo.id}
-                      className="flex flex-wrap items-center gap-3 py-3"
-                    >
-                      <Check size={15} className="shrink-0 text-neutral-400" />
-                      <p className="min-w-0 flex-1 break-words text-sm text-neutral-500">
-                        {todo.title}
-                      </p>
-                      <div className="flex items-center text-neutral-400">
+                    <article key={todo.id} className="todo-completed-item">
+                      <Check size={15} className="todo-completed-icon" />
+                      <p className="todo-completed-title">{todo.title}</p>
+                      <div className="todo-completed-actions">
                         <Button
                           size="sm"
                           variant="ghost"
@@ -349,11 +296,9 @@ export function TodoPage() {
           if (!open && !busy) setEditor(null);
         }}
       >
-        <DialogContent layout="center" className="max-w-lg">
+        <DialogContent layout="center" className="todo-dialog">
           <DialogHeader>
-            <DialogTitle>
-              {editor === "new" ? "添加待办" : "编辑待办"}
-            </DialogTitle>
+            <DialogTitle>{editor === "new" ? "添加待办" : "编辑待办"}</DialogTitle>
             <DialogDescription>写下想做的事，说明可以留空。</DialogDescription>
           </DialogHeader>
           {editor !== null && (
@@ -395,12 +340,11 @@ function TodoForm({
   const [notes, setNotes] = useState(todo?.notes ?? "");
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (title.trim() && !busy)
-      onSave({ title: title.trim(), notes: notes.trim() });
+    if (title.trim() && !busy) onSave({ title: title.trim(), notes: notes.trim() });
   };
   return (
-    <form onSubmit={submit} className="space-y-4">
-      <label className="block space-y-2 text-sm">
+    <form onSubmit={submit} className="form-stack">
+      <label className="todo-form-field">
         <span>想做什么</span>
         <Input
           autoFocus
@@ -412,12 +356,12 @@ function TodoForm({
           disabled={busy}
         />
       </label>
-      <label className="block space-y-2 text-sm">
+      <label className="todo-form-field">
         <span>
-          补充说明 <span className="text-neutral-400">（可选）</span>
+          补充说明 <span className="optional-label">（可选）</span>
         </span>
-        <textarea
-          className={`${textareaClass} min-h-28`}
+        <TextArea
+          className={`${textareaClass} todo-notes-input`}
           maxLength={5000}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
@@ -426,17 +370,12 @@ function TodoForm({
         />
       </label>
       {error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="error-text">
           {error.message}
         </p>
       )}
-      <div className="flex justify-end gap-2 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          disabled={busy}
-          onClick={onCancel}
-        >
+      <div className="form-actions">
+        <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
           取消
         </Button>
         <Button type="submit" disabled={busy || !title.trim()}>

@@ -1,0 +1,23 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "oxc", "react", "import"],
+  "jsPlugins": ["eslint-plugin-react-refresh"],
+  "ignorePatterns": ["dist", "node_modules", "src/api/schema.d.ts"],
+  "categories": { "correctness": "error" },
+  "rules": {
+    "no-unused-vars": "error",
+    "import/no-cycle": "error",
+    "react/rules-of-hooks": "error",
+    "react/incompatible-library": "off",
+    "react/exhaustive-deps": "warn",
+    "react-refresh/only-export-components": ["warn", { "allowConstantExport": true }]
+  },
+  "overrides": [
+    {
+      "files": ["src/components/ui/**/*.tsx", "src/pages/record/entry-shared.tsx"],
+      "rules": { "react-refresh/only-export-components": "off" }
+    }
+  ],
+  "options": { "reportUnusedDisableDirectives": "error" },
+  "env": { "browser": true, "node": true }
+}

@@ -1,0 +1,67 @@
+.table-panel-scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-3);
+  border: 1px solid var(--gray-5);
+  background-color: var(--color-panel-solid);
+}
+
+.expected-table {
+  width: 100%;
+  min-width: 820px;
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.data-cell-actions {
+  padding: var(--space-3);
+  text-align: right;
+}
+
+.data-cell-title {
+  padding: var(--space-3);
+  font-weight: 500;
+}
+
+.row-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-1);
+}
+
+.prepaid-table {
+  width: 100%;
+  min-width: 760px;
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+}
+
+.status-badge {
+  border-radius: 999px;
+  padding-inline: var(--space-2);
+  padding-block: var(--space-1);
+  font-size: var(--font-size-1, 0.75rem);
+  line-height: 1rem;
+}
+
+.status-overdue {
+  background-color: var(--red-3);
+  color: var(--red-11);
+}
+
+.status-due {
+  background-color: var(--amber-3);
+  color: var(--amber-11);
+}
+
+.status-neutral {
+  background-color: var(--gray-3);
+  color: var(--gray-11);
+}

@@ -1,3 +1,4 @@
+import "@/styles/analysis-page.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BarChart, LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent } from "echarts/components";
@@ -5,11 +6,8 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useMemo, useState, type FormEvent } from "react";
 
-import {
-  api,
-  type ExpenseAnalysis,
-  type MonthBudgetUpdate,
-} from "@/api/client";
+import { api, type ExpenseAnalysis, type MonthBudgetUpdate } from "@/api/client";
+import { EChart } from "@/components/echart";
 import { EditorFooter } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,22 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EChart } from "@/components/echart";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { cumulativeNetExpense, netExpense } from "@/pages/analysis-calculations";
 import { Feedback, Field, selectClass } from "@/pages/record/entry-shared";
-import {
-  cumulativeNetExpense,
-  netExpense,
-} from "@/pages/analysis-calculations";
 
-echarts.use([
-  BarChart,
-  LineChart,
-  GridComponent,
-  TooltipComponent,
-  CanvasRenderer,
-]);
+echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer]);
 type Granularity = "month" | "year";
 type Basis = "cash" | "amortized";
 type BreakdownLevel = "category" | "subcategory";
@@ -49,9 +37,7 @@ type DetailSelection = {
 export function AnalysisPage() {
   const [granularity, setGranularity] = useState<Granularity>("month");
   const [basis, setBasis] = useState<Basis>("amortized");
-  const [periods, setPeriods] = useState<Partial<Record<Granularity, string>>>(
-    {},
-  );
+  const [periods, setPeriods] = useState<Partial<Record<Granularity, string>>>({});
   const period = periods[granularity] ?? null;
   const analysis = useQuery({
     queryKey: ["expense-analysis", granularity, period, basis],
@@ -59,16 +45,12 @@ export function AnalysisPage() {
   });
   const selectedPeriod = analysis.data?.selected_period ?? "";
   return (
-    <section className="space-y-5">
+    <section className="page-stack">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
-          开销分析
-        </h1>
-        <p className="mt-1 text-sm text-neutral-500">
-          查看收支、预算，以及每笔支出的去向。
-        </p>
+        <h1 className="page-title">开销分析</h1>
+        <p className="page-description">查看收支、预算，以及每笔支出的去向。</p>
       </header>
-      <div className="flex flex-wrap items-end gap-4 rounded-lg border border-neutral-200 bg-white p-4">
+      <div className="analysis-filters">
         <Segmented
           value={granularity}
           options={[
@@ -80,7 +62,7 @@ export function AnalysisPage() {
         {analysis.data && (
           <Field label={granularity === "month" ? "月份" : "年份"}>
             <select
-              className={`${selectClass} min-w-40`}
+              className={`${selectClass} analysis-period-select`}
               value={selectedPeriod}
               onChange={(event) =>
                 setPeriods((current) => ({
@@ -89,17 +71,16 @@ export function AnalysisPage() {
                 }))
               }
             >
-              {(granularity === "month"
-                ? analysis.data.months
-                : analysis.data.years
-              ).map((item) => (
-                <option key={item}>{item}</option>
-              ))}
+              {(granularity === "month" ? analysis.data.months : analysis.data.years).map(
+                (item) => (
+                  <option key={item}>{item}</option>
+                ),
+              )}
             </select>
           </Field>
         )}
         {analysis.data?.end_date && (
-          <p className="ml-auto pb-2 text-sm text-neutral-500">
+          <p className="analysis-period-caption">
             {analysis.data.days
               ? `${analysis.data.start_date} 至 ${analysis.data.end_date} · ${analysis.data.days} 天`
               : "所选期间尚未开始"}
@@ -107,13 +88,11 @@ export function AnalysisPage() {
         )}
       </div>
       {analysis.isPending ? (
-        <p className="text-sm text-neutral-500">正在分析…</p>
+        <p className="muted-text">正在分析…</p>
       ) : analysis.isError ? (
         <Feedback error={analysis.error} />
       ) : !analysis.data.current || !selectedPeriod ? (
-        <div className="rounded-lg border bg-white p-8 text-center text-neutral-500">
-          暂无账目数据。
-        </div>
+        <div className="empty-panel">暂无账目数据。</div>
       ) : (
         <AnalysisContent
           key={`${selectedPeriod}-${basis}`}
@@ -146,15 +125,13 @@ function AnalysisContent({
   const daily = useMemo(() => cumulativeNetExpense(fillDaily(data)), [data]);
   const basisLabel = basis === "cash" ? "现金流" : "摊销后";
   return (
-    <div className="space-y-6">
-      <section className="space-y-3">
+    <div className="analysis-sections">
+      <section className="summary-section">
         <div>
-          <h2 className="font-semibold">现金收支</h2>
-          <p className="mt-1 text-xs text-neutral-500">
-            净支出 = 支出（已扣关联退款）− 收入。
-          </p>
+          <h2 className="section-title">现金收支</h2>
+          <p className="section-description">净支出 = 支出（已扣关联退款）− 收入。</p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="metrics-grid">
           <Metric label="现金流净支出" value={money(cashNetExpense)} />
           <Metric label="现金流收入" value={money(cash.income)} />
           <Metric
@@ -170,23 +147,19 @@ function AnalysisContent({
         </div>
       </section>
       {granularity === "month" && (
-        <section className="rounded-lg border border-neutral-200 bg-white p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <h2 className="font-semibold">月度预算</h2>
+        <section className="content-panel">
+          <div className="panel-heading">
+            <h2 className="section-title">月度预算</h2>
             <BudgetEditor
               month={data.selected_period!}
-              budget={
-                data.budget ?? { amortized_total: null, cash_total: null }
-              }
+              budget={data.budget ?? { amortized_total: null, cash_total: null }}
             />
           </div>
-          <div className="grid gap-6 lg:grid-cols-3">
+          <div className="budget-grid">
             <div>
-              <p className="text-sm text-neutral-500">固定费用参考</p>
-              <p className="mt-1 text-2xl font-semibold">
-                {money(data.fixed_monthly_cost ?? 0)}
-              </p>
-              <p className="mt-2 text-xs text-neutral-500">
+              <p className="muted-text">固定费用参考</p>
+              <p className="metric-value">{money(data.fixed_monthly_cost ?? 0)}</p>
+              <p className="metric-hint">
                 周期付款与预付摊销，不含一次性计划；不额外计入下方预算用量。
               </p>
             </div>
@@ -206,11 +179,11 @@ function AnalysisContent({
           </div>
         </section>
       )}
-      <section className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <section className="form-stack">
+        <div className="page-heading">
           <div>
-            <h2 className="font-semibold">支出走势与去向</h2>
-            <p className="mt-1 text-xs text-neutral-500">
+            <h2 className="section-title">支出走势与去向</h2>
+            <p className="section-description">
               {basis === "cash"
                 ? "按实际付款日期统计支出，关联退款在退款日抵扣。"
                 : "跨月费用按月分摊；每月份额在月初归属，非逐日摊销。"}
@@ -225,34 +198,25 @@ function AnalysisContent({
             onChange={(value) => onBasisChange(value as Basis)}
           />
         </div>
-        <div className="rounded-lg border border-neutral-200 bg-white p-5">
-          <div className="mb-3 flex items-baseline justify-between gap-3">
-            <h3 className="font-medium">
-              {granularity === "month" ? "累计净支出" : "各月净支出"} ·{" "}
-              {basisLabel}
+        <div className="content-panel">
+          <div className="chart-heading">
+            <h3 className="content-label">
+              {granularity === "month" ? "累计净支出" : "各月净支出"} · {basisLabel}
             </h3>
-            <span className="text-lg font-semibold">
-              {money(netExpense(current))}
-            </span>
+            <span className="chart-value">{money(netExpense(current))}</span>
           </div>
           {data.days ? (
             <EChart
-              option={
-                granularity === "month"
-                  ? lineOption(daily)
-                  : barOption(data.timeline ?? [])
-              }
+              option={granularity === "month" ? lineOption(daily) : barOption(data.timeline ?? [])}
             />
           ) : (
-            <p className="py-12 text-center text-sm text-neutral-500">
-              期间尚未开始，暂无已发生支出。
-            </p>
+            <p className="loading-message">期间尚未开始，暂无已发生支出。</p>
           )}
         </div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="section-heading">
           <div>
-            <h3 className="font-medium">分类明细</h3>
-            <p className="mt-1 text-xs text-neutral-500">
+            <h3 className="content-label">分类明细</h3>
+            <p className="section-description">
               净支出 = 支出（已扣关联退款）− 收入。点击分类查看具体记录。
             </p>
           </div>
@@ -265,7 +229,7 @@ function AnalysisContent({
             onChange={(value) => setLevel(value as BreakdownLevel)}
           />
         </div>
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="breakdown-grid">
           <Breakdown
             title={`支出 · ${basisLabel}`}
             rows={aggregateBreakdown(current.expense_breakdown, level)}
@@ -278,11 +242,7 @@ function AnalysisContent({
           />
         </div>
       </section>
-      <DetailDialog
-        data={current}
-        selection={detail}
-        onClose={() => setDetail(null)}
-      />
+      <DetailDialog data={current} selection={detail} onClose={() => setDetail(null)} />
     </div>
   );
 }
@@ -313,7 +273,7 @@ function DetailDialog({
       }}
     >
       {selection && (
-        <DialogContent layout="center" className="max-w-4xl">
+        <DialogContent layout="center" className="detail-dialog">
           <DialogHeader>
             <DialogTitle>
               {categoryLabel(selection.row)} · {money(selection.row.total)}
@@ -322,41 +282,28 @@ function DetailDialog({
               本期计入金额合计来自以下记录；退款显示负数，摊销显示本期份额。
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-xs text-neutral-500">
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead className="summary-table-heading">
                 <tr>
-                  <th className="pb-3">交易日期</th>
-                  <th className="pb-3">描述</th>
-                  <th className="pb-3">归属日期</th>
-                  <th className="pb-3 text-right">原金额</th>
-                  <th className="pb-3 text-right">本期计入</th>
+                  <th className="summary-heading-cell">交易日期</th>
+                  <th className="summary-heading-cell">描述</th>
+                  <th className="summary-heading-cell">归属日期</th>
+                  <th className="summary-heading-amount">原金额</th>
+                  <th className="summary-heading-amount">本期计入</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.map((entry, index) => (
-                  <tr
-                    key={`${entry.id}-${entry.allocation_date}-${index}`}
-                    className="border-t border-neutral-100"
-                  >
-                    <td className="whitespace-nowrap py-3 pr-3">
-                      {entry.date}
-                    </td>
-                    <td className="py-3 pr-3">
+                  <tr key={`${entry.id}-${entry.allocation_date}-${index}`} className="data-row">
+                    <td className="summary-date-cell">{entry.date}</td>
+                    <td className="summary-description-cell">
                       {entry.description}
-                      <span className="ml-2 text-xs text-neutral-400">
-                        #{entry.id}
-                      </span>
+                      <span className="summary-entry-note">#{entry.id}</span>
                     </td>
-                    <td className="whitespace-nowrap py-3 pr-3">
-                      {entry.allocation_date}
-                    </td>
-                    <td className="whitespace-nowrap py-3 pl-3 text-right">
-                      {money(entry.amount)}
-                    </td>
-                    <td className="whitespace-nowrap py-3 pl-3 text-right font-medium">
-                      {money(entry.contribution)}
-                    </td>
+                    <td className="summary-date-cell">{entry.allocation_date}</td>
+                    <td className="summary-amount-cell">{money(entry.amount)}</td>
+                    <td className="summary-total-cell">{money(entry.contribution)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -373,13 +320,7 @@ function DetailDialog({
   );
 }
 
-function BudgetEditor({
-  month,
-  budget,
-}: {
-  month: string;
-  budget: MonthBudgetUpdate;
-}) {
+function BudgetEditor({ month, budget }: { month: string; budget: MonthBudgetUpdate }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -394,13 +335,7 @@ function BudgetEditor({
               分别设置现金流与摊销后的净支出上限，留空表示不设上限。
             </DialogDescription>
           </DialogHeader>
-          {open && (
-            <BudgetForm
-              month={month}
-              budget={budget}
-              onClose={() => setOpen(false)}
-            />
-          )}
+          {open && <BudgetForm month={month} budget={budget} onClose={() => setOpen(false)} />}
         </DialogContent>
       </Dialog>
     </>
@@ -421,8 +356,7 @@ function BudgetForm({
     cash_total: budget.cash_total?.toString() ?? "",
   });
   const update = useMutation({
-    mutationFn: (payload: MonthBudgetUpdate) =>
-      api.updateMonthBudget(month, payload),
+    mutationFn: (payload: MonthBudgetUpdate) => api.updateMonthBudget(month, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expense-analysis"] });
       onClose();
@@ -436,16 +370,14 @@ function BudgetForm({
     });
   };
   return (
-    <form className="space-y-4" onSubmit={submit}>
+    <form className="form-stack" onSubmit={submit}>
       <Field label="现金流净支出上限">
         <Input
           type="number"
           min="0"
           step="0.01"
           value={form.cash_total}
-          onChange={(event) =>
-            setForm({ ...form, cash_total: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, cash_total: event.target.value })}
         />
       </Field>
       <Field label="摊销后净支出上限">
@@ -454,9 +386,7 @@ function BudgetForm({
           min="0"
           step="0.01"
           value={form.amortized_total}
-          onChange={(event) =>
-            setForm({ ...form, amortized_total: event.target.value })
-          }
+          onChange={(event) => setForm({ ...form, amortized_total: event.target.value })}
         />
       </Field>
       <Feedback error={update.error} />
@@ -464,9 +394,7 @@ function BudgetForm({
         <Button type="button" variant="outline" onClick={onClose}>
           取消
         </Button>
-        <Button disabled={update.isPending}>
-          {update.isPending ? "保存中…" : "保存预算"}
-        </Button>
+        <Button disabled={update.isPending}>{update.isPending ? "保存中…" : "保存预算"}</Button>
       </EditorFooter>
     </form>
   );
@@ -482,48 +410,36 @@ function Breakdown({
 }) {
   const max = Math.max(...rows.map((row) => Math.abs(row.total)), 1);
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-5">
-      <h3 className="mb-3 font-medium">{title}</h3>
+    <div className="content-panel">
+      <h3 className="panel-title">{title}</h3>
       {!rows.length ? (
-        <p className="py-6 text-center text-sm text-neutral-500">
-          本期没有记录。
-        </p>
+        <p className="empty-message">本期没有记录。</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs text-neutral-500">
+        <table className="data-table">
+          <thead className="summary-table-heading">
             <tr>
-              <th className="pb-2">分类</th>
-              <th className="pb-2 text-right">金额</th>
-              <th className="pb-2 text-right">笔数</th>
+              <th className="breakdown-heading-cell">分类</th>
+              <th className="breakdown-heading-amount">金额</th>
+              <th className="breakdown-heading-amount">笔数</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr
-                key={`${row.category}-${row.subcategory}`}
-                className="border-t border-neutral-100"
-              >
-                <td className="py-3 pr-4">
-                  <button
-                    className="w-full text-left font-medium underline-offset-4 hover:underline"
-                    onClick={() => onSelect(row)}
-                  >
+              <tr key={`${row.category}-${row.subcategory}`} className="data-row">
+                <td className="breakdown-label-cell">
+                  <button className="breakdown-link" onClick={() => onSelect(row)}>
                     {categoryLabel(row)}
-                    <span className="sr-only">，查看记录</span>
+                    <span className="visually-hidden">，查看记录</span>
                   </button>
-                  <div className="mt-2 h-1 rounded bg-neutral-100">
+                  <div className="breakdown-track">
                     <div
-                      className="h-1 rounded bg-neutral-400"
+                      className="breakdown-fill"
                       style={{ width: `${(Math.abs(row.total) / max) * 100}%` }}
                     />
                   </div>
                 </td>
-                <td className="whitespace-nowrap pl-2 text-right">
-                  {money(row.total)}
-                </td>
-                <td className="pl-4 text-right text-neutral-500">
-                  {row.count}
-                </td>
+                <td className="breakdown-amount">{money(row.total)}</td>
+                <td className="breakdown-count">{row.count}</td>
               </tr>
             ))}
           </tbody>
@@ -532,20 +448,12 @@ function Breakdown({
     </div>
   );
 }
-function Metric({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold">{value}</p>
-      {hint && <p className="mt-2 text-xs text-neutral-500">{hint}</p>}
+    <div className="metric-panel">
+      <p className="muted-text">{label}</p>
+      <p className="metric-value">{value}</p>
+      {hint && <p className="metric-hint">{hint}</p>}
     </div>
   );
 }
@@ -558,25 +466,24 @@ function BudgetStatus({
   actual: number;
   budget?: number | null;
 }) {
-  const ratio =
-    budget == null ? 0 : budget === 0 ? (actual > 0 ? 1 : 0) : actual / budget;
+  const ratio = budget == null ? 0 : budget === 0 ? (actual > 0 ? 1 : 0) : actual / budget;
   return (
     <div>
-      <p className="text-sm text-neutral-500">{label}</p>
-      <p className="mt-1 font-medium">
+      <p className="muted-text">{label}</p>
+      <p className="budget-value">
         {money(actual)}
         {budget != null && ` / ${money(budget)}`}
       </p>
-      <div className="mt-3 h-2 overflow-hidden rounded bg-neutral-100">
+      <div className="budget-track">
         <div
           className={cn(
-            "h-full",
-            budget != null && actual > budget ? "bg-red-500" : "bg-emerald-500",
+            "budget-fill",
+            budget != null && actual > budget ? "budget-exceeded" : "budget-available",
           )}
           style={{ width: `${Math.min(100, Math.max(0, ratio * 100))}%` }}
         />
       </div>
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="metric-hint">
         {budget == null
           ? "尚未设置上限"
           : actual > budget
@@ -596,15 +503,12 @@ function Segmented({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="flex rounded-lg bg-neutral-100 p-1">
+    <div className="segmented-control">
       {options.map((option) => (
         <button
           key={option.value}
           aria-pressed={value === option.value}
-          className={cn(
-            "rounded-md px-3 py-1.5 text-sm",
-            value === option.value && "bg-white font-medium shadow-sm",
-          )}
+          className={cn("segmented-option", value === option.value && "segmented-selected")}
           onClick={() => onChange(option.value)}
         >
           {option.label}
@@ -627,10 +531,7 @@ function categoryLabel(row: BreakdownRow) {
     ? `${row.category || "未分类"} / ${row.subcategory}`
     : row.category || "未分类";
 }
-function aggregateBreakdown(
-  rows: BreakdownRow[],
-  level: BreakdownLevel,
-): BreakdownRow[] {
+function aggregateBreakdown(rows: BreakdownRow[], level: BreakdownLevel): BreakdownRow[] {
   if (level === "subcategory") return rows;
   const totals = new Map<string, BreakdownRow>();
   for (const row of rows) {
@@ -649,8 +550,7 @@ function aggregateBreakdown(
 }
 function fillDaily(data: ExpenseAnalysis) {
   const rows = data.current?.daily ?? [];
-  if (!data.selected_period || data.selected_period.length !== 7 || !data.days)
-    return [];
+  if (!data.selected_period || data.selected_period.length !== 7 || !data.days) return [];
   const byDate = new Map(rows.map((row) => [row.date, row]));
   return Array.from({ length: data.days }, (_, i) => {
     const date = `${data.selected_period}-${String(i + 1).padStart(2, "0")}`;

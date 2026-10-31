@@ -1,0 +1,71 @@
+@media (min-width: 1024px) {
+  .summary-with-reminders {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.reminder-panel {
+  border-radius: var(--radius-3);
+  border: 1px solid var(--amber-6);
+  background-color: var(--amber-2);
+  padding: var(--space-4);
+}
+
+.reminder-title {
+  font-weight: 500;
+  color: var(--amber-12);
+}
+
+.reminder-list {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--amber-12);
+}
+
+.reminder-list > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-1);
+}
+
+.reminder-links {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.today-expense {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.today-meals {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-2, 0.875rem);
+  line-height: 1.25rem;
+  color: var(--gray-11);
+}
+
+.today-meals > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-1);
+}
+
+.today-meal-time {
+  font-weight: 500;
+  color: var(--gray-12);
+}
+
+.home-summary {
+  display: grid;
+  gap: var(--space-3);
+}
+.reminder-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}

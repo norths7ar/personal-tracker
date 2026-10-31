@@ -432,6 +432,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings */
+        get: operations["settings_api_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Model */
+        put: operations["update_model_api_settings_model_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Records */
+        put: operations["update_records_api_settings_records_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Access */
+        put: operations["update_access_api_settings_access_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/transactions": {
         parameters: {
             query?: never;
@@ -625,6 +693,35 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AccessSettings */
+        AccessSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Password Configured */
+            password_configured: boolean;
+            /** Cookie Secure */
+            cookie_secure: boolean;
+            /** Session Seconds */
+            session_seconds: number;
+        };
+        /** AccessSettingsUpdate */
+        AccessSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Password */
+            password?: string | null;
+            /** Cookie Secure */
+            cookie_secure: boolean;
+            /** Session Seconds */
+            session_seconds: number;
+            /**
+             * Reset Sessions
+             * @default false
+             */
+            reset_sessions: boolean;
+        };
         /** AnalysisEntry */
         AnalysisEntry: {
             /** Id */
@@ -1133,6 +1230,29 @@ export interface components {
             /** Foods */
             foods: components["schemas"]["FoodInput"][];
         };
+        /** ModelSettings */
+        ModelSettings: {
+            /** Base Url */
+            base_url: string;
+            /** Model */
+            model: string;
+            /** Temperature */
+            temperature: number;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Timeout */
+            timeout: number;
+            /** Confidence Threshold */
+            confidence_threshold: number;
+        };
+        /** ModelSettingsUpdate */
+        ModelSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            model: components["schemas"]["ModelSettings"];
+            /** Api Key */
+            api_key?: string | null;
+        };
         /** MonthBudget */
         MonthBudget: {
             /** Amortized Total */
@@ -1235,6 +1355,23 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** RecordSettings */
+        RecordSettings: {
+            /** Categories */
+            categories: {
+                [key: string]: {
+                    [key: string]: string[];
+                };
+            };
+            /** Meal Types */
+            meal_types: string[];
+        };
+        /** RecordSettingsUpdate */
+        RecordSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            records: components["schemas"]["RecordSettings"];
+        };
         /** RefundCreate */
         RefundCreate: {
             /** Description */
@@ -1261,6 +1398,20 @@ export interface components {
             due_date: string;
             /** Days Until Due */
             days_until_due: number;
+        };
+        /** SettingsResponse */
+        SettingsResponse: {
+            /** Revision */
+            revision: string;
+            model: components["schemas"]["ModelSettings"];
+            records: components["schemas"]["RecordSettings"];
+            access: components["schemas"]["AccessSettings"];
+            /** Api Key Configured */
+            api_key_configured: boolean;
+            /** Data Directory */
+            data_directory: string;
+            /** Database Path */
+            database_path: string;
         };
         /** SubscriptionCreate */
         SubscriptionCreate: {
@@ -2431,6 +2582,142 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransactionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_api_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_api_settings_model_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_records_api_settings_records_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_access_api_settings_access_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
                 };
             };
             /** @description Validation Error */
