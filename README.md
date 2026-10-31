@@ -9,38 +9,35 @@
 - **账目管理**：记录收入、支出和关联退款，管理一次性付款计划、周期付款与预付摊销。
 - **饮食记录**：保留原始描述，记录用餐时间、食物和主要食材，查看时间分布与食物频次。
 - **统计分析**：按时间和分类查看收支，区分实际支付与按月摊销的成本，并提供月度预算参考。
+- **设置**：在页面管理模型服务、密钥、分类、餐顿标签与访问密码；分类修改仅影响今后的选项，不修改历史记录。
 
 付款计划与实际交易分开记录，确认付款后才计入账目；摊销只改变费用归属月份，不产生额外付款。关联退款抵扣原支出，不重复计作收入。饮食统计基于已有记录，不把缺失记录当作没有进食，也不推断营养摄入。
 
 ## 实现
 
-前端使用 React、TypeScript 和 Vite，图表使用 ECharts；后端使用 FastAPI，数据存储在本机 SQLite 数据库中。前端 API 类型由后端 OpenAPI 定义生成。
+前端使用 React、TypeScript、Radix Themes 和 Vite，图表使用 ECharts；后端使用 FastAPI，数据存储在本机 SQLite 数据库中。前端 API 类型由后端 OpenAPI 定义生成。
 
-应用在本地运行，不依赖云端数据库。自然语言解析会将输入内容发送给配置的 LLM 服务，因此并非完全离线。模型与分类配置位于 `config.yaml`，密钥通过 `.env` 配置，真实数据与密钥不纳入 Git。
+应用在本地运行，不依赖云端数据库。自然语言解析会将输入内容发送给配置的 LLM 服务，因此并非完全离线。配置保存在独立的 `data/settings.db`，API Key 加密保存，主密钥为 `data/.key`，登录密码保存校验摘要。真实数据与凭据不纳入 Git，不再读取 `.env` 或 `config.yaml`。
 
 ## 本地运行
 
-日常运行环境为 Windows，使用 PowerShell 7、uv 和 Node.js/npm。在项目根目录准备环境：
+日常运行环境为 Windows，使用 PowerShell 7.4+、uv、Node.js 24+ 和 pnpm。在项目根目录准备环境：
 
 ```powershell
 uv sync
-npm --prefix frontend ci
-npm --prefix frontend run build
-Copy-Item .env.example .env
+pnpm --dir frontend install --frozen-lockfile
+pnpm --dir frontend build
+./scripts/personal-tracker-service.ps1 start
 ```
 
-在 `.env` 中填写 `LLM_API_KEY`，并按需调整 `config.yaml` 中的模型配置，然后启动：
+浏览器访问 <http://127.0.0.1:18080>，在「设置」填写模型服务与 API Key。新实例默认不启用访问密码；启用后可修改密码或使其他登录失效。模型、分类与访问设置保存后生效，不中断已经发出的模型请求。
 
-```powershell
-.\scripts\personal-tracker-service.ps1 start
-```
+服务脚本支持 `start`、`stop`、`restart`、`status`。生命周期由本项目管理，外部管理软件只调用[服务接口](docs/service-management.md)，不直接控制进程或内部运行文件。没有登录自启或定时备份任务。更新依赖后同步环境，前端更新后重新构建，再按需重启。
 
-浏览器访问 <http://127.0.0.1:18080>。服务脚本支持 `status`、`stop`、`restart`，以及通过 `install-autostart` 设置登录后自动启动。更新代码后重新同步依赖、构建前端并重启服务。
-
-默认数据库为 `data/expenses.db`，可通过 `.env` 中的 `DATABASE_PATH` 修改。备份脚本 `scripts/backup-personal-tracker.ps1` 支持 `run` 手动备份和 `install-schedule` 定时备份；使用 SQLite 原生备份接口，默认保存至 `data/backup/rolling`，保留最近 30 份。恢复前先停止服务、另存当前数据库，再用备份替换配置的数据库文件。
+业务数据库固定为 `data/expenses.db`，设置页只读显示位置。备份时停止服务并保存整个 `data` 目录，尤其应配套保留 `settings.db` 与 `.key`；密钥丢失不能解密已有凭据。恢复前另存当前数据，使用配套备份恢复，不用新密钥覆盖旧密钥。已有备份继续保留；若只需账目快照，可运行 `uv run python -m scripts.backup_sqlite`。
 
 ## 开发
 
-先停止后台服务，再在两个终端分别运行后端 `uv run uvicorn api.main:app --host 127.0.0.1 --port 18080 --reload` 和前端 `npm --prefix frontend run dev`。后端运行时，可用 `npm --prefix frontend run generate:api` 更新 API 类型。
+开发时先停止占用端口的后台实例，再分别运行 `uv run uvicorn api.main:app --host 127.0.0.1 --port 18080 --reload` 和 `pnpm --dir frontend dev`。隔离验证可用服务脚本的 `-DataPath` 和 `-Port` 指定独立实例；直接运行后端时使用 `TRACKER_DATA_DIR`，前端开发代理可通过 `VITE_API_PROXY` 指向隔离端口。这些是实例启动参数，不是页面中的数据位置设置。
 
-Python 使用 Ruff 检查与格式化，前端使用 ESLint、Prettier 和 TypeScript。`uv run python -m unittest discover -s tests -v` 检查数据库写入、关联一致性、备份与开销统计；`npm --prefix frontend test` 检查净支出及累计走势计算，使用 Node.js 24 的内置测试工具。
+`pnpm --dir frontend generate:api` 离线生成 API 类型，不启动服务或初始化数据。Python 使用 Ruff，前端使用 Oxlint、Oxfmt 和 TypeScript，分别提供 `lint`、`format:check`、`type-check` 命令。`uv run python -m unittest discover -s tests -v` 检查数据库写入、关联一致性、备份与开销统计；`pnpm --dir frontend test` 检查净支出及累计走势计算。
