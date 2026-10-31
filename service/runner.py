@@ -10,7 +10,7 @@ from pathlib import Path
 
 import uvicorn
 
-from scripts.service_manager import process_identity
+from service.manager import process_identity
 
 
 def main() -> None:

@@ -1,6 +1,6 @@
 """Windows service lifecycle with a JSON contract compatible with OpenFic's shape.
 
-State is private; callers use the PowerShell entry point rather than its files.
+State is private; callers use the service CLI rather than its files.
 This module deliberately does not import application configuration or the DB.
 """
 
@@ -60,9 +60,7 @@ def process_identity(pid: int) -> dict | None:
             return None
         raise ManagementError("Cannot inspect the recorded process identity.")
     try:
-        created, exited, kernel_time, user_time = (
-            wintypes.FILETIME() for _ in range(4)
-        )
+        created, exited, kernel_time, user_time = (wintypes.FILETIME() for _ in range(4))
         if not kernel.GetProcessTimes(
             handle,
             ctypes.byref(created),
@@ -75,9 +73,7 @@ def process_identity(pid: int) -> dict | None:
             return None
         length = wintypes.DWORD(32768)
         executable = ctypes.create_unicode_buffer(length.value)
-        if not kernel.QueryFullProcessImageNameW(
-            handle, 0, executable, ctypes.byref(length)
-        ):
+        if not kernel.QueryFullProcessImageNameW(handle, 0, executable, ctypes.byref(length)):
             raise ManagementError("Cannot read the process executable path.")
         return {
             "created": (created.dwHighDateTime << 32) | created.dwLowDateTime,
@@ -127,9 +123,7 @@ def listeners(port: int) -> set[int]:
             raise ManagementError("Cannot inspect listening ports; check permissions.")
         count = wintypes.DWORD.from_buffer(buffer).value
         rows = (TcpRow * count).from_buffer(buffer, 4)
-        return {
-            row.pid for row in rows if socket.ntohs(row.local_port & 0xFFFF) == port
-        }
+        return {row.pid for row in rows if socket.ntohs(row.local_port & 0xFFFF) == port}
     raise ManagementError("Listening ports changed during inspection; retry status.")
 
 
@@ -164,7 +158,7 @@ def read_state(data: Path) -> dict | None:
         ):
             raise ValueError
         return state
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         raise ManagementError("Runtime state is damaged; inspect it locally.") from None
 
 
@@ -230,50 +224,40 @@ def status(data: Path, port: int, *, check_lock: bool = True) -> dict:
     }
     try:
         if check_lock and lock_busy(data):
-            raise ManagementError(
-                "A management operation is active.", "warning", busy=True
-            )
+            raise ManagementError("A management operation is active.", "warning", busy=True)
         state = read_state(data)
         owned = False
         if state:
             if state["port"] != port or Path(state["data_directory"]).resolve() != data:
-                raise ManagementError(
-                    "Instance parameters differ from runtime state.", "warning"
-                )
+                raise ManagementError("Instance parameters differ from runtime state.", "warning")
             identity = process_identity(state["pid"])
             if identity:
-                if identity["created"] != state["created"] or Path(
-                    identity["executable"]
-                ) != Path(state["executable"]):
-                    raise ManagementError(
-                        "Recorded PID belongs to another process.", "warning"
-                    )
+                if identity["created"] != state["created"] or Path(identity["executable"]) != Path(
+                    state["executable"]
+                ):
+                    raise ManagementError("Recorded PID belongs to another process.", "warning")
                 owned = True
                 result["pid"] = state["pid"]
         owners = listeners(port)
         if owners and (not owned or owners != {state["pid"]}):
-            raise ManagementError(
-                "Port is occupied by an unmanaged process.", "warning"
-            )
+            raise ManagementError("Port is occupied by an unmanaged process.", "warning")
         if owned:
             if not owners:
                 raise ManagementError("Managed process is not listening.", "warning")
             try:
                 response = control(state, "identity")
-            except (OSError, ValueError, urllib.error.URLError):
+            except OSError, ValueError, urllib.error.URLError:
                 raise ManagementError(
                     "Managed process did not pass its health check.", "warning"
                 ) from None
             if response != {"pid": state["pid"], "instance": state["instance"]}:
-                raise ManagementError(
-                    "Service identity response does not match.", "warning"
-                )
+                raise ManagementError("Service identity response does not match.", "warning")
             result.update(state="running", detail="Managed service is ready.")
     except ManagementError as exc:
         result.update(state=exc.state, detail=str(exc))
         if exc.busy:
             result["busy"] = True
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         result.update(state="unknown", detail="Unable to inspect service state.")
     return result
 
@@ -292,9 +276,7 @@ def start(data: Path, port: int) -> dict:
         try:
             probe.bind(("127.0.0.1", port))
         except OSError:
-            raise ManagementError(
-                "The service port is unavailable.", "warning"
-            ) from None
+            raise ManagementError("The service port is unavailable.", "warning") from None
     logs = data / "logs"
     logs.mkdir(parents=True, exist_ok=True)
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
@@ -308,7 +290,7 @@ def start(data: Path, port: int) -> dict:
         (logs / f"tracker-{stamp}.stderr.log").open("wb") as stderr,
     ):
         process = subprocess.Popen(
-            [str(PYTHON), "-m", "scripts.service_runner", "--port", str(port)],
+            [str(PYTHON), "-m", "service.runner", "--port", str(port)],
             cwd=ROOT,
             env=environment,
             stdin=subprocess.DEVNULL,
@@ -328,9 +310,7 @@ def start(data: Path, port: int) -> dict:
                 "Service exited during startup; inspect instance logs.", "warning"
             )
         time.sleep(0.25)
-    raise ManagementError(
-        "Startup timed out; inspect status and logs before retrying.", "warning"
-    )
+    raise ManagementError("Startup timed out; inspect status and logs before retrying.", "warning")
 
 
 def stop(data: Path, port: int) -> dict:
@@ -342,7 +322,7 @@ def stop(data: Path, port: int) -> dict:
     state = read_state(data)
     try:
         control(state, "shutdown", post=True)
-    except (OSError, ValueError, urllib.error.URLError):
+    except OSError, ValueError, urllib.error.URLError:
         raise ManagementError(
             "Graceful shutdown request failed; process was not killed.", "warning"
         ) from None
@@ -356,14 +336,18 @@ def stop(data: Path, port: int) -> dict:
             (data / "runtime" / STATE_FILE).unlink(missing_ok=True)
             return current
         time.sleep(0.2)
-    raise ManagementError(
-        "Shutdown timed out; the process was not forcibly killed.", "warning"
-    )
+    raise ManagementError("Shutdown timed out; the process was not forcibly killed.", "warning")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=("start", "stop", "restart", "status"))
+    parser.add_argument(
+        "action",
+        nargs="?",
+        default="status",
+        type=str.lower,
+        choices=("start", "stop", "restart", "status"),
+    )
     parser.add_argument("--data-path", type=Path, default=ROOT / "data")
     parser.add_argument("--port", type=int, default=18080)
     parser.add_argument("--json", action="store_true")
@@ -394,7 +378,7 @@ def main() -> int:
         }
         if exc.busy:
             result["busy"] = True
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         result = {
             "schema_version": 1,
             "state": "unknown",
@@ -404,11 +388,7 @@ def main() -> int:
             "data_directory": str(data),
         }
     if options.json:
-        print(
-            json.dumps(
-                {**result, "action": options.action, "ok": ok}, ensure_ascii=False
-            )
-        )
+        print(json.dumps({**result, "action": options.action, "ok": ok}, ensure_ascii=False))
     elif ok:
         print(result["detail"])
     if not ok:

@@ -1,20 +1,20 @@
 # 服务管理接口
 
-Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓库中的 `scripts/personal-tracker-service.ps1`，不需要理解 Python 进程、运行记录、锁和关闭凭据，也不应自行操作这些内部实现。入口需要 Windows、PowerShell 7.4+ 和已准备好的项目虚拟环境与前端构建产物。
+Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓库 `service/` 下的 Python 程序，不需要理解 Python 进程、运行记录、锁和关闭凭据，也不应自行操作这些内部实现。当前实现面向 Windows，需要已准备好的 Python 3.14 项目虚拟环境与前端构建产物。
 
 ## 调用
 
-在独立进程中使用参数数组调用 `pwsh -NoLogo -NoProfile -NonInteractive -File <脚本绝对路径> <动作>`，分别捕获 stdout、stderr，不拼接 shell 字符串。工作目录由脚本设置，不依赖调用者所在目录。
+在仓库根目录使用 `uv run python -m service <动作>`。外部管理软件使用参数数组直接调用项目 `.venv/Scripts/python.exe`，参数为 `<仓库绝对路径>/service/__main__.py` 和动作，分别捕获 stdout、stderr，不经过 shell。入口定位项目根目录并为主进程设置工作目录，不依赖调用者所在目录。
 
-动作包括 `start`、`stop`、`restart`、`status`。`status` 始终输出单个 JSON；其他动作加 `-Json` 返回机器输出，不加则输出可读文字。
+动作包括 `start`、`stop`、`restart`、`status`，省略动作时查询状态，动作名称不区分大小写。`status` 始终输出单个 JSON；其他动作加 `--json` 返回机器输出，不加则输出可读文字。
 
 | 参数 | 含义 |
 | --- | --- |
-| `-DataPath` | 实例数据目录，默认仓库 `data`；外部调用建议传绝对路径，相对路径按调用者工作目录解析 |
-| `-Port` | 默认 `18080`；管理同一实例时保持端口一致 |
-| `-Json` | 生命周期动作的机器输出模式；status 可省略 |
+| `--data-path` | 实例数据目录，默认仓库 `data`；外部调用建议传绝对路径，相对路径按调用者工作目录解析 |
+| `--port` | 默认 `18080`；管理同一实例时保持端口一致 |
+| `--json` | 生命周期动作的机器输出模式；status 可省略 |
 
-示例：`./scripts/personal-tracker-service.ps1 start -DataPath E:/Projects/personal-tracker/.tmp/20261031-preview -Port 18185 -Json`。指定数据目录仅用于实例管理与隔离验证，业务库始终为该目录下的 `expenses.db`，不是应用设置项。
+示例：`uv run python -m service start --data-path E:/Projects/personal-tracker/.tmp/20261031-preview --port 18185 --json`。指定数据目录仅用于实例管理与隔离验证，业务库始终为该目录下的 `expenses.db`，不是应用设置项。
 
 ## 返回约定
 
@@ -41,4 +41,4 @@ Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓
 
 ## 接入边界
 
-Service Desk 等管理软件应配置脚本路径及实例参数，通过公开命令完成启动、停止、重启和状态展示。其内部原有的 Personal Tracker 进程管理分支需要在管理软件项目中替换，本项目不直接修改外部管理器。无需额外的管理常驻服务，不注册登录自启或备份计划任务。
+Service Desk 等管理软件应配置项目解释器、Python 入口及实例参数，通过公开命令完成启动、停止、重启和状态展示。其内部原有的 Personal Tracker 进程管理分支需要在管理软件项目中替换，本项目不直接修改外部管理器。无需额外的管理常驻服务，不注册登录自启或备份计划任务。

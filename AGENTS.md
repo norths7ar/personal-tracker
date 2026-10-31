@@ -6,8 +6,9 @@
 - 不为假设中的旧版本保留兼容分支。涉及现有数据库的变更，先核实实际数据与迁移需求；不要擅自改动真实数据库或启停日常服务。
 - 付款计划不等于交易，摊销不新增付款；关联退款抵扣原支出。修改相关流程时保持这些口径一致。
 - `frontend/src/api/schema.d.ts` 从后端 OpenAPI 生成，不手工维护。
-- 前端使用 pnpm、Radix Themes、设计变量与组件 CSS；检查使用 Oxlint、Oxfmt 和 TypeScript，不引入另一套样式体系。按职责组织代码，不机械增加分层。
+- 前端使用 pnpm、Radix Themes、设计变量与组件 CSS；ESLint 负责代码规则，Prettier 负责格式，tsc 负责类型检查，不并行引入另一套检查或样式体系。
+- Python 使用 uv 和项目 `.venv`，目标版本 3.14；Ruff 统一负责 lint、import 排序和格式化，行宽 100，保留 `ruff check` 与 `ruff format --check`。不新增永久测试或进行无关的全库格式化。
 - 应用配置统一由设置页面管理，保存于独立的 `data/settings.db`，密钥配套保存在 `data/.key`；不恢复 `.env` 或 `config.yaml` 的运行配置入口。业务数据库固定为实例目录下的 `expenses.db`。
 - 分类设置只影响今后的选项，不改历史记录；已使用的旧分类仍需正常显示、筛选和统计。
-- 服务生命周期由本项目管理，外部管理器仅调用 [服务接口](docs/service-management.md)，不接管内部进程、锁和运行文件。
+- 服务生命周期由根目录 `service/` 下的独立 Python 程序管理，不保留 PowerShell 转发壳。外部管理器仅调用 [服务接口](docs/service-management.md)，不接管内部进程、锁和运行文件。
 - README 保持简洁，介绍项目与必要操作；不记录开发过程，不另建决策流水账。
