@@ -18,7 +18,8 @@ data/
 Thumbs.db
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .venv/
 
 # React frontend
