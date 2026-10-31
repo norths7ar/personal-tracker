@@ -1,21 +1,34 @@
+"""Instance paths and the configuration consumed by record extraction."""
+
+import os
 from pathlib import Path
 
-import yaml
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-from core.secrets import get_secret
 
-_CONFIG_PATH = Path(__file__).parent.parent / "config.yaml"
+def data_directory() -> Path:
+    # The launcher may select an isolated instance; this is not an app setting.
+    value = os.environ.get("TRACKER_DATA_DIR")
+    return Path(value).expanduser().resolve() if value else PROJECT_ROOT / "data"
 
 
 def database_path() -> Path:
-    path = Path(get_secret("DATABASE_PATH", "data/expenses.db")).expanduser()
-    return path if path.is_absolute() else _CONFIG_PATH.parent / path
+    return data_directory() / "expenses.db"
 
 
 def load_config() -> dict:
-    with _CONFIG_PATH.open(encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    from core.settings_store import read_settings
+
+    _, settings = read_settings()
+    return {
+        **settings.records.categories,
+        "llm": settings.model.model_dump(),
+        "diet": {"meal_types": settings.records.meal_types},
+    }
 
 
-def config_version() -> int:
-    return _CONFIG_PATH.stat().st_mtime_ns
+def config_version() -> str:
+    from core.settings_store import read_settings
+
+    revision, _ = read_settings()
+    return revision

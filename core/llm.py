@@ -2,14 +2,15 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_openai import ChatOpenAI
 
-from core.secrets import get_secret
+from core.settings_store import decrypt_secret, read_settings
 
 
 class LLMClient:
     def __init__(self, llm_config: dict):
-        api_key = get_secret("LLM_API_KEY")
+        _, settings = read_settings()
+        api_key = decrypt_secret(settings.api_key_encrypted)
         if not api_key:
-            raise ValueError("LLM_API_KEY not set in .env")
+            raise ValueError("请先在设置中配置模型 API Key")
 
         self._llm = ChatOpenAI(
             model=llm_config.get("model", "deepseek-v4-flash"),

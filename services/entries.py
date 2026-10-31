@@ -21,17 +21,17 @@ from core.idempotency import execute_idempotent
 
 
 @lru_cache(maxsize=4)
-def _classifier(_: int) -> Classifier:
+def _classifier(_: str) -> Classifier:
     return Classifier(load_config())
 
 
 @lru_cache(maxsize=4)
-def _diet_extractor(_: int) -> DietExtractor:
+def _diet_extractor(_: str) -> DietExtractor:
     return DietExtractor(load_config())
 
 
 @lru_cache(maxsize=4)
-def _batch_extractor(_: int) -> BatchExtractor:
+def _batch_extractor(_: str) -> BatchExtractor:
     return BatchExtractor(load_config())
 
 

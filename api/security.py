@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from fastapi import Cookie, HTTPException, status
 
-from core.secrets import get_secret
+from core.settings_store import decrypt_secret, read_settings, verify_password
 
 SESSION_COOKIE = "tracker_session"
 DEFAULT_SESSION_SECONDS = 60 * 60 * 24 * 30
@@ -16,50 +16,25 @@ DEFAULT_SESSION_SECONDS = 60 * 60 * 24 * 30
 @dataclass(frozen=True)
 class AuthConfig:
     enabled: bool
-    password: str | None
+    password_hash: str
     signing_key: str | None
     cookie_secure: bool
     session_seconds: int
 
 
-def _as_bool(value: str | None, default: bool = False) -> bool:
-    if value is None:
-        return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-
 def get_auth_config() -> AuthConfig:
-    enabled = _as_bool(get_secret("AUTH_ENABLED", "false"))
-    password = get_secret("APP_PASSWORD")
-    signing_key = get_secret("APP_SESSION_SECRET") or password
-    seconds_value = get_secret("APP_SESSION_SECONDS", str(DEFAULT_SESSION_SECONDS))
-    try:
-        session_seconds = int(seconds_value or DEFAULT_SESSION_SECONDS)
-    except ValueError as exc:
-        raise RuntimeError("APP_SESSION_SECONDS must be an integer") from exc
-    if session_seconds <= 0:
-        raise RuntimeError("APP_SESSION_SECONDS must be positive")
-    if enabled and (not password or not signing_key):
-        raise RuntimeError(
-            "AUTH_ENABLED requires APP_PASSWORD and a signing key. "
-            "Set APP_SESSION_SECRET or allow APP_PASSWORD to be used as the key."
-        )
+    _, settings = read_settings()
     return AuthConfig(
-        enabled=enabled,
-        password=password,
-        signing_key=signing_key,
-        cookie_secure=_as_bool(get_secret("COOKIE_SECURE", "false")),
-        session_seconds=session_seconds,
+        enabled=settings.access.enabled,
+        password_hash=settings.access.password_hash,
+        signing_key=decrypt_secret(settings.signing_key_encrypted),
+        cookie_secure=settings.access.cookie_secure,
+        session_seconds=settings.access.session_seconds,
     )
 
 
 def password_matches(candidate: str, config: AuthConfig) -> bool:
-    return bool(
-        config.password
-        and hmac.compare_digest(
-            candidate.encode("utf-8"), config.password.encode("utf-8")
-        )
-    )
+    return verify_password(candidate, config.password_hash)
 
 
 def create_session_token(config: AuthConfig, *, now: int | None = None) -> str:
