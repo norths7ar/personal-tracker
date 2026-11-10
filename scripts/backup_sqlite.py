@@ -7,7 +7,7 @@ from pathlib import Path
 from core.config import database_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DESTINATION = PROJECT_ROOT / "data" / "backup" / "rolling"
+DEFAULT_DESTINATION = PROJECT_ROOT / "data" / "backups" / "rolling"
 
 
 def parse_args() -> argparse.Namespace:

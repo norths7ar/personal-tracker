@@ -34,7 +34,7 @@ uv run python -m service start
 
 服务管理程序支持 `start`、`stop`、`restart`、`status`。生命周期由本项目管理，外部管理软件只调用[服务接口](docs/service-management.md)，不直接控制进程或内部运行文件。没有登录自启或定时备份任务。更新依赖后同步环境，前端更新后重新构建，再按需重启。
 
-业务数据库固定为 `data/expenses.db`，设置页只读显示位置。备份时停止服务并保存整个 `data` 目录，尤其应配套保留 `settings.db` 与 `.key`；密钥丢失不能解密已有凭据。恢复前另存当前数据，使用配套备份恢复，不用新密钥覆盖旧密钥。已有备份继续保留；若只需账目快照，可运行 `uv run python -m scripts.backup_sqlite`。
+业务数据库固定为 `data/expenses.db`，设置页只读显示位置。备份时停止服务并保存整个 `data` 目录，尤其应配套保留 `settings.db` 与 `.key`；密钥丢失不能解密已有凭据。恢复前另存当前数据，使用配套备份恢复，不用新密钥覆盖旧密钥。若只需账目快照，可运行 `uv run python -m scripts.backup_sqlite`，默认保存到 `data/backups/rolling`；需要长期保留的历史备份放在 `data/backups/archive`，不参与滚动清理。
 
 ## 开发
 

@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from api.routes.entries import FoodInput
 from api.security import require_api_auth
 from core.diet.meal_time import require_meal_time
-from services import meals as meal_service
+from workflows import meals as meal_service
 
 router = APIRouter(
     prefix="/api/meals",

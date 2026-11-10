@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
 from api.security import require_api_auth
-from services import analysis as analysis_service
+from workflows import analysis as analysis_service
 
 router = APIRouter(
     prefix="/api/analysis",

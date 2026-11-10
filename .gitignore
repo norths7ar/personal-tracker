@@ -25,7 +25,3 @@ Thumbs.db
 # React frontend
 frontend/node_modules/
 frontend/dist/
-.playwright-cli/
-
-# Local verification artifacts
-output/playwright/

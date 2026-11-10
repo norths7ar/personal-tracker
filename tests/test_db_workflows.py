@@ -12,7 +12,7 @@ import core.diet.db as diet_db
 import core.expense.db as expense_db
 import core.subscription.db as subscription_db
 from core.constants import TYPE_EXPENSE, TYPE_INCOME
-from services import analysis, cross_period, entries, meals, transactions
+from workflows import analysis, cross_period, entries, meals, transactions
 
 
 class DatabaseProtectionTest(unittest.TestCase):

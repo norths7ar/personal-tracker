@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from api.security import require_api_auth
-from services import home as home_service
+from workflows import home as home_service
 
 router = APIRouter(
     prefix="/api/home",

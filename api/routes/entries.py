@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from api.security import require_api_auth
 from core.batch.db import BatchSubmissionConflict
 from core.idempotency import IdempotencyConflict
-from services import entries as entry_service
+from workflows import entries as entry_service
 
 router = APIRouter(
     prefix="/api/entries",

@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from api.routes.entries import IdempotencyKey
 from api.security import require_api_auth
 from core.idempotency import IdempotencyConflict
-from services import cross_period as cross_period_service
+from workflows import cross_period as cross_period_service
 
 router = APIRouter(
     prefix="/api/cross-period",

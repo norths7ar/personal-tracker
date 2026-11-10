@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from api.routes.entries import IdempotencyKey
 from api.security import require_api_auth
-from services import transactions as transaction_service
+from workflows import transactions as transaction_service
 
 router = APIRouter(
     prefix="/api/transactions",

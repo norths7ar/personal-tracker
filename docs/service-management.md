@@ -4,7 +4,9 @@ Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓
 
 ## 调用
 
-在仓库根目录使用 `uv run python -m service <动作>`。外部管理软件使用参数数组直接调用项目 `.venv/Scripts/python.exe`，参数为 `<仓库绝对路径>/service/__main__.py` 和动作，分别捕获 stdout、stderr，不经过 shell。入口定位项目根目录并为主进程设置工作目录，不依赖调用者所在目录。
+在仓库根目录使用 `uv run python -m service <动作>`。外部管理软件使用参数数组直接调用项目 `.venv/Scripts/python.exe`，以仓库根目录为工作目录，传入 `-m service <动作>`；也可通过 `<仓库绝对路径>/service/__main__.py` 调用，文件入口不依赖调用者所在目录。管理程序为主进程设置项目工作目录。
+
+调用方分别捕获 stdout、stderr，并按 UTF-8 解码，不经过 shell。管理入口自身将两个输出流固定为 UTF-8，不要求调用方追加 `-X utf8`；后台进程的日志输出通过 `PYTHONIOENCODING=utf-8` 设置。
 
 动作包括 `start`、`stop`、`restart`、`status`，省略动作时查询状态，动作名称不区分大小写。`status` 始终输出单个 JSON；其他动作加 `--json` 返回机器输出，不加则输出可读文字。
 
