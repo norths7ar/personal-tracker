@@ -135,17 +135,13 @@ def prepare_transaction(
 
 
 @router.post("/transactions", response_model=CreateResponse)
-def create_transaction(
-    body: TransactionCreateRequest, idempotency_key: IdempotencyKey
-) -> dict:
+def create_transaction(body: TransactionCreateRequest, idempotency_key: IdempotencyKey) -> dict:
     payload = body.model_dump(mode="json")
     payload["description"] = body.description.strip()
     try:
         return entry_service.create_transaction(payload, idempotency_key)
     except IdempotencyConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/meals/prepare", response_model=MealPreparationResponse)
@@ -165,9 +161,7 @@ def create_meal(body: MealCreateRequest, idempotency_key: IdempotencyKey) -> dic
     try:
         return entry_service.create_meal(payload, idempotency_key)
     except IdempotencyConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
@@ -187,9 +181,7 @@ def save_batch(body: BatchSaveRequest) -> dict:
             [record.model_dump(mode="json") for record in body.records],
         )
     except BatchSubmissionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)

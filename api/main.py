@@ -39,8 +39,7 @@ def create_app() -> FastAPI:
             status_code=422,
             content={
                 "detail": [
-                    {"loc": e["loc"], "msg": e["msg"], "type": e["type"]}
-                    for e in exc.errors()
+                    {"loc": e["loc"], "msg": e["msg"], "type": e["type"]} for e in exc.errors()
                 ]
             },
         )
@@ -53,9 +52,7 @@ def create_app() -> FastAPI:
             if request.headers.get("sec-fetch-site") == "cross-site" or (
                 origin is not None and origin != expected
             ):
-                return JSONResponse(
-                    status_code=403, content={"detail": "不允许跨站写入"}
-                )
+                return JSONResponse(status_code=403, content={"detail": "不允许跨站写入"})
         return await call_next(request)
 
     application.include_router(analysis_router)

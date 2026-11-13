@@ -118,9 +118,7 @@ def create_expected(body: ExpectedWrite, idempotency_key: IdempotencyKey) -> dic
     try:
         return cross_period_service.create_expected(payload, idempotency_key)
     except IdempotencyConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.patch("/expected/{source}/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -146,9 +144,7 @@ def confirm_expected(
             source, record_id, body.model_dump(mode="json"), idempotency_key
         )
     except IdempotencyConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
@@ -163,20 +159,14 @@ def delete_expected(source: Source, record_id: int) -> None:
 @router.post("/prepaid", response_model=WriteResult)
 def create_prepaid(body: PrepaidWrite, idempotency_key: IdempotencyKey) -> dict:
     try:
-        return cross_period_service.create_prepaid(
-            body.model_dump(mode="json"), idempotency_key
-        )
+        return cross_period_service.create_prepaid(body.model_dump(mode="json"), idempotency_key)
     except IdempotencyConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.patch("/prepaid/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def update_prepaid(record_id: int, body: PrepaidUpdate) -> None:
-    _run_value_error(
-        cross_period_service.update_prepaid, record_id, body.model_dump(mode="json")
-    )
+    _run_value_error(cross_period_service.update_prepaid, record_id, body.model_dump(mode="json"))
 
 
 @router.delete("/prepaid/{record_id}", status_code=status.HTTP_204_NO_CONTENT)

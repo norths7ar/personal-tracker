@@ -44,11 +44,7 @@ def cycle_from_months(months: int) -> tuple[str, int | None]:
         3: SUBSCRIPTION_CYCLE_QUARTERLY,
         12: SUBSCRIPTION_CYCLE_YEARLY,
     }
-    return (
-        (cycles[months], None)
-        if months in cycles
-        else (SUBSCRIPTION_CYCLE_CUSTOM, months)
-    )
+    return (cycles[months], None) if months in cycles else (SUBSCRIPTION_CYCLE_CUSTOM, months)
 
 
 def fixed_cost_for_month(month: str) -> float:
@@ -62,16 +58,8 @@ def fixed_cost_for_month(month: str) -> float:
     month_end = next_month - timedelta(days=1)
     total = 0.0
     for item in get_subscriptions(include_inactive=True):
-        start = (
-            date.fromisoformat(str(item["start_date"])[:10])
-            if item.get("start_date")
-            else None
-        )
-        end = (
-            date.fromisoformat(str(item["end_date"])[:10])
-            if item.get("end_date")
-            else None
-        )
+        start = date.fromisoformat(str(item["start_date"])[:10]) if item.get("start_date") else None
+        end = date.fromisoformat(str(item["end_date"])[:10]) if item.get("end_date") else None
         if start and start > month_end:
             continue
         if end and end < month_start:
@@ -81,9 +69,7 @@ def fixed_cost_for_month(month: str) -> float:
             if start is None:
                 continue
             months = max(1, int(item.get("billing_interval_months") or 1))
-            month_offset = (
-                (month_start.year - start.year) * 12 + month_start.month - start.month
-            )
+            month_offset = (month_start.year - start.year) * 12 + month_start.month - start.month
             if not 0 <= month_offset < months:
                 continue
         elif item.get("status") != SUBSCRIPTION_STATUS_ACTIVE and end is None:
@@ -272,9 +258,7 @@ def _create_prepaid_with_transaction(
         amortization_start=amortization_start,
     )
     transaction = dict(
-        conn.execute(
-            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
-        ).fetchone()
+        conn.execute("SELECT * FROM transactions WHERE id = ?", (transaction_id,)).fetchone()
     )
     subscription_id = _sync_prepaid_transaction(conn, transaction)
     return transaction_id, subscription_id

@@ -75,9 +75,7 @@ def create_transaction(payload: dict, idempotency_key: str) -> dict:
         )
         return {"id": record_id}
 
-    result, duplicate = execute_idempotent(
-        "create_transaction", idempotency_key, payload, insert
-    )
+    result, duplicate = execute_idempotent("create_transaction", idempotency_key, payload, insert)
     return {**result, "duplicate": duplicate}
 
 
@@ -128,9 +126,7 @@ def prepare_batch(text: str, default_date: str) -> dict:
 def save_reviewed_batch(submission_id: str, records: list[dict]) -> dict:
     config = load_config()
     normalized = [
-        _normalize_batch_record(record, config)
-        for record in records
-        if record.get("include", True)
+        _normalize_batch_record(record, config) for record in records if record.get("include", True)
     ]
     return save_batch(submission_id, normalized)
 
@@ -157,13 +153,9 @@ def _normalize_batch_record(record: dict, config: dict) -> dict:
     }
     if record_type == TYPE_MEAL:
         normalized["time"] = require_meal_time(record.get("time"))
-        normalized["meal_type"] = resolve_meal_type(
-            record.get("meal_type"), normalized["time"]
-        )
+        normalized["meal_type"] = resolve_meal_type(record.get("meal_type"), normalized["time"])
         normalized["foods"] = record.get("foods") or []
-        has_food = any(
-            str(food.get("food_name") or "").strip() for food in normalized["foods"]
-        )
+        has_food = any(str(food.get("food_name") or "").strip() for food in normalized["foods"])
         if not has_food:
             raise ValueError("批量饮食记录缺少食物清单")
         return normalized

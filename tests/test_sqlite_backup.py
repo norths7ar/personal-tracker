@@ -20,8 +20,7 @@ class SQLiteBackupTest(unittest.TestCase):
                 connection.commit()
 
             snapshots = [
-                backup_sqlite.create_backup(source, destination_directory, keep=2)
-                for _ in range(2)
+                backup_sqlite.create_backup(source, destination_directory, keep=2) for _ in range(2)
             ]
             before = {path.name: path.read_bytes() for path in snapshots}
             self.assertEqual(len(before), 2)
@@ -31,10 +30,7 @@ class SQLiteBackupTest(unittest.TestCase):
                 backup_sqlite.create_backup(source, destination_directory, keep=1)
 
             self.assertEqual(
-                {
-                    path.name: path.read_bytes()
-                    for path in destination_directory.iterdir()
-                },
+                {path.name: path.read_bytes() for path in destination_directory.iterdir()},
                 before,
             )
 
@@ -50,20 +46,14 @@ class SQLiteBackupTest(unittest.TestCase):
                 connection.execute("INSERT INTO entries VALUES ('preserved')")
                 connection.commit()
 
-            first_snapshot = backup_sqlite.create_backup(
-                source, destination_directory, keep=1
-            )
-            second_snapshot = backup_sqlite.create_backup(
-                source, destination_directory, keep=1
-            )
+            first_snapshot = backup_sqlite.create_backup(source, destination_directory, keep=1)
+            second_snapshot = backup_sqlite.create_backup(source, destination_directory, keep=1)
 
             self.assertFalse(first_snapshot.exists())
             self.assertTrue(second_snapshot.is_file())
             self.assertEqual(len(list(destination_directory.glob("expenses-*.db"))), 1)
             with closing(sqlite3.connect(second_snapshot)) as connection:
-                self.assertEqual(
-                    connection.execute("PRAGMA integrity_check").fetchone(), ("ok",)
-                )
+                self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone(), ("ok",))
                 self.assertEqual(
                     connection.execute("SELECT value FROM entries").fetchone(),
                     ("preserved",),

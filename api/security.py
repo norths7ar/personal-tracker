@@ -55,9 +55,7 @@ def create_session_token(config: AuthConfig, *, now: int | None = None) -> str:
     return f"{encoded_payload}.{_encode(signature)}"
 
 
-def session_is_valid(
-    token: str | None, config: AuthConfig, *, now: int | None = None
-) -> bool:
+def session_is_valid(token: str | None, config: AuthConfig, *, now: int | None = None) -> bool:
     if not token or not config.signing_key:
         return False
     try:
@@ -72,7 +70,7 @@ def session_is_valid(
         payload = json.loads(_decode(encoded_payload))
         current_time = int(time.time()) if now is None else now
         return payload.get("v") == 1 and current_time < int(payload["exp"])
-    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+    except ValueError, TypeError, KeyError, json.JSONDecodeError:
         return False
 
 

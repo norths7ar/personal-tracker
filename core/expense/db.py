@@ -116,9 +116,7 @@ def _update_transaction(conn, id_: int, fields: dict) -> None:
     updates = {key: value for key, value in fields.items() if key in allowed}
     if not updates:
         return
-    original = conn.execute(
-        "SELECT * FROM transactions WHERE id = ?", (id_,)
-    ).fetchone()
+    original = conn.execute("SELECT * FROM transactions WHERE id = ?", (id_,)).fetchone()
     if original is None:
         raise LookupError(f"Transaction #{id_} does not exist")
     if "amount" in updates:
@@ -146,9 +144,7 @@ def _update_transaction(conn, id_: int, fields: dict) -> None:
         if "amortization_months" in updates:
             updates["amortization_start"] = None
     set_clause = ", ".join(f"{key} = ?" for key in updates)
-    conn.execute(
-        f"UPDATE transactions SET {set_clause} WHERE id = ?", [*updates.values(), id_]
-    )
+    conn.execute(f"UPDATE transactions SET {set_clause} WHERE id = ?", [*updates.values(), id_])
     _sync_prepaid_transaction(conn, current)
 
 
@@ -158,9 +154,7 @@ def _validate_financial_links(conn, current: dict) -> None:
            FROM transactions WHERE refund_for_id = ?""",
         (current["id"],),
     ).fetchone()
-    if refunded[1] and (
-        current["type"] != TYPE_EXPENSE or current["amount_cents"] < refunded[0]
-    ):
+    if refunded[1] and (current["type"] != TYPE_EXPENSE or current["amount_cents"] < refunded[0]):
         raise ValueError("有关联退款的流水必须保持为支出，金额不能低于已退款总额")
     if current["subscription_id"] is not None and current["type"] != TYPE_EXPENSE:
         raise ValueError("周期付款关联流水必须保持为支出")
@@ -176,10 +170,7 @@ def _validate_financial_links(conn, current: dict) -> None:
                WHERE refund_for_id = ? AND id <> ?""",
             (current["refund_for_id"], current["id"]),
         ).fetchone()[0]
-        if (
-            original is None
-            or current["amount_cents"] + others > original["amount_cents"]
-        ):
+        if original is None or current["amount_cents"] + others > original["amount_cents"]:
             raise ValueError("退款金额超过原支出剩余可退金额")
 
 
@@ -446,9 +437,7 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
         **{
             f"{bucket}_breakdown": [
                 {**row, "total": row["total"] / 100}
-                for row in sorted(
-                    groups.values(), key=lambda row: row["total"], reverse=True
-                )
+                for row in sorted(groups.values(), key=lambda row: row["total"], reverse=True)
             ]
             for bucket, groups in breakdown.items()
         },

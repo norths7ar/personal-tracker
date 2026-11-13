@@ -29,9 +29,7 @@ def _cipher() -> Fernet:
     try:
         return Fernet((data_directory() / ".key").read_bytes().strip())
     except (OSError, ValueError) as exc:
-        raise RuntimeError(
-            "设置加密密钥缺失或损坏，请恢复 data/.key，不要重新生成"
-        ) from exc
+        raise RuntimeError("设置加密密钥缺失或损坏，请恢复 data/.key，不要重新生成") from exc
 
 
 def encrypt_secret(value: str) -> str:
@@ -91,17 +89,13 @@ def read_settings() -> tuple[str, StoredSettings]:
         # Importing modules and generating OpenAPI must not write private data.
         return "uninitialized", default_settings()
     with closing(sqlite3.connect(f"{path.as_uri()}?mode=ro", uri=True)) as connection:
-        row = connection.execute(
-            "SELECT revision, document FROM settings WHERE id = 1"
-        ).fetchone()
+        row = connection.execute("SELECT revision, document FROM settings WHERE id = 1").fetchone()
     if row is None:
         raise RuntimeError("设置存储不完整，请从备份恢复")
     return row[0], StoredSettings.model_validate_json(row[1])
 
 
-def update_settings(
-    revision: str, change: Callable[[StoredSettings], None]
-) -> SettingsResponse:
+def update_settings(revision: str, change: Callable[[StoredSettings], None]) -> SettingsResponse:
     path = data_directory() / "settings.db"
     with closing(sqlite3.connect(path)) as connection, connection:
         connection.execute("BEGIN IMMEDIATE")

@@ -8,9 +8,7 @@ from core.subscription.db import fixed_cost_for_month
 def _month_range(month: str) -> tuple[str, str, int]:
     year, month_number = map(int, month.split("-"))
     first = date(year, month_number, 1)
-    next_first = (
-        date(year + 1, 1, 1) if month_number == 12 else date(year, month_number + 1, 1)
-    )
+    next_first = date(year + 1, 1, 1) if month_number == 12 else date(year, month_number + 1, 1)
     return (
         first.isoformat(),
         (next_first - timedelta(days=1)).isoformat(),
@@ -34,12 +32,10 @@ def _period_data(start: str, end: str, basis: str) -> dict:
             for row in data["daily"]
         ],
         "expense_breakdown": [
-            {**row, "total": _money(row.get("total"))}
-            for row in data["expense_breakdown"]
+            {**row, "total": _money(row.get("total"))} for row in data["expense_breakdown"]
         ],
         "income_breakdown": [
-            {**row, "total": _money(row.get("total"))}
-            for row in data["income_breakdown"]
+            {**row, "total": _money(row.get("total"))} for row in data["income_breakdown"]
         ],
     }
 
@@ -100,9 +96,7 @@ def get_expense_analysis(
         "current": cash if basis == "cash" else amortized,
         "cash_current": cash,
         "timeline": timeline,
-        "fixed_monthly_cost": fixed_cost_for_month(selected)
-        if granularity == "month"
-        else None,
+        "fixed_monthly_cost": fixed_cost_for_month(selected) if granularity == "month" else None,
         "budget": get_month_budget(selected) if granularity == "month" else None,
         "cash_expense": cash["expense"] if granularity == "month" else None,
         "amortized_expense": amortized["expense"] if granularity == "month" else None,

@@ -35,9 +35,7 @@ class BatchExtractor:
         self.expense_categories: dict = config.get("支出", {})
         self.income_categories: dict = config.get("收入", {})
         self.transfer_categories: dict = config.get("迁移", {})
-        self.meal_types: list = config.get("diet", {}).get(
-            "meal_types", list(DEFAULT_MEAL_TYPES)
-        )
+        self.meal_types: list = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
         self._llm = LLMClient(config.get("llm", {}))
         self._classifier = Classifier(config)
         self._diet_extractor = DietExtractor(config)
@@ -58,9 +56,7 @@ class BatchExtractor:
                 events.append(self._meal_block_to_event(block))
                 continue
             try:
-                finance_raw = self._llm.invoke(
-                    self._build_finance_prompt(block), block["text"]
-                )
+                finance_raw = self._llm.invoke(self._build_finance_prompt(block), block["text"])
                 block_events, block_rejected = self._normalize_events(
                     finance_raw,
                     block["date"],
@@ -69,9 +65,7 @@ class BatchExtractor:
                 events.extend(block_events)
                 rejected_events.extend(block_rejected)
             except Exception as e:
-                rejected_events.append(
-                    {"reason": f"财务块拆分失败：{e}", "record": block}
-                )
+                rejected_events.append({"reason": f"财务块拆分失败：{e}", "record": block})
 
         records, rejected_records = self._events_to_records(events)
         rejected = [*rejected_blocks, *rejected_events, *rejected_records]
@@ -85,9 +79,7 @@ class BatchExtractor:
 
     def _build_block_prompt(self, default_date: str) -> str:
         meal_types_str = "、".join(self.meal_types)
-        return load_prompt(
-            "batch_blocks.txt", default_date=default_date, meal_types=meal_types_str
-        )
+        return load_prompt("batch_blocks.txt", default_date=default_date, meal_types=meal_types_str)
 
     def _build_finance_prompt(self, block: dict) -> str:
         category_lines = []
@@ -142,9 +134,7 @@ class BatchExtractor:
         return records, rejected
 
     def _expense_event_to_record(self, event: dict) -> dict:
-        category_hint = self._resolve_expense_category_hint(
-            event.get("category_hint", "")
-        )
+        category_hint = self._resolve_expense_category_hint(event.get("category_hint", ""))
         subcategory_hint = str(event.get("subcategory_hint") or "").strip()
         categories = self.expense_categories.get(category_hint) or []
         valid_hint = bool(category_hint) and (
@@ -156,9 +146,7 @@ class BatchExtractor:
             confidence = event.get("confidence", 0.0)
             reasoning = event.get("reasoning", "")
         else:
-            result = self._classifier.classify(
-                event["text"], category_hint=category_hint
-            )
+            result = self._classifier.classify(event["text"], category_hint=category_hint)
             if result.get("status") == "confirmed":
                 category = result["category"]
                 subcategory = result["subcategory"]
@@ -191,9 +179,7 @@ class BatchExtractor:
         reasoning = result.get("reasoning", event.get("reasoning", ""))
 
         if result.get("status") == "error":
-            meal_type = resolve_meal_type(
-                event.get("meal_type_hint"), event.get("time")
-            )
+            meal_type = resolve_meal_type(event.get("meal_type_hint"), event.get("time"))
             foods = []
             reasoning = result.get("reasoning") or "饮食提取失败，请人工填写食物清单"
 
@@ -284,9 +270,7 @@ class BatchExtractor:
         hint = self.EXPENSE_CATEGORY_ALIASES.get(hint, hint)
         return hint if hint in self.expense_categories else ""
 
-    def _normalize_blocks(
-        self, raw: dict, default_date: str
-    ) -> tuple[list[dict], list[dict]]:
+    def _normalize_blocks(self, raw: dict, default_date: str) -> tuple[list[dict], list[dict]]:
         if not isinstance(raw, dict):
             return [], [{"reason": "LLM 输出不是 JSON 对象", "record": raw}]
         raw_blocks = raw.get("blocks", [])
@@ -301,9 +285,7 @@ class BatchExtractor:
                 continue
             block_type = str(item.get("block_type") or "").strip()
             if block_type not in self.BLOCK_TYPES:
-                rejected.append(
-                    {"reason": f"未知语义块类型：{block_type}", "record": item}
-                )
+                rejected.append({"reason": f"未知语义块类型：{block_type}", "record": item})
                 continue
             text = str(item.get("text") or "").strip()
             if not text:
@@ -348,9 +330,7 @@ class BatchExtractor:
 
             event_type = str(item.get("event_type") or "").strip()
             if event_type not in self.RECORD_TYPES:
-                rejected.append(
-                    {"reason": f"未知事件类型：{event_type}", "record": item}
-                )
+                rejected.append({"reason": f"未知事件类型：{event_type}", "record": item})
                 continue
 
             text = str(item.get("text") or "").strip()
@@ -362,20 +342,16 @@ class BatchExtractor:
             if event_type in self.FINANCE_TYPES:
                 try:
                     amount = round(float(amount), 2)
-                except (TypeError, ValueError):
+                except TypeError, ValueError:
                     rejected.append({"reason": "财务事件缺少有效金额", "record": item})
                     continue
                 if amount <= 0:
-                    rejected.append(
-                        {"reason": "财务事件金额必须大于 0", "record": item}
-                    )
+                    rejected.append({"reason": "财务事件金额必须大于 0", "record": item})
                     continue
             else:
                 amount = None
 
-            event_date = str(
-                item.get("date") or defaults.get("date") or default_date
-            ).strip()[:10]
+            event_date = str(item.get("date") or defaults.get("date") or default_date).strip()[:10]
             try:
                 date.fromisoformat(event_date)
             except ValueError:
@@ -386,19 +362,14 @@ class BatchExtractor:
                     "event_type": event_type,
                     "text": text,
                     "date": event_date,
-                    "time": normalize_meal_time(
-                        item.get("time") or defaults.get("time")
-                    )
-                    or "",
+                    "time": normalize_meal_time(item.get("time") or defaults.get("time")) or "",
                     "amount": amount,
                     "category_hint": str(
                         item.get("category_hint") or defaults.get("category_hint") or ""
                     ).strip(),
                     "subcategory_hint": str(item.get("subcategory_hint") or "").strip(),
                     "meal_type_hint": str(
-                        item.get("meal_type_hint")
-                        or defaults.get("meal_type_hint")
-                        or ""
+                        item.get("meal_type_hint") or defaults.get("meal_type_hint") or ""
                     ).strip(),
                     "confidence": self._normalize_confidence(item.get("confidence")),
                     "reasoning": str(item.get("reasoning") or "").strip(),
@@ -410,5 +381,5 @@ class BatchExtractor:
     def _normalize_confidence(value) -> float:
         try:
             return max(0.0, min(1.0, float(value)))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return 0.0

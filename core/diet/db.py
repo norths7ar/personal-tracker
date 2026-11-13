@@ -204,8 +204,7 @@ def update_meals(meal_ids: list[int], changes: dict) -> int:
         ids = _require_meals(conn, meal_ids)
         set_clause = ", ".join(f"{field} = ?" for field in updates)
         conn.execute(
-            f"UPDATE diet_meals SET {set_clause} "
-            f"WHERE id IN ({placeholders(len(ids))})",
+            f"UPDATE diet_meals SET {set_clause} WHERE id IN ({placeholders(len(ids))})",
             [*updates.values(), *ids],
         )
     return len(ids)
@@ -216,9 +215,7 @@ def delete_meals(meal_ids: list[int]) -> int:
     with closing(_connect()) as conn, conn:
         conn.execute("BEGIN IMMEDIATE")
         ids = _require_meals(conn, meal_ids)
-        conn.execute(
-            f"DELETE FROM diet_meals WHERE id IN ({placeholders(len(ids))})", ids
-        )
+        conn.execute(f"DELETE FROM diet_meals WHERE id IN ({placeholders(len(ids))})", ids)
     return len(ids)
 
 

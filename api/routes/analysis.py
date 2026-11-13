@@ -93,9 +93,7 @@ def expense_analysis(
 @router.put("/budgets/{month}", response_model=MonthBudget)
 def update_budget(month: str, body: MonthBudgetUpdate) -> dict:
     try:
-        return analysis_service.update_month_budget(
-            month, body.amortized_total, body.cash_total
-        )
+        return analysis_service.update_month_budget(month, body.amortized_total, body.cash_total)
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)

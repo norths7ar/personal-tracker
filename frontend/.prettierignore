@@ -1,5 +1,6 @@
-dist
-node_modules
+**/dist/**
+**/build/**
+**/node_modules/**
+**/.tmp/**
 src/api/schema.d.ts
 pnpm-lock.yaml
-tests

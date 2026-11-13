@@ -119,13 +119,9 @@ def bulk_update_transactions(
     try:
         updated_count = transaction_service.update_transactions(body.ids, changes)
     except transaction_service.TransactionNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except transaction_service.TransactionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return BulkCategoryUpdateResponse(updated_count=updated_count)
 
 
@@ -138,13 +134,9 @@ def update_transaction(transaction_id: int, body: TransactionUpdate) -> dict:
     try:
         return transaction_service.update_transaction(transaction_id, changes)
     except transaction_service.TransactionNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except transaction_service.TransactionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/bulk-delete", response_model=BulkDeleteResponse)
@@ -152,25 +144,17 @@ def bulk_delete_transactions(body: BulkDeleteRequest) -> BulkDeleteResponse:
     try:
         deleted_count = transaction_service.delete_transactions(body.ids)
     except transaction_service.TransactionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return BulkDeleteResponse(deleted_count=deleted_count)
 
 
 @router.post("/{transaction_id}/refunds", response_model=CreatedRecord)
-def create_refund(
-    transaction_id: int, body: RefundCreate, idempotency_key: IdempotencyKey
-) -> dict:
+def create_refund(transaction_id: int, body: RefundCreate, idempotency_key: IdempotencyKey) -> dict:
     payload = body.model_dump(mode="json")
     try:
-        return transaction_service.create_refund(
-            transaction_id, payload, idempotency_key
-        )
+        return transaction_service.create_refund(transaction_id, payload, idempotency_key)
     except transaction_service.TransactionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
 
 
 @router.post("/{transaction_id}/subscription", response_model=CreatedRecord)
@@ -181,10 +165,6 @@ def create_subscription(
 ) -> dict:
     payload = body.model_dump(mode="json")
     try:
-        return transaction_service.create_subscription(
-            transaction_id, payload, idempotency_key
-        )
+        return transaction_service.create_subscription(transaction_id, payload, idempotency_key)
     except transaction_service.TransactionConflict as exc:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc

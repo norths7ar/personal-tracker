@@ -13,9 +13,7 @@ class DietExtractor:
     """从自然语言饮食描述中提取结构化信息（一餐多食物）。"""
 
     def __init__(self, config: dict):
-        self.meal_types: list = config.get("diet", {}).get(
-            "meal_types", list(DEFAULT_MEAL_TYPES)
-        )
+        self.meal_types: list = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
         self.threshold: float = config.get("llm", {}).get(
             "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
         )
@@ -34,16 +32,12 @@ class DietExtractor:
         }
         """
         try:
-            raw = self._llm.invoke(
-                self._build_prompt(meal_time), f"饮食描述：{description}"
-            )
+            raw = self._llm.invoke(self._build_prompt(meal_time), f"饮食描述：{description}")
             result = self._normalize(raw, meal_time)
         except Exception as e:
             return self._fallback(str(e), meal_time)
 
-        status = (
-            "confirmed" if result["confidence"] >= self.threshold else "low_confidence"
-        )
+        status = "confirmed" if result["confidence"] >= self.threshold else "low_confidence"
         return {**result, "status": status}
 
     def _build_prompt(self, meal_time: str) -> str:
@@ -58,7 +52,7 @@ class DietExtractor:
     def _normalize(data: dict, meal_time: str) -> dict:
         try:
             data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0.0))))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             data["confidence"] = 0.0
 
         data["meal_type"] = resolve_meal_type(data.get("meal_type"), meal_time)
@@ -76,9 +70,7 @@ class DietExtractor:
             for f in raw_foods
             if isinstance(f, dict) and f.get("food_name")
         ]
-        data["foods"] = (
-            foods if foods else [{"food_name": "", "quantity": "", "ingredients": []}]
-        )
+        data["foods"] = foods if foods else [{"food_name": "", "quantity": "", "ingredients": []}]
         return data
 
     @staticmethod

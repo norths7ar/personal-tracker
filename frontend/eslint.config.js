@@ -1,15 +1,32 @@
 import js from "@eslint/js";
+import { defineConfig } from "eslint/config";
+import prettier from "eslint-config-prettier/flat";
 import importPlugin from "eslint-plugin-import-x";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
-export default tseslint.config(
-  { ignores: ["dist/**", "node_modules/**", "src/api/schema.d.ts"] },
+export default defineConfig([
+  {
+    ignores: [
+      "**/dist/**",
+      "**/build/**",
+      "**/node_modules/**",
+      "**/.tmp/**",
+      "src/api/schema.d.ts",
+    ],
+  },
   { linterOptions: { reportUnusedDisableDirectives: "error" } },
-  js.configs.recommended,
-  ...tseslint.configs.recommended,
+  {
+    files: ["**/*.{js,mjs,cjs,jsx}"],
+    extends: [js.configs.recommended],
+    languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+  },
+  {
+    files: ["**/*.{ts,mts,cts,tsx}"],
+    extends: [js.configs.recommended, tseslint.configs.recommended],
+  },
   {
     files: ["src/**/*.{ts,tsx}"],
     languageOptions: { globals: globals.browser },
@@ -17,8 +34,8 @@ export default tseslint.config(
     settings: { "import-x/resolver": { typescript: { project: "./tsconfig.app.json" } } },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // React Compiler is not enabled; retain TanStack Table and React Hook Form APIs.
       "react-hooks/incompatible-library": "off",
-      "react-hooks/exhaustive-deps": "warn",
       "import-x/no-cycle": "error",
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
     },
@@ -28,7 +45,9 @@ export default tseslint.config(
     languageOptions: { globals: globals.node },
   },
   {
-    files: ["src/components/ui/**/*.tsx", "src/pages/record/entry-shared.tsx"],
+    // Radix component aliases and the shared component/helper module are intentional.
+    files: ["src/components/ui/dialog.tsx", "src/pages/record/entry-shared.tsx"],
     rules: { "react-refresh/only-export-components": "off" },
   },
-);
+  prettier,
+]);

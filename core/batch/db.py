@@ -40,9 +40,7 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
                     (submission_id,),
                 ).fetchone()
                 if existing is None or existing["payload_hash"] != payload_hash:
-                    logger.warning(
-                        "batch submission conflict submission_id=%s", submission_id
-                    )
+                    logger.warning("batch submission conflict submission_id=%s", submission_id)
                     raise BatchSubmissionConflict("同一批次已使用不同内容保存")
                 logger.info(
                     "batch duplicate ignored submission_id=%s record_count=%s",

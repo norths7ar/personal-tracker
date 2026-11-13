@@ -6,9 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from api.security import require_api_auth
 from core import todos
 
-router = APIRouter(
-    prefix="/api/todos", tags=["todos"], dependencies=[Depends(require_api_auth)]
-)
+router = APIRouter(prefix="/api/todos", tags=["todos"], dependencies=[Depends(require_api_auth)])
 
 
 class TodoWrite(BaseModel):

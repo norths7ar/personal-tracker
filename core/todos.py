@@ -6,8 +6,7 @@ from core.db import _connect
 def list_todos() -> list[dict]:
     with closing(_connect()) as connection:
         return [
-            dict(row)
-            for row in connection.execute("SELECT * FROM todos ORDER BY position, id")
+            dict(row) for row in connection.execute("SELECT * FROM todos ORDER BY position, id")
         ]
 
 
@@ -46,9 +45,7 @@ def set_state(todo_id: int, status: str) -> dict:
             return current
         # Replacing the current task is one operation, including concurrent tabs.
         if status == "active":
-            connection.execute(
-                "UPDATE todos SET status = 'pending' WHERE status = 'active'"
-            )
+            connection.execute("UPDATE todos SET status = 'pending' WHERE status = 'active'")
         connection.execute(
             """UPDATE todos SET status = ?, completed_at =
                CASE WHEN ? = 'completed' THEN datetime('now', 'localtime') ELSE NULL END

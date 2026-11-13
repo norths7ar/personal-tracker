@@ -45,9 +45,10 @@ class Classifier:
 
         confidence = result["confidence"]
 
-        if not self._is_known(result["category"], result["subcategory"]):
-            status = "low_confidence"
-        elif confidence < self.threshold:
+        if (
+            not self._is_known(result["category"], result["subcategory"])
+            or confidence < self.threshold
+        ):
             status = "low_confidence"
         else:
             status = "confirmed"
@@ -57,9 +58,7 @@ class Classifier:
     def _build_prompt(self, category_hint: str | None = None) -> str:
         lines = []
         categories = (
-            {category_hint: self.categories[category_hint]}
-            if category_hint
-            else self.categories
+            {category_hint: self.categories[category_hint]} if category_hint else self.categories
         )
         for main, subs in categories.items():
             lines.append(f"- {main}：{'、'.join(subs)}" if subs else f"- {main}")
@@ -70,7 +69,7 @@ class Classifier:
     def _normalize(data: dict) -> dict:
         try:
             data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0.0))))
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             data["confidence"] = 0.0
 
         candidates = []
@@ -79,12 +78,8 @@ class Classifier:
                 candidates.append(
                     {
                         "category": c.get("category", DEFAULT_CATEGORY),
-                        "subcategory": c.get(
-                            "subcategory", c.get("category", DEFAULT_CATEGORY)
-                        ),
-                        "confidence": max(
-                            0.0, min(1.0, float(c.get("confidence", 0.0)))
-                        ),
+                        "subcategory": c.get("subcategory", c.get("category", DEFAULT_CATEGORY)),
+                        "confidence": max(0.0, min(1.0, float(c.get("confidence", 0.0)))),
                     }
                 )
         data["candidates"] = candidates

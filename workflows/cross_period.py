@@ -40,10 +40,7 @@ def list_cross_period() -> dict[str, list[dict]]:
             item["description"],
         )
     )
-    prepaid = [
-        _prepaid(item)
-        for item in get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)
-    ]
+    prepaid = [_prepaid(item) for item in get_subscriptions(payment_type=RECURRING_PAYMENT_PREPAID)]
     return {"expected": expected, "prepaid": prepaid}
 
 
@@ -83,9 +80,7 @@ def create_expected(payload: dict, idempotency_key: str) -> dict:
         )
         return {"id": record_id, "source": "plan"}
 
-    result, duplicate = execute_idempotent(
-        "create_expected", idempotency_key, payload, insert
-    )
+    result, duplicate = execute_idempotent("create_expected", idempotency_key, payload, insert)
     return {**result, "duplicate": duplicate}
 
 
@@ -123,9 +118,7 @@ def update_expected(source: str, record_id: int, payload: dict) -> None:
     )
 
 
-def confirm_expected(
-    source: str, record_id: int, payload: dict, idempotency_key: str
-) -> dict:
+def confirm_expected(source: str, record_id: int, payload: dict, idempotency_key: str) -> dict:
     def insert(conn) -> dict:
         if source == "subscription":
             transaction_id = _record_subscription_payment(
@@ -180,9 +173,7 @@ def create_prepaid(payload: dict, idempotency_key: str) -> dict:
         )
         return {"transaction_id": transaction_id, "subscription_id": subscription_id}
 
-    result, duplicate = execute_idempotent(
-        "create_prepaid", idempotency_key, payload, insert
-    )
+    result, duplicate = execute_idempotent("create_prepaid", idempotency_key, payload, insert)
     return {**result, "duplicate": duplicate}
 
 
@@ -208,11 +199,7 @@ def delete_prepaid(record_id: int) -> None:
 def _find_expected(source: str, record_id: int) -> dict:
     records = list_cross_period()["expected"]
     record = next(
-        (
-            item
-            for item in records
-            if item["source"] == source and item["id"] == record_id
-        ),
+        (item for item in records if item["source"] == source and item["id"] == record_id),
         None,
     )
     if record is None:
@@ -239,11 +226,7 @@ def _expected_subscription(item: dict) -> dict:
         "description": item["name"],
         "amount": item["amount"],
         "next_date": item.get("next_renewal_date"),
-        "cycle": (
-            f"每{interval}天"
-            if mode == RENEWAL_MODE_FIXED_DAYS
-            else _month_cycle(interval)
-        ),
+        "cycle": (f"每{interval}天" if mode == RENEWAL_MODE_FIXED_DAYS else _month_cycle(interval)),
         "category": item.get("category"),
         "subcategory": item.get("subcategory"),
         "notes": item.get("notes"),

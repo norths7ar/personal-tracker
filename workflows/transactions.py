@@ -69,9 +69,7 @@ def create_refund(transaction_id: int, payload: dict, idempotency_key: str) -> d
     return {**result, "duplicate": duplicate}
 
 
-def create_subscription(
-    transaction_id: int, payload: dict, idempotency_key: str
-) -> dict:
+def create_subscription(transaction_id: int, payload: dict, idempotency_key: str) -> dict:
     def insert(conn) -> dict:
         subscription_id = subscription_db._create_subscription_from_transaction(
             conn,

@@ -36,15 +36,11 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
 
     try:
         with (
-            closing(
-                sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)
-            ) as source_connection,
+            closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as source_connection,
             closing(sqlite3.connect(temporary)) as destination_connection,
         ):
             source_connection.backup(destination_connection)
-            integrity_result = destination_connection.execute(
-                "PRAGMA integrity_check"
-            ).fetchone()
+            integrity_result = destination_connection.execute("PRAGMA integrity_check").fetchone()
             foreign_key_errors = destination_connection.execute(
                 "PRAGMA foreign_key_check"
             ).fetchall()
@@ -60,9 +56,7 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
         temporary.unlink(missing_ok=True)
         raise
 
-    snapshots = sorted(
-        path for path in destination_dir.glob("expenses-*.db") if path.is_file()
-    )
+    snapshots = sorted(path for path in destination_dir.glob("expenses-*.db") if path.is_file())
     for stale_snapshot in snapshots[:-keep]:
         stale_snapshot.unlink()
 

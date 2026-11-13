@@ -110,9 +110,7 @@ def list_meals() -> list[dict]:
 
 
 @router.get("/stats", response_model=DietStatsResponse)
-def diet_stats(
-    start_date: Annotated[Date, Query()], end_date: Annotated[Date, Query()]
-) -> dict:
+def diet_stats(start_date: Annotated[Date, Query()], end_date: Annotated[Date, Query()]) -> dict:
     return meal_service.get_stats(start_date.isoformat(), end_date.isoformat())
 
 
@@ -145,9 +143,7 @@ def update_meal(meal_id: int, body: MealUpdate) -> dict:
     try:
         return meal_service.update_meal(meal_id, foods, payload)
     except meal_service.MealNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
@@ -159,6 +155,4 @@ def delete_meal(meal_id: int) -> None:
     try:
         meal_service.delete_meal(meal_id)
     except meal_service.MealNotFound as exc:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)
-        ) from exc
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
