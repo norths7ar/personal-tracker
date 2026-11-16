@@ -1,4 +1,5 @@
-.batch-preview-description {
+.batch-date {
+  width: 13rem;
   max-width: 13rem;
 }
 
@@ -75,6 +76,31 @@
   line-height: 1.25rem;
 }
 
-.batch-input {
-  min-height: 10rem;
+.batch-composer .batch-input {
+  min-height: 232px;
+}
+
+.batch-description.form-field {
+  margin-top: 20px;
+}
+
+.batch-description > span:first-child {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.batch-actions {
+  border-color: #c3c3c3;
+  background: #ffffff;
+}
+
+@media (max-width: 639px) {
+  .batch-date {
+    width: 100%;
+    max-width: none;
+  }
 }

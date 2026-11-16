@@ -6,21 +6,21 @@
 
 .reminder-panel {
   border-radius: var(--radius-3);
-  border: 1px solid var(--amber-6);
-  background-color: var(--amber-2);
+  border: 1px solid var(--gray-6);
+  background-color: var(--gray-2);
   padding: var(--space-4);
 }
 
 .reminder-title {
   font-weight: 500;
-  color: var(--amber-12);
+  color: var(--gray-12);
 }
 
 .reminder-list {
   margin-top: var(--space-2);
   font-size: var(--font-size-2, 0.875rem);
   line-height: 1.25rem;
-  color: var(--amber-12);
+  color: var(--gray-12);
 }
 
 .reminder-list > :not([hidden]) ~ :not([hidden]) {
@@ -68,4 +68,207 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
+}
+.record-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.record-heading .page-title {
+  font-family: var(--heading-font);
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.04em;
+  color: var(--brand-ink);
+}
+
+.record-emblem {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #b9b9b9;
+  border-radius: 50% 50% 42% 50%;
+  background: #eeeeee;
+  color: #787878;
+  transform: rotate(-8deg);
+}
+
+.record-tabs.page-tabs {
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 5px;
+  border: 1px solid #e1e1e1;
+  border-radius: 14px;
+  background: #ececec;
+}
+
+.record-tabs .page-tab {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  color: #717171;
+  transition:
+    color 160ms,
+    background 160ms,
+    box-shadow 160ms;
+}
+
+.record-tabs .page-tab:hover {
+  color: #4d4d4d;
+  background: #f7f7f7;
+}
+
+.record-tabs .page-tab-selected,
+.record-tabs .page-tab-selected:hover {
+  color: #ffffff;
+  background: #4d4d4d;
+  box-shadow: 0 3px 8px #4d4d4d24;
+}
+
+.record-composer.content-panel {
+  padding: 24px;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow:
+    0 8px 32px #3c3c3c10,
+    0 1px 2px #3c3c3c08;
+  transition:
+    border-color 180ms,
+    box-shadow 180ms;
+}
+
+.record-composer:focus-within {
+  border-color: #b6b6b6;
+  box-shadow:
+    0 10px 36px #4d4d4d12,
+    0 0 0 3px #4d4d4d05;
+}
+
+.composer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.composer-heading h2 {
+  font-family: var(--default-font-family);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--brand-ink);
+}
+
+.composer-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.record-composer .form-field > span:first-child {
+  color: #707070;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.record-composer .form-stack > :not([hidden]) ~ :not([hidden]) {
+  margin-top: 20px;
+}
+
+.record-composer .rt-TextFieldRoot,
+.record-composer .form-select {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #dedede;
+}
+
+.record-composer .rt-TextFieldRoot:focus-within,
+.record-composer .form-select:focus-visible {
+  background: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px #939393,
+    0 0 0 3px #4d4d4d0c;
+}
+
+.record-composer .form-textarea {
+  min-height: 104px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  background-image: repeating-linear-gradient(
+    transparent,
+    transparent 31px,
+    #e6e6e6 31px,
+    #e6e6e6 32px
+  );
+  background-position: 0 12px;
+  background-size: 100% calc(100% - 12px);
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px #e2e2e2;
+}
+
+.record-composer .form-textarea textarea {
+  padding: 12px;
+  font-family: var(--default-font-family);
+  font-size: 14px;
+  line-height: 32px;
+}
+
+.record-composer .form-textarea textarea::placeholder {
+  color: #8f8f8f;
+}
+
+.record-composer .form-textarea:focus-within {
+  box-shadow:
+    inset 0 0 0 1px #939393,
+    0 0 0 3px #4d4d4d0c;
+}
+
+.record-composer .entry-review {
+  border-radius: 14px;
+  padding: 24px;
+}
+
+.record-page .home-summary {
+  padding-top: 12px;
+}
+
+.record-page .today-expense {
+  color: #4d4d4d;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 639px) {
+  .record-tabs.page-tabs {
+    width: 100%;
+    gap: 3px;
+  }
+
+  .record-tabs .page-tab {
+    flex: 1;
+    gap: 6px;
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .record-tabs .page-tab svg {
+    width: 15px;
+  }
+
+  .record-composer.content-panel {
+    padding: 18px;
+  }
 }

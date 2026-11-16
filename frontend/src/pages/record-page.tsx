@@ -1,6 +1,6 @@
 import "@/styles/record-page.css";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Layers3, NotebookPen, Utensils, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -11,18 +11,18 @@ import { MealEntry } from "@/pages/record/meal-entry";
 import { TransactionEntry } from "@/pages/record/transaction-entry";
 
 type Tab = "batch" | "transaction" | "meal";
-const tabs: Array<{ value: Tab; label: string }> = [
-  { value: "batch", label: "批量录入" },
-  { value: "transaction", label: "开销与收支" },
-  { value: "meal", label: "饮食" },
-];
+const tabs = [
+  { value: "batch", label: "批量录入", icon: Layers3 },
+  { value: "transaction", label: "开销与收支", icon: Wallet },
+  { value: "meal", label: "饮食", icon: Utensils },
+] as const;
 
 export function RecordPage() {
   const [tab, setTab] = useState<Tab>("batch");
 
   return (
     <section
-      className="page-stack"
+      className="page-stack record-page"
       onKeyDown={(event) => {
         if (
           !event.ctrlKey ||
@@ -39,13 +39,14 @@ export function RecordPage() {
           ?.click();
       }}
     >
-      <header>
-        <h1 className="page-title">记录</h1>
-        <p className="page-description">Ctrl+Enter 执行当前步骤；有待确认内容时请检查后保存。</p>
+      <header className="record-heading">
+        <h1 className="page-title">记录日常</h1>
+        <div className="record-emblem" aria-hidden="true">
+          <NotebookPen size={22} strokeWidth={1.5} />
+        </div>
       </header>
-      <HomeSummary />
-      <div aria-label="录入方式" className="page-tabs">
-        {tabs.map(({ value, label }) => (
+      <div aria-label="录入方式" className="page-tabs record-tabs">
+        {tabs.map(({ value, label, icon: Icon }) => (
           <button
             key={value}
             aria-pressed={tab === value}
@@ -53,6 +54,7 @@ export function RecordPage() {
             className={cn("page-tab", tab === value && "page-tab-selected")}
             onClick={() => setTab(value)}
           >
+            <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
             {label}
           </button>
         ))}
@@ -66,6 +68,7 @@ export function RecordPage() {
       <div id="record-meal" hidden={tab !== "meal"}>
         <MealEntry />
       </div>
+      <HomeSummary />
     </section>
   );
 }

@@ -4,6 +4,44 @@
 .app-button.rt-IconButton {
   margin: 0;
 }
+
+.app-button {
+  transition:
+    background-color 160ms,
+    box-shadow 160ms,
+    transform 160ms;
+}
+.app-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.app-button.rt-variant-solid:not(:disabled) {
+  box-shadow: 0 3px 8px #4d4d4d1c;
+}
+.app-button.rt-variant-solid:hover:not(:disabled) {
+  box-shadow: 0 5px 14px #4d4d4d30;
+}
+.rt-TextFieldRoot,
+.rt-TextAreaRoot,
+.form-select {
+  transition:
+    box-shadow 160ms,
+    background-color 160ms;
+}
+.rt-TextFieldRoot:focus-within,
+.rt-TextAreaRoot:focus-within {
+  box-shadow: 0 0 0 2px #4d4d4d30;
+}
+.rt-DialogContent {
+  background: var(--color-panel-solid);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-button,
+  .rt-TextFieldRoot,
+  .rt-TextAreaRoot,
+  .form-select {
+    transition: none;
+  }
+}
 .app-sidebar .app-logout.rt-Button {
   margin-top: auto;
   justify-content: flex-start;
@@ -72,12 +110,10 @@
 .date-field-input {
   width: 100%;
 }
-.date-field-input input {
-  padding-right: var(--space-7);
+.date-picker-slot {
+  padding-inline: 0 5px;
 }
 .date-picker-trigger.rt-IconButton {
-  position: absolute;
-  inset: 2px 2px auto auto;
   width: 28px;
   height: 28px;
   margin: 0;
@@ -96,4 +132,28 @@
   color: var(--red-11);
   margin-top: var(--space-1);
   font-size: var(--font-size-1);
+}
+
+.radix-themes :where(input, textarea, select, button) {
+  font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+}
+.radix-themes .rt-TextFieldRoot {
+  min-height: var(--control-height);
+  background: #ffffff;
+  border-radius: 8px;
+}
+.radix-themes .rt-TextAreaRoot {
+  background: #ffffff;
+  border-radius: 8px;
+}
+.radix-themes .form-select {
+  height: var(--control-height);
+  background-color: #ffffff;
+  border-radius: 8px;
+}
+.date-field-input {
+  font-variant-numeric: tabular-nums;
+}
+.date-picker-trigger.rt-IconButton:hover {
+  background: var(--accent-3);
 }

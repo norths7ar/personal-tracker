@@ -92,7 +92,7 @@ export function MealEntry() {
   const busy = prepare.isPending || save.isPending;
 
   return (
-    <div className="content-panel">
+    <div className="content-panel record-composer meal-composer">
       <form className="form-stack" onSubmit={submit}>
         <div className="entry-fields">
           <Field label="日期">
@@ -127,12 +127,14 @@ export function MealEntry() {
             onChange={(event) => setEntry({ ...entry, notes: event.target.value || null })}
           />
         </Field>
-        <Button
-          data-primary-action={!review}
-          disabled={busy || !entry.description.trim() || !entry.time}
-        >
-          {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "提交"}
-        </Button>
+        <div className="composer-footer">
+          <Button
+            data-primary-action={!review}
+            disabled={busy || !entry.description.trim() || !entry.time}
+          >
+            {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "记下这一餐"}
+          </Button>
+        </div>
       </form>
 
       {review && (

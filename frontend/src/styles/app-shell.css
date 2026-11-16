@@ -1,6 +1,6 @@
 .app-shell {
   min-height: 100vh;
-  background-color: var(--gray-2);
+  background: var(--app-paper);
   color: var(--gray-12);
 }
 
@@ -10,9 +10,9 @@
   left: 0rem;
   display: none;
   width: var(--app-sidebar-width);
-  border-right: 1px solid var(--gray-5);
-  background-color: var(--color-panel-solid);
-  padding: var(--space-4);
+  border-right: 1px solid #dcdcdc;
+  background: #efefef;
+  padding: 32px 18px 24px;
 }
 
 @media (min-width: 768px) {
@@ -23,11 +23,42 @@
 }
 
 .app-brand {
-  margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 36px;
   padding-inline: var(--space-2);
-  font-size: var(--font-size-4, 1.125rem);
+  font-size: 24px;
   line-height: 1.75rem;
   font-weight: 600;
+  color: var(--brand-ink);
+  font-family: var(--heading-font);
+  letter-spacing: 0.08em;
+}
+
+.app-brand small {
+  display: block;
+  margin-top: 4px;
+  font: 11px/1.6 var(--default-font-family);
+  letter-spacing: 0.12em;
+  color: #707070;
+}
+.app-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 43px;
+  height: 48px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--brand-ink);
+  color: #e6e6e6;
+  box-shadow: 0 5px 12px #4d4d4d22;
+  font-size: 25px;
+}
+.navigation-section {
+  padding: 18px 12px 8px;
+  color: #7d7d7d;
+  font-size: 10px;
+  letter-spacing: 0.18em;
 }
 
 .app-navigation > :not([hidden]) ~ :not([hidden]) {
@@ -86,8 +117,9 @@
 }
 
 .navigation-selected {
-  background-color: var(--gray-3);
-  color: var(--gray-12);
+  background: var(--brand-ink);
+  color: #ffffff;
+  box-shadow: 0 4px 10px #4d4d4d1a;
   font-weight: 600;
 }
 
@@ -99,9 +131,9 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  border-radius: var(--radius-2);
+  border-radius: 10px;
   padding-inline: var(--space-3);
-  padding-block: var(--space-2);
+  padding-block: 11px;
   font-size: var(--font-size-2, 0.875rem);
   line-height: 1.25rem;
   transition:
@@ -115,5 +147,24 @@
 }
 
 .navigation-idle:hover {
-  background-color: var(--gray-3);
+  background-color: #e4e4e4;
+  color: var(--brand-ink);
+}
+
+.app-navigation-link svg {
+  transition: transform 180ms ease;
+}
+.app-navigation-link:hover svg {
+  transform: translateX(2px);
+}
+.app-mobile-header {
+  color: var(--brand-ink);
+}
+.app-mobile-navigation {
+  scrollbar-width: thin;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-navigation-link svg {
+    transition: none;
+  }
 }

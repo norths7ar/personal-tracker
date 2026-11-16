@@ -102,13 +102,14 @@ export function TransactionEntry() {
   const busy = prepare.isPending || save.isPending;
 
   return (
-    <div className="content-panel">
+    <div className="content-panel record-composer transaction-composer">
       <form className="form-stack" onSubmit={submit}>
         <div className="entry-actions">
           {types.map((type) => (
             <button
               type="button"
               key={type}
+              aria-pressed={entry.type === type}
               onClick={() =>
                 setEntry({
                   ...entry,
@@ -161,12 +162,14 @@ export function TransactionEntry() {
             onChange={(event) => setEntry({ ...entry, notes: event.target.value || null })}
           />
         </Field>
-        <Button
-          data-primary-action={!review}
-          disabled={busy || !entry.description.trim() || entry.amount <= 0}
-        >
-          {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "提交"}
-        </Button>
+        <div className="composer-footer">
+          <Button
+            data-primary-action={!review}
+            disabled={busy || !entry.description.trim() || entry.amount <= 0}
+          >
+            {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "记录这笔收支"}
+          </Button>
+        </div>
       </form>
 
       {review && (

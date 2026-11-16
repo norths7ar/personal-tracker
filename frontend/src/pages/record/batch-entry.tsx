@@ -2,6 +2,7 @@ import { TextArea } from "@radix-ui/themes";
 
 import "@/styles/batch-entry.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight } from "lucide-react";
 import { useState } from "react";
 
 import { api, type BatchPreparation, type BatchRecord } from "@/api/client";
@@ -77,31 +78,35 @@ export function BatchEntry() {
 
   return (
     <div className="page-stack">
-      <div className="content-panel">
-        <Field label="默认日期">
-          <Input
-            className="batch-preview-description"
-            type="date"
-            value={defaultDate}
-            onChange={(event) => setDefaultDate(event.target.value)}
-          />
-        </Field>
-        <Field label="批量描述" className="batch-result">
+      <div className="content-panel record-composer batch-composer">
+        <div className="composer-heading">
+          <h2>今天，想记些什么？</h2>
+          <Field label="默认日期" className="batch-date">
+            <Input
+              type="date"
+              value={defaultDate}
+              onChange={(event) => setDefaultDate(event.target.value)}
+            />
+          </Field>
+        </div>
+        <Field label="批量描述" className="batch-result batch-description">
           <TextArea
             className={`${textareaClass} batch-input`}
             value={text}
             onChange={(event) => setText(event.target.value)}
-            placeholder="例：【旅游】火车票、打车、吃饭……上层语义会保留到第二阶段。"
+            placeholder={"午饭花了 32 元，吃了番茄牛腩饭。\n下班买了水果 26 元，晚饭在家煮面。"}
           />
         </Field>
-        <Button
-          data-primary-action={records.length === 0}
-          className="batch-result"
-          onClick={() => prepare.mutate()}
-          disabled={prepare.isPending || save.isPending || !text.trim()}
-        >
-          {prepare.isPending ? "解析中…" : "解析"}
-        </Button>
+        <div className="composer-footer">
+          <Button
+            data-primary-action={records.length === 0}
+            onClick={() => prepare.mutate()}
+            disabled={prepare.isPending || save.isPending || !text.trim()}
+          >
+            {prepare.isPending ? "解析中…" : "解析"}
+            <ArrowRight size={16} aria-hidden="true" />
+          </Button>
+        </div>
         <Feedback message={message} error={prepare.error ?? save.error} />
         {diagnostics &&
           ((diagnostics.rejected_records?.length ?? 0) > 0 || prepare.data?.status === "error") && (

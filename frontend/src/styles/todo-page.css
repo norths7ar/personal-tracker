@@ -1,6 +1,6 @@
 .todo-page {
   margin-inline: auto;
-  max-width: 56rem;
+  width: 100%;
 }
 
 .todo-page > :not([hidden]) ~ :not([hidden]) {
@@ -17,7 +17,7 @@
 .todo-action-error {
   border-radius: var(--radius-3);
   border: 1px solid var(--red-6);
-  background-color: var(--red-2);
+  background-color: var(--red-11);
   padding: var(--space-3);
   font-size: var(--font-size-2, 0.875rem);
   line-height: 1.25rem;
@@ -41,8 +41,9 @@
 .todo-focus {
   overflow: hidden;
   border-radius: var(--radius-5);
-  border: 1px solid var(--gray-6);
-  background-color: color-mix(in srgb, var(--gray-3) 80%, transparent);
+  border: 1px solid #dbdbdb;
+  background: #f0f0f0;
+  box-shadow: var(--app-shadow);
   padding: var(--space-5);
 }
 
@@ -65,7 +66,8 @@
 }
 
 .todo-active-indicator {
-  background-color: var(--gray-12);
+  background-color: var(--brand-ink);
+  box-shadow: 0 0 0 4px #4d4d4d12;
 }
 
 .todo-idle-indicator {
@@ -73,6 +75,8 @@
 }
 
 .todo-focus-title {
+  color: var(--brand-ink);
+  font-family: var(--heading-font);
   overflow-wrap: break-word;
   font-size: var(--font-size-5, 1.25rem);
   line-height: 1.75rem;
@@ -160,6 +164,7 @@
 }
 
 .todo-list {
+  box-shadow: var(--app-shadow);
   overflow: hidden;
   border-radius: var(--radius-4);
   border: 1px solid var(--gray-5);
@@ -167,7 +172,15 @@
 }
 
 .todo-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
   padding: var(--space-4);
+  transition: background-color 160ms;
+}
+.todo-item:hover {
+  background: #f6f6f6;
 }
 
 @media (min-width: 640px) {
@@ -197,7 +210,7 @@
 }
 
 .todo-item-actions {
-  margin-top: var(--space-3);
+  margin-top: 0;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -205,7 +218,7 @@
 }
 
 .todo-order-actions {
-  margin-left: auto;
+  margin-left: 16px;
   display: flex;
   color: var(--gray-9);
 }
@@ -310,4 +323,16 @@
 }
 .editor-dialog.todo-dialog {
   max-width: 32rem;
+}
+
+@media (max-width: 900px) {
+  .todo-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .todo-item-actions {
+    margin-top: 4px;
+  }
+  .todo-order-actions {
+    margin-left: auto;
+  }
 }

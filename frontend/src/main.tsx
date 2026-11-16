@@ -19,7 +19,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Theme appearance="light" accentColor="gray" grayColor="gray" radius="medium">
+        <Theme appearance="light" accentColor="gray" grayColor="gray" radius="large">
           <App />
         </Theme>
       </BrowserRouter>

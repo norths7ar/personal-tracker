@@ -25,15 +25,25 @@ export function AppShell({ children, onLogout }: AppShellProps) {
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
-        <div className="app-brand">拾记</div>
+        <div className="app-brand">
+          <span className="app-brand-mark" aria-hidden="true">
+            拾
+          </span>
+          <span>
+            拾记<small>日常，自有脉络</small>
+          </span>
+        </div>
         <nav className="app-navigation">
+          <div className="navigation-section">日常</div>
           <NavItem to="/todo" icon={<ListTodo size={17} />} label="待办" />
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
           <NavItem to="/pending" icon={<CheckSquare2 size={17} />} label="待处理" />
+          <div className="navigation-section">回看</div>
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <NavItem to="/analysis" icon={<BarChart3 size={17} />} label="开销分析" />
           <NavItem to="/cross-period" icon={<CalendarClock size={17} />} label="跨期费用" />
           <NavItem to="/diet" icon={<Utensils size={17} />} label="饮食" />
+          <div className="navigation-section">偏好</div>
           <NavItem to="/settings" icon={<Settings size={17} />} label="设置" />
         </nav>
         <Button className="app-logout" variant="ghost" onClick={onLogout}>

@@ -95,22 +95,25 @@ export function DateInput({
           setBlurred(true);
           onBlur?.(event);
         }}
-      />
-      <IconButton
-        variant="ghost"
-        type="button"
-        aria-label="打开日历选择日期"
-        disabled={disabled || readOnly}
-        className="date-picker-trigger"
-        onClick={() => {
-          const picker = pickerRef.current;
-          if (!picker) return;
-          if (typeof picker.showPicker === "function") picker.showPicker();
-          else picker.click();
-        }}
       >
-        <CalendarDays size={16} />
-      </IconButton>
+        <TextField.Slot side="right" className="date-picker-slot">
+          <IconButton
+            variant="ghost"
+            type="button"
+            aria-label="打开日历选择日期"
+            disabled={disabled || readOnly}
+            className="date-picker-trigger"
+            onClick={() => {
+              const picker = pickerRef.current;
+              if (!picker) return;
+              if (typeof picker.showPicker === "function") picker.showPicker();
+              else picker.click();
+            }}
+          >
+            <CalendarDays size={16} />
+          </IconButton>
+        </TextField.Slot>
+      </TextField.Root>
       <input
         ref={pickerRef}
         type="date"

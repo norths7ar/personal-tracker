@@ -94,7 +94,6 @@ export function TodoPage() {
       <header className="todo-heading">
         <div>
           <h1 className="page-title">待办</h1>
-          <p className="page-description">记下想做的事，选一件开始。</p>
         </div>
         <Button
           disabled={busy}
@@ -155,11 +154,6 @@ export function TodoPage() {
                 <h2 className="todo-empty-title">
                   {pending.length ? "选好一件，就可以开始了。" : "有什么想推进的事？"}
                 </h2>
-                <p className="todo-empty-description">
-                  {pending.length
-                    ? "从下面的待做中选择，不必一次安排好所有事情。"
-                    : "先记下来，不用分类，也不用定一个期限。"}
-                </p>
                 {!pending.length && (
                   <Button
                     className="todo-empty-action"
