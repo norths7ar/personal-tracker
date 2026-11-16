@@ -3,6 +3,7 @@
 }
 
 .ledger-filters {
+  box-shadow: var(--app-shadow);
   border-radius: var(--radius-3);
   border: 1px solid var(--gray-5);
   background-color: var(--color-panel-solid);
@@ -16,7 +17,7 @@
 
 @media (min-width: 768px) {
   .ledger-filter-fields {
-    grid-template-columns: 140px 180px 180px minmax(200px, 1fr);
+    grid-template-columns: minmax(90px, 0.7fr) repeat(2, minmax(110px, 1fr)) minmax(160px, 2fr);
   }
 }
 
@@ -85,7 +86,7 @@
 }
 
 .ledger-table-heading {
-  background-color: var(--gray-2);
+  background-color: #efefef;
   text-align: left;
   font-size: var(--font-size-1, 0.75rem);
   line-height: 1rem;
@@ -94,6 +95,7 @@
 }
 
 .ledger-heading-cell {
+  white-space: nowrap;
   border-bottom: 1px solid var(--gray-5);
   padding-inline: var(--space-3);
   padding-block: 0.625rem;
@@ -119,15 +121,15 @@
 }
 
 .ledger-row:hover {
-  background-color: var(--gray-2);
+  background-color: #f3f3f3;
 }
 
 .ledger-row-selected {
-  background-color: var(--amber-2);
+  background-color: var(--gray-2);
 }
 
 .ledger-row-selected:hover {
-  background-color: var(--amber-2);
+  background-color: var(--gray-2);
 }
 
 .ledger-cell {
@@ -136,7 +138,50 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   padding-inline: var(--space-3);
-  padding-block: 0.625rem;
+  padding-block: 0.875rem;
+}
+
+.ledger-cell:nth-child(2) {
+  color: var(--gray-11);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.ledger-cell:nth-child(4) {
+  font-weight: 500;
+}
+.ledger-cell:nth-child(5) {
+  color: var(--brand-ink);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.ledger-heading-cell:nth-child(5) .table-sort {
+  justify-content: flex-end;
+}
+.ledger-cell:nth-child(n + 6) {
+  color: var(--gray-11);
+  font-size: 12px;
+}
+.ledger-type {
+  display: inline-block;
+  border-radius: 5px;
+  padding: 2px 7px;
+  font-size: 11px;
+  background: #ebebeb;
+  color: #5b5b5b;
+}
+.ledger-type-income {
+  background: #eaeaea;
+  color: #585858;
+}
+.ledger-type-transfer {
+  background: #ececec;
+  color: #626262;
+}
+@media (min-width: 768px) and (max-width: 1100px) {
+  .ledger-filter-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .bulk-notes {

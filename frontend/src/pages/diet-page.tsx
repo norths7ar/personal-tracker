@@ -91,11 +91,10 @@ export function DietPage() {
     setRowSelection({});
   };
   return (
-    <section className="page-stack">
+    <section className="page-stack diet-page">
       <header className="page-heading">
         <div>
           <h1 className="page-title">饮食</h1>
-          <p className="page-description">饮食记录、食材和趋势分析。</p>
         </div>
         {tab === "ledger" && (
           <Button
@@ -116,7 +115,7 @@ export function DietPage() {
             setRowSelection({});
           }}
         >
-          查看
+          饮食记录
         </TabButton>
         <TabButton
           active={tab === "analysis"}
@@ -125,7 +124,7 @@ export function DietPage() {
             setRowSelection({});
           }}
         >
-          分析
+          饮食分析
         </TabButton>
       </div>
       {tab === "ledger" ? (
@@ -563,23 +562,22 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
   const topFood = stats.data.food_freq[0]?.food_name ?? "—";
   return (
     <div className="form-stack">
-      <Field label="月份">
-        <select
-          className={`${selectClass} diet-period-select`}
-          value={selectedMonth}
-          onChange={(event) => setSelectedMonth(event.target.value)}
-        >
-          {months.map((value) => (
-            <option key={value}>{value}</option>
-          ))}
-        </select>
-      </Field>
-      <p className="muted-text">
-        {days.length
-          ? `统计范围：${startDate} 至 ${endDate}，共 ${days.length} 天。`
-          : "所选期间尚未开始。"}
-        按记录次数统计，零食记录不视为一餐；未记录不代表没有进食。
-      </p>
+      <div className="diet-analysis-toolbar">
+        <Field label="月份">
+          <select
+            className={`${selectClass} diet-period-select`}
+            value={selectedMonth}
+            onChange={(event) => setSelectedMonth(event.target.value)}
+          >
+            {months.map((value) => (
+              <option key={value}>{value}</option>
+            ))}
+          </select>
+        </Field>
+        <p className="diet-analysis-period">
+          {days.length ? `${startDate} 至 ${endDate} · ${days.length} 天` : "所选期间尚未开始。"}
+        </p>
+      </div>
       <div className="metrics-grid">
         <Metric
           label="记录天数 / 期间天数"
@@ -587,20 +585,15 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
         />
         <Metric label="饮食记录次数" value={String(totalRecords)} />
         <Metric
-          label={`日均记录次数（按 ${days.length} 天）`}
+          label="日均记录次数"
           value={days.length ? (totalRecords / days.length).toFixed(1) : "—"}
         />
         <Metric label="最高频食物" value={topFood} />
       </div>
       <div className="diet-charts">
-        <Chart
-          title="用餐时间分布"
-          description="从上到下由早到晚，仅展示已记录的时间。"
-          option={mealTimeOption(stats.data.meal_times, days)}
-        />
+        <Chart title="用餐时间分布" option={mealTimeOption(stats.data.meal_times, days)} />
         <Chart
           title="每日饮食记录次数"
-          description="断点表示当天未记录，不计为进食 0 次。"
           option={{
             grid: { left: 40, right: 16, top: 24, bottom: 32 },
             xAxis: {
@@ -627,7 +620,6 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
       <div className="diet-charts">
         <Chart
           title="高频食物"
-          description="按食物／菜名原文统计出现次数，不合并相似名称。"
           option={frequencyOption(
             stats.data.food_freq.map((item) => ({
               name: item.food_name,
@@ -637,7 +629,6 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
         />
         <Chart
           title="高频食材"
-          description={`${totalRecords} 条记录中有 ${stats.data.ingredient_record_count} 条包含食材。同一食材每条记录只计一次；未填写食材不代表未食用。`}
           empty={!stats.data.ingredient_freq.length}
           option={frequencyOption(
             stats.data.ingredient_freq.map((item) => ({
@@ -647,25 +638,49 @@ function DietAnalysis({ meals }: { meals: Meal[] }) {
           )}
         />
       </div>
+      <details className="diet-methodology">
+        <summary>统计口径</summary>
+        <dl>
+          <div>
+            <dt>记录次数</dt>
+            <dd>
+              按记录次数统计，零食记录不视为一餐；未记录不代表没有进食。日均记录次数按期间{" "}
+              {days.length} 天计算。
+            </dd>
+          </div>
+          <div>
+            <dt>时间与趋势</dt>
+            <dd>
+              用餐时间从上到下由早到晚，仅展示已记录的时间。趋势断点表示当天未记录，不计为进食 0
+              次。
+            </dd>
+          </div>
+          <div>
+            <dt>食物与食材</dt>
+            <dd>
+              食物按原文统计，不合并相似名称。{totalRecords} 条记录中有{" "}
+              {stats.data.ingredient_record_count}{" "}
+              条包含食材；同一食材每条记录只计一次，未填写不代表未食用。
+            </dd>
+          </div>
+        </dl>
+      </details>
     </div>
   );
 }
 
 function Chart({
   title,
-  description,
   option,
   empty = false,
 }: {
   title: string;
-  description: string;
   option: object;
   empty?: boolean;
 }) {
   return (
     <div className="metric-panel">
       <h2 className="content-label">{title}</h2>
-      <p className="chart-description">{description}</p>
       {empty ? <p className="chart-empty">该期间尚无食材数据。</p> : <EChart option={option} />}
     </div>
   );

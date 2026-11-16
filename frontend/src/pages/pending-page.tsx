@@ -69,10 +69,10 @@ export function PendingPage() {
   });
 
   return (
-    <section className="page-stack">
-      <header>
+    <section className="page-stack pending-page">
+      <header className="page-heading">
         <h1 className="page-title">待处理</h1>
-        <p className="page-description">处理待分类、缺失分类或低置信度支出。</p>
+        {pending.data && <span className="pending-count">{pending.data.length} 笔待确认</span>}
       </header>
       <Feedback message={message} error={bulkUpdate.error} />
       {Boolean(checkedIds.length) && (
@@ -147,7 +147,7 @@ export function PendingPage() {
         <div className="pending-empty">暂无待处理支出。</div>
       ) : (
         <div className="pending-layout">
-          <div className="table-panel">
+          <div className="table-panel pending-table-panel">
             <table className="data-table">
               <thead className="data-table-heading">
                 <tr>
@@ -264,7 +264,7 @@ function PendingEditor({
 
   return (
     <form className="pending-editor" onSubmit={submit}>
-      <div>
+      <div className="pending-editor-heading">
         <h2 className="section-title">确认分类</h2>
         <p className="muted-text">#{transaction.id}</p>
       </div>

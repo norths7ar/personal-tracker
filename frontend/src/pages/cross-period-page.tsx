@@ -42,11 +42,10 @@ export function CrossPeriodPage() {
   });
 
   return (
-    <section className="page-stack">
+    <section className="page-stack cross-period-page">
       <header className="page-heading">
         <div>
           <h1 className="page-title">跨期费用</h1>
-          <p className="page-description">管理预计支出、周期付款和预付摊销。</p>
         </div>
         <Button
           onClick={() =>
@@ -59,13 +58,20 @@ export function CrossPeriodPage() {
           {tab === "expected" ? "新增预计支出" : "新增预付摊销"}
         </Button>
       </header>
-      <div className="page-tabs">
-        <TabButton active={tab === "expected"} onClick={() => setTab("expected")}>
-          预计支出
-        </TabButton>
-        <TabButton active={tab === "prepaid"} onClick={() => setTab("prepaid")}>
-          预付摊销
-        </TabButton>
+      <div className="cross-period-toolbar">
+        <div className="page-tabs">
+          <TabButton active={tab === "expected"} onClick={() => setTab("expected")}>
+            预计支出
+          </TabButton>
+          <TabButton active={tab === "prepaid"} onClick={() => setTab("prepaid")}>
+            预付摊销
+          </TabButton>
+        </div>
+        {data.data && (
+          <span className="cross-period-count">
+            {tab === "expected" ? data.data.expected.length : data.data.prepaid.length} 项
+          </span>
+        )}
       </div>
       {data.isPending ? (
         <p className="muted-text">正在读取…</p>

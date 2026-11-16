@@ -1,10 +1,20 @@
+.diet-page .page-title {
+  font-size: 28px;
+  line-height: 36px;
+}
+
+.diet-page > .page-tabs {
+  width: fit-content;
+  min-width: min(100%, 320px);
+}
+
 .diet-filters {
   display: grid;
   gap: var(--space-3);
   border-radius: var(--radius-3);
   border: 1px solid var(--gray-5);
   background-color: var(--color-panel-solid);
-  padding: var(--space-4);
+  padding: var(--space-4) var(--space-5);
 }
 
 @media (min-width: 640px) {
@@ -15,6 +25,7 @@
 
 .table-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -42,18 +53,23 @@
   width: 12rem;
   white-space: nowrap;
   padding: var(--space-3);
+  color: #4d4d4d;
+  font-weight: 500;
 }
 
 .diet-date-cell {
   width: 8rem;
   white-space: nowrap;
   padding: var(--space-3);
+  font-variant-numeric: tabular-nums;
 }
 
 .diet-time-cell {
   width: 6rem;
   white-space: nowrap;
   padding: var(--space-3);
+  font-variant-numeric: tabular-nums;
+  color: #767676;
 }
 
 .diet-note-cell {
@@ -81,23 +97,24 @@
 
 .diet-charts {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-5);
+}
+
+.diet-charts > .metric-panel {
+  padding: 24px;
+  background-color: var(--color-panel-solid);
+}
+
+.diet-charts .content-label {
+  color: #4d4d4d;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 @media (min-width: 1024px) {
   .diet-charts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-.chart-description {
-  margin-bottom: var(--space-2);
-  margin-top: var(--space-1);
-  min-height: 2.5rem;
-  font-size: var(--font-size-1, 0.75rem);
-  line-height: 1rem;
-  line-height: 1.25rem;
-  color: var(--gray-11);
 }
 
 .chart-empty {
@@ -117,5 +134,78 @@
 }
 
 .diet-period-select {
+  min-width: 160px;
   max-width: 13rem;
+}
+
+.diet-analysis-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 24px;
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  background-color: var(--color-panel-solid);
+}
+
+.diet-analysis-period {
+  padding-bottom: 8px;
+  font-size: 13px;
+  color: var(--gray-11);
+}
+
+.diet-page .metrics-grid .metric-panel {
+  padding: 22px;
+  background-color: var(--color-panel-solid);
+}
+
+.diet-page .metrics-grid .metric-value {
+  margin-top: 12px;
+  color: var(--gray-12);
+  font-weight: 500;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.diet-page .metrics-grid .metric-panel:first-child .metric-value {
+  color: var(--brand-ink);
+  font-size: 1.75rem;
+  font-weight: 650;
+}
+
+.diet-methodology {
+  padding-block: 16px;
+  border-top: 1px solid var(--gray-5);
+  color: var(--gray-11);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.diet-methodology summary {
+  width: fit-content;
+  cursor: pointer;
+  color: var(--brand-ink);
+  font-weight: 500;
+}
+
+.diet-methodology summary:focus-visible {
+  outline: 2px solid var(--focus-8);
+  outline-offset: 4px;
+}
+
+.diet-methodology dl {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.diet-methodology dt {
+  color: var(--brand-ink);
+  font-weight: 500;
+}
+
+.diet-methodology dd {
+  margin: 2px 0 0;
 }

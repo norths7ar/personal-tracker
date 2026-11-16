@@ -175,7 +175,21 @@ export function LedgerPage() {
         size: 40,
       }),
       columnHelper.accessor("date", { header: "日期", size: 110 }),
-      columnHelper.accessor("type", { header: "类型", size: 75 }),
+      columnHelper.accessor("type", {
+        header: "类型",
+        size: 85,
+        cell: ({ getValue }) => (
+          <span
+            className={cn(
+              "ledger-type",
+              getValue() === "收入" && "ledger-type-income",
+              getValue() === "迁移" && "ledger-type-transfer",
+            )}
+          >
+            {getValue()}
+          </span>
+        ),
+      }),
       columnHelper.accessor("description", { header: "描述", size: 360 }),
       columnHelper.accessor("amount", {
         header: "金额",
@@ -263,7 +277,6 @@ export function LedgerPage() {
       <header className="page-heading">
         <div>
           <h1 className="page-title">账目</h1>
-          <p className="page-description">查看与管理收支记录。</p>
         </div>
         <Button variant="outline" onClick={exportCsv} disabled={!filteredRows.length}>
           <Download size={16} />

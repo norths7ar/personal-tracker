@@ -1,12 +1,26 @@
+.pending-page .page-title {
+  font-size: 28px;
+  line-height: 36px;
+}
+
+.pending-count {
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: #6a6a6a;
+  background: #e8e8e8;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
 .pending-bulk-panel > :not([hidden]) ~ :not([hidden]) {
   margin-top: var(--space-3);
 }
 
 .pending-bulk-panel {
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-5);
-  background-color: var(--color-panel-solid);
-  padding: var(--space-4);
+  border: 1px solid #d7d7d7;
+  background: #f3f3f3;
+  padding: 20px 24px;
 }
 
 .pending-bulk-fields {
@@ -20,19 +34,49 @@
   border-radius: var(--radius-3);
   border: 1px solid var(--gray-5);
   background-color: var(--color-panel-solid);
-  padding: var(--space-6);
+  padding: 64px 24px;
   text-align: center;
   color: var(--gray-11);
 }
 
 .pending-layout {
   display: grid;
-  gap: 1.25rem;
+  align-items: start;
+  gap: 24px;
+}
+
+.pending-table-panel {
+  overflow-x: auto;
+}
+
+.pending-table-panel .data-table {
+  min-width: 520px;
+}
+
+.pending-table-panel .data-cell:nth-child(2),
+.pending-table-panel .data-cell:nth-child(4) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pending-table-panel .data-cell:nth-child(4) {
+  text-align: right;
+  font-weight: 500;
+}
+
+.pending-table-panel .row-selected {
+  background: #efefef;
+  box-shadow: inset 3px 0 #888888;
 }
 
 @media (min-width: 1024px) {
   .pending-layout {
     grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
+  }
+
+  .pending-editor {
+    position: sticky;
+    top: 24px;
   }
 }
 
@@ -51,7 +95,21 @@
 
 .pending-editor {
   border-radius: var(--radius-3);
-  border: 1px solid var(--gray-5);
-  background-color: var(--color-panel-solid);
-  padding: 1.25rem;
+  border: 1px solid #e1e1e1;
+  border-top: 3px solid #8b8b8b;
+  background: var(--color-panel-solid);
+  padding: 24px;
+  box-shadow: var(--app-shadow);
+}
+
+.pending-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.pending-editor-heading .section-title {
+  color: var(--brand-ink);
 }

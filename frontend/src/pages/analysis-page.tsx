@@ -45,10 +45,9 @@ export function AnalysisPage() {
   });
   const selectedPeriod = analysis.data?.selected_period ?? "";
   return (
-    <section className="page-stack">
+    <section className="page-stack analysis-page">
       <header>
         <h1 className="page-title">开销分析</h1>
-        <p className="page-description">查看收支、预算，以及每笔支出的去向。</p>
       </header>
       <div className="analysis-filters">
         <Segmented
@@ -127,27 +126,20 @@ function AnalysisContent({
   return (
     <div className="analysis-sections">
       <section className="summary-section">
-        <div>
-          <h2 className="section-title">现金收支</h2>
-          <p className="section-description">净支出 = 支出（已扣关联退款）− 收入。</p>
-        </div>
+        <h2 className="section-title">现金收支</h2>
         <div className="metrics-grid">
           <Metric label="现金流净支出" value={money(cashNetExpense)} />
           <Metric label="现金流收入" value={money(cash.income)} />
           <Metric
             label="日均现金流净支出"
             value={data.days ? money(cashNetExpense / data.days) : "—"}
-            hint={data.days ? `按期间已过 ${data.days} 天计算` : "期间尚未开始"}
+            hint={data.days ? `已过 ${data.days} 天` : "期间尚未开始"}
           />
-          <Metric
-            label="收支结余"
-            value={money(cash.balance)}
-            hint="收入 − 付款口径支出（已扣关联退款）"
-          />
+          <Metric label="收支结余" value={money(cash.balance)} />
         </div>
       </section>
       {granularity === "month" && (
-        <section className="content-panel">
+        <section className="content-panel analysis-budget">
           <div className="panel-heading">
             <h2 className="section-title">月度预算</h2>
             <BudgetEditor
@@ -159,9 +151,6 @@ function AnalysisContent({
             <div>
               <p className="muted-text">固定费用参考</p>
               <p className="metric-value">{money(data.fixed_monthly_cost ?? 0)}</p>
-              <p className="metric-hint">
-                周期付款与预付摊销，不含一次性计划；不额外计入下方预算用量。
-              </p>
             </div>
             <BudgetStatus
               label="现金流净支出"
@@ -181,14 +170,7 @@ function AnalysisContent({
       )}
       <section className="form-stack">
         <div className="page-heading">
-          <div>
-            <h2 className="section-title">支出走势与去向</h2>
-            <p className="section-description">
-              {basis === "cash"
-                ? "按实际付款日期统计支出，关联退款在退款日抵扣。"
-                : "跨月费用按月分摊；每月份额在月初归属，非逐日摊销。"}
-            </p>
-          </div>
+          <h2 className="section-title">支出走势与去向</h2>
           <Segmented
             value={basis}
             options={[
@@ -214,12 +196,7 @@ function AnalysisContent({
           )}
         </div>
         <div className="section-heading">
-          <div>
-            <h3 className="content-label">分类明细</h3>
-            <p className="section-description">
-              净支出 = 支出（已扣关联退款）− 收入。点击分类查看具体记录。
-            </p>
-          </div>
+          <h3 className="content-label">分类明细</h3>
           <Segmented
             value={level}
             options={[
@@ -242,6 +219,30 @@ function AnalysisContent({
           />
         </div>
       </section>
+      <details className="analysis-methodology">
+        <summary>统计口径</summary>
+        <dl>
+          <div>
+            <dt>净支出与结余</dt>
+            <dd>
+              净支出 = 支出（已扣关联退款）− 收入；收支结余 = 收入 −
+              付款口径支出（已扣关联退款）。日均净支出按期间已过天数计算。
+            </dd>
+          </div>
+          <div>
+            <dt>现金流</dt>
+            <dd>按实际付款日期统计支出，关联退款在退款日抵扣。</dd>
+          </div>
+          <div>
+            <dt>摊销后</dt>
+            <dd>跨月费用按月分摊，每月份额在月初归属，非逐日摊销。</dd>
+          </div>
+          <div>
+            <dt>固定费用参考</dt>
+            <dd>包括周期付款与预付摊销，不含一次性计划；不额外计入预算用量。</dd>
+          </div>
+        </dl>
+      </details>
       <DetailDialog data={current} selection={detail} onClose={() => setDetail(null)} />
     </div>
   );
@@ -410,7 +411,7 @@ function Breakdown({
 }) {
   const max = Math.max(...rows.map((row) => Math.abs(row.total)), 1);
   return (
-    <div className="content-panel">
+    <div className="content-panel analysis-breakdown">
       <h3 className="panel-title">{title}</h3>
       {!rows.length ? (
         <p className="empty-message">本期没有记录。</p>
@@ -576,8 +577,12 @@ function lineOption(rows: { date: string; expense: number }[]) {
         type: "line",
         showSymbol: rows.length < 15,
         data: rows.map((row) => row.expense),
-        itemStyle: { color: "#525252" },
-        areaStyle: { opacity: 0.06 },
+        itemStyle: { color: "#4d4d4d" },
+        lineStyle: { width: 3 },
+        areaStyle: {
+          color: "#4d4d4d",
+          opacity: 0.07,
+        },
       },
     ],
   };
@@ -597,7 +602,10 @@ function barOption(rows: { label: string; expense: number; income: number }[]) {
         type: "bar",
         barMaxWidth: 40,
         data: rows.map(netExpense),
-        itemStyle: { color: "#737373" },
+        itemStyle: {
+          borderRadius: 5,
+          color: "#4d4d4d",
+        },
       },
     ],
   };
