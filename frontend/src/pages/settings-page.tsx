@@ -9,11 +9,10 @@ import {
   IconButton,
   Switch,
   Text,
-  TextArea,
   TextField,
 } from "@radix-ui/themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Check, Database, Layers3, Plus, Settings2, ShieldCheck, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -219,7 +218,7 @@ function SaveFooter({
           保存设置
         </Button>
         {saved && !dirty && (
-          <Text size="2" color="green" role="status">
+          <Text size="2" color="gray" role="status">
             已保存并生效
           </Text>
         )}
@@ -254,6 +253,7 @@ function SaveFooter({
 }
 
 export function SettingsPage() {
+  const [section, setSection] = useState("model");
   const settings = useQuery({
     queryKey: settingsQueryKey,
     queryFn: settingsApi.get,
@@ -265,12 +265,9 @@ export function SettingsPage() {
   return (
     <div className="settings-page">
       <header className="settings-heading">
-        <Heading as="h1" size="7">
+        <Heading as="h1" className="page-title" size="7">
           设置
         </Heading>
-        <Text size="2" color="gray">
-          管理模型服务、记录选项和访问权限。
-        </Text>
       </header>
       {settings.isPending && (
         <Text color="gray" role="status">
@@ -286,34 +283,54 @@ export function SettingsPage() {
         </Callout.Root>
       )}
       {settings.data && (
-        <>
+        <div className="settings-workspace">
           <nav className="settings-navigation" aria-label="设置分组">
-            <a href="#settings-model-title">模型服务</a>
-            <a href="#settings-records-title">记录选项</a>
-            <a href="#settings-access-title">访问控制</a>
-            <a href="#settings-data-title">本地数据</a>
+            {[
+              { id: "model", label: "模型服务", icon: Settings2 },
+              { id: "records", label: "记录选项", icon: Layers3 },
+              { id: "access", label: "访问控制", icon: ShieldCheck },
+              { id: "data", label: "本地数据", icon: Database },
+            ].map(({ id, label, icon: Icon }) => (
+              <button
+                type="button"
+                key={id}
+                aria-pressed={section === id}
+                aria-controls={`settings-panel-${id}`}
+                onClick={() => setSection(id)}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
           </nav>
-          <ModelSection settings={settings.data} />
-          <RecordsSection settings={settings.data} />
-          <AccessSection settings={settings.data} />
-          <section className="settings-section" aria-labelledby="settings-data-title">
-            <Heading as="h2" id="settings-data-title" size="4">
-              本地数据
-            </Heading>
-            <Text size="2" color="gray">
-              数据位置固定，由本项目管理，不提供切换或搬迁入口。
-            </Text>
-            <dl className="settings-paths">
-              <dt>数据目录</dt>
-              <dd>{settings.data.data_directory}</dd>
-              <dt>账目数据库</dt>
-              <dd>{settings.data.database_path}</dd>
-            </dl>
-            <Text size="2" color="gray">
-              完整恢复需要同时保留业务数据、设置文件和加密主密钥。请按项目说明备份整个数据目录。
-            </Text>
-          </section>
-        </>
+          <div className="settings-content">
+            <div id="settings-panel-model" hidden={section !== "model"}>
+              <ModelSection settings={settings.data} />
+            </div>
+            <div id="settings-panel-records" hidden={section !== "records"}>
+              <RecordsSection settings={settings.data} />
+            </div>
+            <div id="settings-panel-access" hidden={section !== "access"}>
+              <AccessSection settings={settings.data} />
+            </div>
+            <div id="settings-panel-data" hidden={section !== "data"}>
+              <section className="settings-section" aria-labelledby="settings-data-title">
+                <Heading as="h2" id="settings-data-title" size="4">
+                  本地数据
+                </Heading>
+                <dl className="settings-paths">
+                  <dt>数据目录</dt>
+                  <dd>{settings.data.data_directory}</dd>
+                  <dt>账目数据库</dt>
+                  <dd>{settings.data.database_path}</dd>
+                </dl>
+                <Text size="2" color="gray">
+                  完整恢复需要同时保留业务数据、设置文件和加密主密钥。请按项目说明备份整个数据目录。
+                </Text>
+              </section>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -345,13 +362,10 @@ function ModelSection({ settings }: { settings: Settings }) {
         <Heading as="h2" id="settings-model-title" size="4">
           模型服务
         </Heading>
-        <Badge color={settings.api_key_configured ? "green" : "gray"}>
+        <Badge color="gray">
           {settings.api_key_configured ? "API Key 已配置" : "尚未配置 API Key"}
         </Badge>
       </Flex>
-      <Text size="2" color="gray">
-        自然语言解析使用此服务。保存后用于新的解析请求，不中断已经发出的请求。
-      </Text>
       <form
         onSubmit={form.handleSubmit(({ api_key, clear_key, ...model }) =>
           mutation.mutate({
@@ -401,46 +415,57 @@ function ModelSection({ settings }: { settings: Settings }) {
               )}
             />
           )}
-          <div className="settings-grid settings-grid-four">
-            <Field label="温度" error={errors.temperature?.message} hint="0–2，较低时输出更稳定">
-              <TextField.Root
-                type="number"
-                step="0.1"
-                min="0"
-                max="2"
-                {...form.register("temperature", { valueAsNumber: true })}
-              />
-            </Field>
-            <Field label="最大输出 Token" error={errors.max_tokens?.message}>
-              <TextField.Root
-                type="number"
-                min="1"
-                step="1"
-                {...form.register("max_tokens", { valueAsNumber: true })}
-              />
-            </Field>
-            <Field label="请求超时（秒）" error={errors.timeout?.message}>
-              <TextField.Root
-                type="number"
-                min="0.01"
-                step="any"
-                {...form.register("timeout", { valueAsNumber: true })}
-              />
-            </Field>
-            <Field
-              label="识别置信度阈值"
-              error={errors.confidence_threshold?.message}
-              hint="0–1，低于阈值的结果需要确认"
-            >
-              <TextField.Root
-                type="number"
-                min="0"
-                max="1"
-                step="0.05"
-                {...form.register("confidence_threshold", { valueAsNumber: true })}
-              />
-            </Field>
-          </div>
+          <details
+            className="settings-advanced"
+            open={Boolean(
+              errors.temperature ||
+              errors.max_tokens ||
+              errors.timeout ||
+              errors.confidence_threshold,
+            )}
+          >
+            <summary>解析参数</summary>
+            <div className="settings-grid settings-grid-four">
+              <Field label="温度" error={errors.temperature?.message} hint="0–2，较低时输出更稳定">
+                <TextField.Root
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="2"
+                  {...form.register("temperature", { valueAsNumber: true })}
+                />
+              </Field>
+              <Field label="最大输出 Token" error={errors.max_tokens?.message}>
+                <TextField.Root
+                  type="number"
+                  min="1"
+                  step="1"
+                  {...form.register("max_tokens", { valueAsNumber: true })}
+                />
+              </Field>
+              <Field label="请求超时（秒）" error={errors.timeout?.message}>
+                <TextField.Root
+                  type="number"
+                  min="0.01"
+                  step="any"
+                  {...form.register("timeout", { valueAsNumber: true })}
+                />
+              </Field>
+              <Field
+                label="识别置信度阈值"
+                error={errors.confidence_threshold?.message}
+                hint="0–1，低于阈值的结果需要确认"
+              >
+                <TextField.Root
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  {...form.register("confidence_threshold", { valueAsNumber: true })}
+                />
+              </Field>
+            </div>
+          </details>
         </fieldset>
         <SaveFooter
           pending={mutation.isPending}
@@ -460,6 +485,119 @@ function ModelSection({ settings }: { settings: Settings }) {
   );
 }
 
+function EditableLabel({
+  value,
+  onChange,
+  onDelete,
+  label,
+  error,
+  category = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  onDelete: () => void;
+  label: string;
+  error?: string;
+  category?: boolean;
+}) {
+  const [editing, setEditing] = useState(!value);
+  const [original, setOriginal] = useState(value);
+  const [empty, setEmpty] = useState(false);
+  const finish = () => {
+    if (!value.trim()) {
+      setEmpty(true);
+      return;
+    }
+    onChange(value.trim());
+    setEmpty(false);
+    setEditing(false);
+  };
+  const cancel = () => {
+    if (!original) {
+      onDelete();
+      return;
+    }
+    onChange(original);
+    setEmpty(false);
+    setEditing(false);
+  };
+  return (
+    <div className={category ? "settings-name-editor" : "settings-chip-editor"}>
+      {editing ? (
+        <div className="settings-inline-edit">
+          <TextField.Root
+            autoFocus
+            aria-label={label}
+            value={value}
+            onChange={(event) => {
+              onChange(event.target.value);
+              setEmpty(false);
+            }}
+            onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.stopPropagation();
+                finish();
+              }
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                cancel();
+              }
+            }}
+          />
+          <IconButton
+            type="button"
+            size="1"
+            variant="soft"
+            aria-label={`确认${label}`}
+            onClick={finish}
+          >
+            <Check size={14} />
+          </IconButton>
+          <IconButton
+            type="button"
+            size="1"
+            variant="ghost"
+            aria-label={`取消编辑${label}`}
+            onClick={cancel}
+          >
+            <X size={14} />
+          </IconButton>
+          <IconButton
+            type="button"
+            size="1"
+            variant="ghost"
+            color="red"
+            aria-label={`删除${label}`}
+            onClick={onDelete}
+          >
+            <Trash2 size={14} />
+          </IconButton>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className={category ? "settings-category-name" : "settings-chip"}
+          aria-label={`编辑${label}：${value}`}
+          onClick={() => {
+            setOriginal(value);
+            setEditing(true);
+          }}
+        >
+          {value}
+        </button>
+      )}
+      {(error || empty) && (
+        <Text size="1" color="red" role="alert">
+          {empty ? "名称不能为空" : error}
+        </Text>
+      )}
+    </div>
+  );
+}
+
 function LabelRows({
   name,
   label,
@@ -472,44 +610,41 @@ function LabelRows({
   const rows = useFieldArray({ control: form.control, name });
   return (
     <div className="settings-labels">
-      <Text size="2" weight="medium">
-        {label}
-      </Text>
+      {name === "meal_types" && (
+        <Text size="2" weight="medium">
+          {label}
+        </Text>
+      )}
       <div className="settings-label-list">
         {rows.fields.map((row, index) => {
           const fieldName = `${name}.${index}.value` as const;
           const error = form.getFieldState(fieldName, form.formState).error;
           return (
-            <div className="settings-label-entry" key={row.id}>
-              <div className="settings-label-input">
-                <TextArea
-                  {...form.register(fieldName)}
-                  rows={1}
-                  aria-label={`${label} ${index + 1}`}
-                  placeholder={label}
+            <Controller
+              key={row.id}
+              control={form.control}
+              name={fieldName}
+              render={({ field }) => (
+                <EditableLabel
+                  value={field.value}
+                  onChange={field.onChange}
+                  onDelete={() => rows.remove(index)}
+                  label={`${label} ${index + 1}`}
+                  error={error?.message}
                 />
-                {error && (
-                  <Text size="1" color="red" role="alert">
-                    {error.message}
-                  </Text>
-                )}
-              </div>
-              <IconButton
-                type="button"
-                variant="ghost"
-                color="red"
-                aria-label={`删除${label} ${index + 1}`}
-                onClick={() => rows.remove(index)}
-              >
-                <Trash2 size={14} />
-              </IconButton>
-            </div>
+              )}
+            />
           );
         })}
-        <Button type="button" variant="soft" size="1" onClick={() => rows.append({ value: "" })}>
+        <button
+          className="settings-add-label"
+          type="button"
+          aria-label={`添加${label}`}
+          onClick={() => rows.append({ value: "" })}
+        >
           <Plus size={14} />
-          添加{label}
-        </Button>
+          添加
+        </button>
       </div>
     </div>
   );
@@ -524,11 +659,14 @@ function CategoryRows({
 }) {
   const rows = useFieldArray({ control: form.control, name: type });
   return (
-    <div className="settings-categories">
-      <Flex align="center" justify="between" gap="3">
-        <Heading as="h3" size="3">
-          {type}分类
-        </Heading>
+    <details
+      className="settings-categories"
+      open={type === "支出" || Boolean(form.formState.errors[type])}
+    >
+      <summary>
+        {type}分类 <span>{rows.fields.length}</span>
+      </summary>
+      <Flex align="center" justify="end" gap="3">
         <Button
           type="button"
           size="1"
@@ -546,32 +684,29 @@ function CategoryRows({
       )}
       {rows.fields.map((row, index) => (
         <div className="settings-category-row" key={row.id}>
-          <Field label="分类名称" error={form.formState.errors[type]?.[index]?.name?.message}>
-            <TextArea
-              {...form.register(`${type}.${index}.name`)}
-              rows={1}
-              aria-label={`${type}分类 ${index + 1} 名称`}
-            />
-          </Field>
+          <Controller
+            control={form.control}
+            name={`${type}.${index}.name`}
+            render={({ field, fieldState }) => (
+              <EditableLabel
+                category
+                value={field.value}
+                onChange={field.onChange}
+                onDelete={() => rows.remove(index)}
+                label={`${type}分类 ${index + 1}`}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
           <LabelRows
             key={`${type}.${index}.children`}
             name={`${type}.${index}.children`}
             label="子分类"
             form={form}
           />
-          <IconButton
-            type="button"
-            variant="ghost"
-            color="red"
-            className="settings-remove-category"
-            aria-label={`删除${type}分类 ${row.name || index + 1}`}
-            onClick={() => rows.remove(index)}
-          >
-            <Trash2 size={16} />
-          </IconButton>
         </div>
       ))}
-    </div>
+    </details>
   );
 }
 
@@ -600,9 +735,6 @@ function RecordsSection({ settings }: { settings: Settings }) {
       <Heading as="h2" id="settings-records-title" size="4">
         记录选项
       </Heading>
-      <Text size="2" color="gray">
-        分类修改只影响今后的可选项与解析，不修改历史账目。已使用的旧分类仍保留在原记录中。
-      </Text>
       <form
         onSubmit={form.handleSubmit((values) =>
           mutation.mutate({
@@ -626,9 +758,6 @@ function RecordsSection({ settings }: { settings: Settings }) {
             <CategoryRows key={type} type={type} form={form} />
           ))}
           <LabelRows name="meal_types" label="餐顿标签" form={form} />
-          <Text size="2" color="gray">
-            每个输入框代表一个标签，标点保留在标签中。记录时仍可填写其他餐顿标签或留空。
-          </Text>
         </fieldset>
         <SaveFooter
           pending={mutation.isPending}
@@ -675,9 +804,6 @@ function AccessSection({ settings }: { settings: Settings }) {
       <Heading as="h2" id="settings-access-title" size="4">
         访问控制
       </Heading>
-      <Text size="2" color="gray">
-        为应用设置访问密码。关闭密码保护不会删除记录或模型密钥。
-      </Text>
       <form
         onSubmit={form.handleSubmit(({ password, clear_password, ...values }) => {
           if (
@@ -785,7 +911,7 @@ function AccessSection({ settings }: { settings: Settings }) {
             </Text>
           )}
           {secureCookie && window.location.protocol !== "https:" && (
-            <Callout.Root color="amber">
+            <Callout.Root color="gray">
               <Callout.Text>
                 当前页面使用 HTTP，不能同时启用密码保护和仅 HTTPS Cookie。需要此设置时，请从 HTTPS
                 入口操作。
@@ -805,9 +931,6 @@ function AccessSection({ settings }: { settings: Settings }) {
               </Text>
             )}
           />
-          <Text size="2" color="gray">
-            保存访问配置后当前登录会更新；其他已失效的登录需要重新输入密码。会话签名密钥由应用管理。
-          </Text>
         </fieldset>
         <SaveFooter
           pending={mutation.isPending}
