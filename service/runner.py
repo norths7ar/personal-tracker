@@ -13,6 +13,17 @@ import uvicorn
 from service.manager import process_identity
 
 
+def _log_access(record: logging.LogRecord) -> bool:
+    # Uvicorn's access log args are (client, method, path with query, version, status).
+    args = record.args
+    return not (
+        isinstance(args, tuple)
+        and len(args) == 5
+        and args[1] == "GET"
+        and str(args[2]).partition("?")[0] == "/health"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--port", required=True, type=int)
@@ -27,6 +38,7 @@ def main() -> None:
     server = uvicorn.Server(
         uvicorn.Config(app, host="127.0.0.1", port=options.port, log_level="info")
     )
+    logging.getLogger("uvicorn.access").addFilter(_log_access)
     app.state.service_runtime = {
         "token": token,
         "instance": instance,

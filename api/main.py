@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -71,6 +72,21 @@ def create_app() -> FastAPI:
     @application.get("/api/health", tags=["system"])
     def health() -> dict[str, str]:
         return {"status": "ok"}
+
+    @application.get("/health", include_in_schema=False)
+    async def service_health(request: Request) -> JSONResponse:
+        return JSONResponse(
+            {
+                "schema_version": 1,
+                "ok": True,
+                "service": "tracker",
+                "pid": os.getpid(),
+                "port": request.scope["server"][1],
+                "detail": "运行中",
+            },
+            media_type="application/json; charset=utf-8",
+            headers={"Cache-Control": "no-store"},
+        )
 
     frontend_dist = Path(__file__).resolve().parents[1] / "frontend" / "dist"
     index_file = frontend_dist / "index.html"

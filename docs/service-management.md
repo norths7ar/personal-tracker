@@ -1,6 +1,6 @@
 # 服务管理接口
 
-Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓库 `service/` 下的 Python 程序，不需要理解 Python 进程、运行记录、锁和关闭凭据，也不应自行操作这些内部实现。当前实现面向 Windows，需要已准备好的 Python 3.14 项目虚拟环境与前端构建产物。
+Personal Tracker 自己管理服务生命周期。外部管理软件通过仓库 `service/` 下的 Python 程序管理服务和诊断状态，通过 HTTP 接口做高频探测，无需直接操作进程、运行记录、锁或关闭凭据。当前实现面向 Windows，需要已准备好的 Python 3.14 项目虚拟环境与前端构建产物。
 
 ## 调用
 
@@ -41,6 +41,25 @@ Personal Tracker 自己管理服务生命周期。外部管理软件仅调用仓
 
 日志位于实例 `logs`，内部运行文件位于 `runtime`。外部管理软件不读取、修改或清理这些文件作为控制手段。旧协议或损坏记录会报告 unknown，不猜测归属；人工处理前先确认相关进程已停止，并保留记录供排查。
 
+## 轻量健康探测
+
+Service Desk 可轮询 `GET http://127.0.0.1:<port>/health`，默认端口为 `18080`。请求无需登录、Token 或 CSRF。正常响应为 HTTP `200 OK`，包含 `Content-Type: application/json; charset=utf-8` 和 `Cache-Control: no-store`：
+
+```json
+{
+  "schema_version": 1,
+  "ok": true,
+  "service": "tracker",
+  "pid": 12345,
+  "port": 18080,
+  "detail": "运行中"
+}
+```
+
+`pid` 是响应请求的服务进程 PID；`port` 是实际监听端口，使用自定义端口时会返回该端口。`detail` 是可选的展示文字。调用方应检查 `schema_version`、`ok` 和固定标识 `service: "tracker"`，不能仅凭端口可连接或 HTTP 200 判定为 Tracker。
+
+探测只确认 Tracker 的 HTTP 进程能响应，不检查数据库或外部依赖，也不写入探测访问日志。无法连接或未收到符合约定的健康响应时，可调用 `python -m service status` 确认实例状态和诊断原因。
+
 ## 接入边界
 
-Service Desk 等管理软件应配置项目解释器、Python 入口及实例参数，通过公开命令完成启动、停止、重启和状态展示。其内部原有的 Personal Tracker 进程管理分支需要在管理软件项目中替换，本项目不直接修改外部管理器。无需额外的管理常驻服务，不注册登录自启或备份计划任务。
+Service Desk 等管理软件应配置项目解释器、Python 入口及实例参数。启动、停止、重启和深度诊断仍统一使用公开 CLI，schema v1 不变。本项目不直接修改外部管理器。无需额外的管理常驻服务，不注册登录自启或备份计划任务。
