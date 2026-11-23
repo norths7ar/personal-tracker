@@ -16,7 +16,7 @@ Personal Tracker 自己管理服务生命周期。外部管理软件通过仓库
 | `--port` | 默认 `18080`；管理同一实例时保持端口一致 |
 | `--json` | 生命周期动作的机器输出模式；status 可省略 |
 
-示例：`uv run python -m service start --data-path E:/Projects/personal-tracker/.tmp/20261031-preview --port 18185 --json`。指定数据目录仅用于实例管理与隔离验证，业务库始终为该目录下的 `expenses.db`，不是应用设置项。
+示例：`uv run python -m service start --data-path E:/Projects/personal-tracker/.tmp/20261031-preview --port 18185 --json`。指定数据目录仅用于实例管理与隔离验证，业务库始终为该目录下的 `tracker.db`，不是应用设置项。
 
 ## 返回约定
 

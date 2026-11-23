@@ -8,7 +8,10 @@
 - `frontend/src/api/schema.d.ts` 从后端 OpenAPI 生成。
 - 前端使用 pnpm、Radix Themes、设计变量与组件 CSS；ESLint 负责代码规则，Prettier 负责格式，tsc 负责类型检查。
 - Python 使用 uv 和项目 `.venv`，目标版本 3.14；Ruff 统一负责 lint、import 排序和格式化，行宽 100，保留 `ruff check` 与 `ruff format --check`。不新增永久测试或进行无关的全库格式化。
-- 应用配置统一由设置页面管理，保存于独立的 `data/settings.db`，密钥配套保存在 `data/.key`。业务数据库固定为实例目录下的 `expenses.db`。
+- 应用配置统一由设置页面管理，保存于独立的 `data/settings.db`，密钥配套保存在 `data/.key`。业务数据库固定为实例目录下的 `tracker.db`。
 - 分类设置只影响今后的选项，不改历史记录；已使用的旧分类仍需正常显示、筛选和统计。
 - 服务生命周期由根目录 `service/` 下的独立 Python 程序管理。外部管理器仅调用 [服务接口](docs/service-management.md)，不接管内部进程、锁和运行文件。
 - README 保持简洁，介绍项目与必要操作；不记录开发过程，不另建决策流水账。
+
+- 后端统一位于 `backend/`，开发入口为 `backend.app:app`；前端页面、领域组件和专属样式位于 `frontend/src/features/`。顶层应用目录为 `backend/`、`frontend/`、`service/`、`scripts/`、`tests/`、`docs/`。
+- 四份提取提示词由设置页管理；设置库只保存覆写，未覆写时使用领域模块内置默认值。提取请求通过不可变快照使用设置，修改提示词必须校验占位符。

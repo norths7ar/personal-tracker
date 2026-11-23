@@ -1,29 +1,28 @@
 """保护数据库写入与关联完整性，并核对现金、摊销分析口径。"""
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 from uuid import uuid4
 
-import core.batch.db as batch_db
-import core.db as core_db
-import core.diet.db as diet_db
-import core.expense.db as expense_db
-import core.subscription.db as subscription_db
-from core.constants import TYPE_EXPENSE, TYPE_INCOME
-from workflows import analysis, cross_period, entries, meals, transactions
+from backend import db
+from backend.capture import batch, entries
+from backend.constants import TYPE_EXPENSE, TYPE_INCOME
+from backend.diet import store as meals
+from backend.ledger import analysis, planning, transactions
 
 
 class DatabaseProtectionTest(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        database = patch.object(core_db, "DB_PATH", Path(temporary.name) / "test.db")
+        database = patch.dict(os.environ, {"TRACKER_DATA_DIR": str(Path(temporary.name))})
         database.start()
         self.addCleanup(database.stop)
-        core_db.init_db()
-        self.raw = core_db._connect()
+        db.init_db()
+        self.raw = db.connect()
         self.addCleanup(self.raw.close)
 
     def _transaction(self, type_, description, amount, date_, **fields):
@@ -56,7 +55,7 @@ class DatabaseProtectionTest(unittest.TestCase):
         subcategory,
         notes,
     ):
-        result = cross_period.create_prepaid(
+        result = planning.create_prepaid(
             {
                 "description": description,
                 "amount": amount,
@@ -102,8 +101,8 @@ class DatabaseProtectionTest(unittest.TestCase):
             },
         ]
 
-        first = batch_db.save_batch("batch-1", records)
-        second = batch_db.save_batch("batch-1", records)
+        first = batch.save_batch("batch-1", records)
+        second = batch.save_batch("batch-1", records)
 
         self.assertEqual(first, {"saved_count": 2, "duplicate": False})
         self.assertEqual(second, {"saved_count": 2, "duplicate": True})
@@ -140,7 +139,7 @@ class DatabaseProtectionTest(unittest.TestCase):
         ]
 
         with self.assertRaises(ValueError):
-            batch_db.save_batch("batch-retry", invalid_records)
+            batch.save_batch("batch-retry", invalid_records)
 
         self.assertEqual(
             self.raw.execute("SELECT COUNT(*) FROM batch_submissions").fetchone()[0],
@@ -155,7 +154,7 @@ class DatabaseProtectionTest(unittest.TestCase):
             )
 
         valid_records = [invalid_records[0]]
-        result = batch_db.save_batch("batch-retry", valid_records)
+        result = batch.save_batch("batch-retry", valid_records)
         self.assertEqual(result, {"saved_count": 1, "duplicate": False})
 
     def test_bulk_delete_is_atomic_when_one_record_is_protected(self):
@@ -167,7 +166,7 @@ class DatabaseProtectionTest(unittest.TestCase):
         refund_id = self._refund(original_id, "hotel refund", 20, "2026-08-02")
 
         with self.assertRaisesRegex(ValueError, f"记录 #{original_id}.*关联退款"):
-            expense_db.delete_transactions([standalone_id, original_id])
+            transactions.delete_transactions([standalone_id, original_id])
 
         remaining = self.raw.execute(
             "SELECT id FROM transactions WHERE id IN (?, ?)",
@@ -175,8 +174,8 @@ class DatabaseProtectionTest(unittest.TestCase):
         ).fetchall()
         self.assertEqual({row["id"] for row in remaining}, {standalone_id, original_id})
 
-        expense_db.delete_transactions([refund_id])
-        deleted = expense_db.delete_transactions([standalone_id, original_id])
+        transactions.delete_transactions([refund_id])
+        deleted = transactions.delete_transactions([standalone_id, original_id])
         self.assertEqual(deleted, 2)
 
     def test_refunds_cannot_exceed_remaining_expense(self):
@@ -198,7 +197,7 @@ class DatabaseProtectionTest(unittest.TestCase):
         self.assertEqual(
             sum(
                 row["amount"]
-                for row in expense_db.get_transactions()
+                for row in transactions.get_transactions()
                 if row["refund_for_id"] == transaction_id
             ),
             100,
@@ -226,11 +225,9 @@ class DatabaseProtectionTest(unittest.TestCase):
         self.assertEqual(transaction["amortization_months"], 12)
         self.assertEqual(subscription["transaction_id"], transaction_id)
 
-        expense_db.update_transaction(
+        planning.update_transaction(
             transaction_id,
-            description="renamed software",
-            amount=150,
-            category="工作",
+            {"description": "renamed software", "amount": 150, "category": "工作"},
         )
         subscription = self.raw.execute(
             "SELECT name, amount_cents, category FROM subscriptions WHERE id = ?",
@@ -243,8 +240,8 @@ class DatabaseProtectionTest(unittest.TestCase):
         before = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
         with (
             patch.object(
-                subscription_db,
-                "_insert_subscription",
+                planning,
+                "insert_subscription",
                 side_effect=RuntimeError("insert failed"),
             ),
             self.assertRaisesRegex(RuntimeError, "insert failed"),
@@ -279,13 +276,13 @@ class DatabaseProtectionTest(unittest.TestCase):
     def test_missing_id_fails_both_operations_atomically(self):
         """选中记录不存在时，批量饮食修改和删除均不产生部分结果。"""
         ids = self._meals()
-        before = diet_db.get_meals()
+        before = meals.get_meals()
         with self.assertRaises(meals.MealNotFound):
             meals.update_meals([ids[0], 9999], {"notes": "修改"})
-        self.assertEqual(diet_db.get_meals(), before)
+        self.assertEqual(meals.get_meals(), before)
         with self.assertRaises(meals.MealNotFound):
             meals.delete_meals([ids[0], 9999])
-        self.assertEqual(diet_db.get_meals(), before)
+        self.assertEqual(meals.get_meals(), before)
 
     def test_bulk_delete_cascades_and_counts_unique_ids(self):
         """删除饮食记录同时清理食物和食材，重复选择不会误删其他记录。"""

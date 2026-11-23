@@ -1,0 +1,151 @@
+import base64
+import hashlib
+import hmac
+import json
+import time
+from dataclasses import dataclass
+
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from pydantic import BaseModel, Field
+
+from backend.settings.store import decrypt_secret, read_settings, verify_password
+
+SESSION_COOKIE = "tracker_session"
+
+DEFAULT_SESSION_SECONDS = 60 * 60 * 24 * 30
+
+
+@dataclass(frozen=True)
+class AuthConfig:
+    enabled: bool
+    password_hash: str
+    signing_key: str | None
+    cookie_secure: bool
+    session_seconds: int
+
+
+def get_auth_config() -> AuthConfig:
+    _, settings = read_settings()
+    return AuthConfig(
+        enabled=settings.access.enabled,
+        password_hash=settings.access.password_hash,
+        signing_key=decrypt_secret(settings.signing_key_encrypted),
+        cookie_secure=settings.access.cookie_secure,
+        session_seconds=settings.access.session_seconds,
+    )
+
+
+def password_matches(candidate: str, config: AuthConfig) -> bool:
+    return verify_password(candidate, config.password_hash)
+
+
+def create_session_token(config: AuthConfig, *, now: int | None = None) -> str:
+    if not config.signing_key:
+        raise RuntimeError("Session signing key is not configured")
+    issued_at = int(time.time()) if now is None else now
+    payload = json.dumps(
+        {"v": 1, "iat": issued_at, "exp": issued_at + config.session_seconds},
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode("utf-8")
+    encoded_payload = _encode(payload)
+    signature = hmac.new(
+        config.signing_key.encode("utf-8"),
+        encoded_payload.encode("ascii"),
+        hashlib.sha256,
+    ).digest()
+    return f"{encoded_payload}.{_encode(signature)}"
+
+
+def session_is_valid(token: str | None, config: AuthConfig, *, now: int | None = None) -> bool:
+    if not token or not config.signing_key:
+        return False
+    try:
+        encoded_payload, encoded_signature = token.split(".", maxsplit=1)
+        expected = hmac.new(
+            config.signing_key.encode("utf-8"),
+            encoded_payload.encode("ascii"),
+            hashlib.sha256,
+        ).digest()
+        if not hmac.compare_digest(_decode(encoded_signature), expected):
+            return False
+        payload = json.loads(_decode(encoded_payload))
+        current_time = int(time.time()) if now is None else now
+        return payload.get("v") == 1 and current_time < int(payload["exp"])
+    except ValueError, TypeError, KeyError, json.JSONDecodeError:
+        return False
+
+
+def require_api_auth(
+    tracker_session: str | None = Cookie(default=None, alias=SESSION_COOKIE),
+) -> None:
+    config = get_auth_config()
+    if config.enabled and not session_is_valid(tracker_session, config):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+
+def _encode(value: bytes) -> str:
+    return base64.urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
+
+
+def _decode(value: str) -> bytes:
+    padding = "=" * (-len(value) % 4)
+    return base64.urlsafe_b64decode(value + padding)
+
+
+router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class LoginRequest(BaseModel):
+    password: str = Field(min_length=1)
+
+
+class AuthenticationState(BaseModel):
+    authenticated: bool
+
+
+@router.post("/login", response_model=AuthenticationState)
+def login(body: LoginRequest, response: Response) -> AuthenticationState:
+    config = get_auth_config()
+    if not config.enabled:
+        return AuthenticationState(authenticated=True)
+    if not password_matches(body.password, config):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Password is incorrect",
+        )
+    response.set_cookie(
+        key=SESSION_COOKIE,
+        value=create_session_token(config),
+        max_age=config.session_seconds,
+        httponly=True,
+        secure=config.cookie_secure,
+        samesite="strict",
+        path="/",
+    )
+    return AuthenticationState(authenticated=True)
+
+
+@router.post("/logout", response_model=AuthenticationState)
+def logout(response: Response) -> AuthenticationState:
+    config = get_auth_config()
+    response.delete_cookie(
+        key=SESSION_COOKIE,
+        path="/",
+        secure=config.cookie_secure,
+        httponly=True,
+        samesite="strict",
+    )
+    return AuthenticationState(authenticated=False)
+
+
+@router.get(
+    "/me",
+    response_model=AuthenticationState,
+    dependencies=[Depends(require_api_auth)],
+)
+def me() -> AuthenticationState:
+    return AuthenticationState(authenticated=True)

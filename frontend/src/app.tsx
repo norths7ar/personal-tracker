@@ -3,49 +3,49 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 
-import { ApiError, api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import { AppShell } from "@/components/app-shell";
-import { LoginPage } from "@/pages/login-page";
+import { LoginPage } from "@/features/auth/login-page";
 
 const LedgerPage = lazy(() =>
-  import("@/pages/ledger-page").then((module) => ({
+  import("@/features/ledger/ledger-page").then((module) => ({
     default: module.LedgerPage,
   })),
 );
 const TodoPage = lazy(() =>
-  import("@/pages/todo-page").then((module) => ({ default: module.TodoPage })),
+  import("@/features/todo/todo-page").then((module) => ({ default: module.TodoPage })),
 );
 const RecordPage = lazy(() =>
-  import("@/pages/record-page").then((module) => ({
+  import("@/features/record/record-page").then((module) => ({
     default: module.RecordPage,
   })),
 );
 const PendingPage = lazy(() =>
-  import("@/pages/pending-page").then((module) => ({
+  import("@/features/pending/pending-page").then((module) => ({
     default: module.PendingPage,
   })),
 );
 const DietPage = lazy(() =>
-  import("@/pages/diet-page").then((module) => ({ default: module.DietPage })),
+  import("@/features/diet/diet-page").then((module) => ({ default: module.DietPage })),
 );
 const AnalysisPage = lazy(() =>
-  import("@/pages/analysis-page").then((module) => ({
+  import("@/features/analysis/analysis-page").then((module) => ({
     default: module.AnalysisPage,
   })),
 );
 const CrossPeriodPage = lazy(() =>
-  import("@/pages/cross-period-page").then((module) => ({
+  import("@/features/cross-period/cross-period-page").then((module) => ({
     default: module.CrossPeriodPage,
   })),
 );
 const SettingsPage = lazy(() =>
-  import("@/pages/settings-page").then((module) => ({ default: module.SettingsPage })),
+  import("@/features/settings/settings-page").then((module) => ({ default: module.SettingsPage })),
 );
 
 export function App() {
   const queryClient = useQueryClient();
   const currentUser = useQuery({
-    queryKey: ["current-user"],
+    queryKey: ["auth", "me"],
     queryFn: api.currentUser,
     retry: false,
   });
@@ -55,7 +55,7 @@ export function App() {
   }
   if (currentUser.error instanceof ApiError && currentUser.error.status === 401) {
     return (
-      <LoginPage onSuccess={() => queryClient.invalidateQueries({ queryKey: ["current-user"] })} />
+      <LoginPage onSuccess={() => queryClient.invalidateQueries({ queryKey: ["auth", "me"] })} />
     );
   }
   if (currentUser.isError) {

@@ -4,7 +4,7 @@ from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
-from core.config import database_path
+from backend.paths import database_path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DESTINATION = PROJECT_ROOT / "data" / "backups" / "rolling"
@@ -31,7 +31,7 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
 
     destination_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    destination = destination_dir / f"expenses-{timestamp}.db"
+    destination = destination_dir / f"tracker-{timestamp}.db"
     temporary = destination.with_suffix(".tmp")
 
     try:
@@ -56,7 +56,7 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
         temporary.unlink(missing_ok=True)
         raise
 
-    snapshots = sorted(path for path in destination_dir.glob("expenses-*.db") if path.is_file())
+    snapshots = sorted(path for path in destination_dir.glob("tracker-*.db") if path.is_file())
     for stale_snapshot in snapshots[:-keep]:
         stale_snapshot.unlink()
 

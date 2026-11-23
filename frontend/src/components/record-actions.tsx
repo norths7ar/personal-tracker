@@ -1,9 +1,9 @@
-import "@/styles/record-actions.css";
+import "@/components/record-actions.css";
 import { Pencil, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Checkbox } from "@radix-ui/themes";
 
 export function RecordActions({
   count,

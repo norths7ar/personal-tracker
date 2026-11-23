@@ -1,11 +1,11 @@
-import "@/styles/app-shell.css";
+import "@/components/app-shell.css";
 import {
   BarChart3,
   BookOpen,
   CalendarClock,
   CheckSquare2,
-  LogOut,
   ListTodo,
+  LogOut,
   PencilLine,
   Settings,
   Utensils,

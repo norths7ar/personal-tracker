@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { cumulativeNetExpense, netExpense } from "../src/pages/analysis-calculations.ts";
+import { cumulativeNetExpense, netExpense } from "../src/features/analysis/calculations.ts";
 
 test("月度开销扣除收入，与 8000 元预算比较；收入较多时保留负值", () => {
   // 支出已由后端扣除关联退款，前端只再减接口返回的收入。

@@ -46,7 +46,7 @@ export default defineConfig([
   },
   {
     // Radix component aliases and the shared component/helper module are intentional.
-    files: ["src/components/ui/dialog.tsx", "src/pages/record/entry-shared.tsx"],
+    files: ["src/components/ui/dialog.tsx", "src/features/record/entry-shared.tsx"],
     rules: { "react-refresh/only-export-components": "off" },
   },
   prettier,

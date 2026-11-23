@@ -33,7 +33,7 @@ def main() -> None:
     instance = secrets.token_hex(16)
     # Import only after the instance environment is established. No production
     # database/configuration is opened by the manager or status queries.
-    from api.main import app
+    from backend.app import app
 
     server = uvicorn.Server(
         uvicorn.Config(app, host="127.0.0.1", port=options.port, log_level="info")

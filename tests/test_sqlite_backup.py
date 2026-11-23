@@ -51,7 +51,7 @@ class SQLiteBackupTest(unittest.TestCase):
 
             self.assertFalse(first_snapshot.exists())
             self.assertTrue(second_snapshot.is_file())
-            self.assertEqual(len(list(destination_directory.glob("expenses-*.db"))), 1)
+            self.assertEqual(len(list(destination_directory.glob("tracker-*.db"))), 1)
             with closing(sqlite3.connect(second_snapshot)) as connection:
                 self.assertEqual(connection.execute("PRAGMA integrity_check").fetchone(), ("ok",))
                 self.assertEqual(

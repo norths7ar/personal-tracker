@@ -2,7 +2,6 @@ import type { components } from "./schema";
 
 export type Transaction = components["schemas"]["TransactionResponse"];
 export type TransactionUpdate = components["schemas"]["TransactionUpdate"];
-export type CategoryConfiguration = Record<string, Record<string, string[]>>;
 export type TransactionPreparation = components["schemas"]["TransactionPreparationResponse"];
 export type TransactionCreate = components["schemas"]["TransactionCreateRequest"];
 export type MealPreparation = components["schemas"]["MealPreparationResponse"];
@@ -94,28 +93,27 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
   logout: () => request<{ authenticated: boolean }>("/api/auth/logout", { method: "POST" }),
-  transactions: () => request<Transaction[]>("/api/transactions"),
-  pendingTransactions: () => request<Transaction[]>("/api/pending-transactions"),
-  categories: () => request<CategoryConfiguration>("/api/config/categories"),
+  transactions: () => request<Transaction[]>("/api/ledger/transactions"),
+  pendingTransactions: () => request<Transaction[]>("/api/ledger/pending"),
   updateTransaction: (id: number, changes: TransactionUpdate) =>
-    request<Transaction>(`/api/transactions/${id}`, {
+    request<Transaction>(`/api/ledger/transactions/${id}`, {
       method: "PATCH",
       body: JSON.stringify(changes),
     }),
   createRefund: (id: number, entry: RefundCreate, idempotencyKey: string) =>
-    request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/refunds`, {
+    request<{ id: number; duplicate: boolean }>(`/api/ledger/transactions/${id}/refunds`, {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   createSubscription: (id: number, entry: SubscriptionCreate, idempotencyKey: string) =>
-    request<{ id: number; duplicate: boolean }>(`/api/transactions/${id}/subscription`, {
+    request<{ id: number; duplicate: boolean }>(`/api/ledger/transactions/${id}/subscription`, {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   deleteTransactions: (ids: number[]) =>
-    request<{ deleted_count: number }>("/api/transactions/bulk-delete", {
+    request<{ deleted_count: number }>("/api/ledger/transactions/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
@@ -123,65 +121,65 @@ export const api = {
     ids: number[],
     changes: Partial<Pick<TransactionUpdate, "category" | "subcategory" | "notes">>,
   ) =>
-    request<{ updated_count: number }>("/api/transactions/bulk-update", {
+    request<{ updated_count: number }>("/api/ledger/transactions/bulk-update", {
       method: "PATCH",
       body: JSON.stringify({ ids, ...changes }),
     }),
   prepareTransaction: (type: TransactionCreate["type"], description: string) =>
-    request<TransactionPreparation>("/api/entries/transactions/prepare", {
+    request<TransactionPreparation>("/api/capture/transactions/prepare", {
       method: "POST",
       body: JSON.stringify({ type, description }),
     }),
   createTransaction: (entry: TransactionCreate, idempotencyKey: string) =>
-    request<{ id: number; duplicate: boolean }>("/api/entries/transactions", {
+    request<{ id: number; duplicate: boolean }>("/api/capture/transactions", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   prepareMeal: (description: string, time: string) =>
-    request<MealPreparation>("/api/entries/meals/prepare", {
+    request<MealPreparation>("/api/capture/meals/prepare", {
       method: "POST",
       body: JSON.stringify({ description, time }),
     }),
   createMeal: (entry: MealCreate, idempotencyKey: string) =>
-    request<{ id: number; duplicate: boolean }>("/api/entries/meals", {
+    request<{ id: number; duplicate: boolean }>("/api/capture/meals", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   prepareBatch: (text: string, defaultDate: string) =>
-    request<BatchPreparation>("/api/entries/batch/prepare", {
+    request<BatchPreparation>("/api/capture/batch/prepare", {
       method: "POST",
       body: JSON.stringify({ text, default_date: defaultDate }),
     }),
   saveBatch: (submissionId: string, records: BatchRecord[]) =>
-    request<{ saved_count: number; duplicate: boolean }>("/api/entries/batch", {
+    request<{ saved_count: number; duplicate: boolean }>("/api/capture/batch", {
       method: "POST",
       body: JSON.stringify({ submission_id: submissionId, records }),
     }),
-  meals: () => request<Meal[]>("/api/meals"),
+  meals: () => request<Meal[]>("/api/diet/meals"),
   updateMeal: (id: number, entry: MealUpdate) =>
-    request<Meal>(`/api/meals/${id}`, {
+    request<Meal>(`/api/diet/meals/${id}`, {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
   updateMeals: (ids: number[], changes: MealBulkChanges) =>
-    request<{ updated_count: number }>("/api/meals/bulk-update", {
+    request<{ updated_count: number }>("/api/diet/meals/bulk-update", {
       method: "PATCH",
       body: JSON.stringify({ ids, ...changes }),
     }),
   deleteMeals: (ids: number[]) =>
-    request<{ deleted_count: number }>("/api/meals/bulk-delete", {
+    request<{ deleted_count: number }>("/api/diet/meals/bulk-delete", {
       method: "POST",
       body: JSON.stringify({ ids }),
     }),
-  deleteMeal: (id: number) => request<void>(`/api/meals/${id}`, { method: "DELETE" }),
+  deleteMeal: (id: number) => request<void>(`/api/diet/meals/${id}`, { method: "DELETE" }),
   dietStats: (startDate: string, endDate: string) => {
     const query = new URLSearchParams({
       start_date: startDate,
       end_date: endDate,
     });
-    return request<DietStats>(`/api/meals/stats?${query}`);
+    return request<DietStats>(`/api/diet/stats?${query}`);
   },
   expenseAnalysis: (
     granularity: "month" | "year",
@@ -190,47 +188,77 @@ export const api = {
   ) => {
     const query = new URLSearchParams({ granularity, basis });
     if (period) query.set("period", period);
-    return request<ExpenseAnalysis>(`/api/analysis/expenses?${query}`);
+    return request<ExpenseAnalysis>(`/api/ledger/analysis?${query}`);
   },
   updateMonthBudget: (month: string, budget: MonthBudgetUpdate) =>
-    request<MonthBudget>(`/api/analysis/budgets/${month}`, {
+    request<MonthBudget>(`/api/ledger/budgets/${month}`, {
       method: "PUT",
       body: JSON.stringify(budget),
     }),
-  crossPeriod: () => request<CrossPeriod>("/api/cross-period"),
+  crossPeriod: () => request<CrossPeriod>("/api/ledger/cross-period"),
   createExpected: (entry: ExpectedWrite, idempotencyKey: string) =>
-    request("/api/cross-period/expected", {
+    request("/api/ledger/cross-period/expected", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   updateExpected: (record: ExpectedRecord, entry: ExpectedWrite) =>
-    request<void>(`/api/cross-period/expected/${record.source}/${record.id}`, {
+    request<void>(`/api/ledger/cross-period/expected/${record.source}/${record.id}`, {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
   confirmExpected: (record: ExpectedRecord, entry: ConfirmExpected, idempotencyKey: string) =>
-    request(`/api/cross-period/expected/${record.source}/${record.id}/confirm`, {
+    request(`/api/ledger/cross-period/expected/${record.source}/${record.id}/confirm`, {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   deleteExpected: (record: ExpectedRecord) =>
-    request<void>(`/api/cross-period/expected/${record.source}/${record.id}`, {
+    request<void>(`/api/ledger/cross-period/expected/${record.source}/${record.id}`, {
       method: "DELETE",
     }),
   createPrepaid: (entry: PrepaidWrite, idempotencyKey: string) =>
-    request("/api/cross-period/prepaid", {
+    request("/api/ledger/cross-period/prepaid", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   updatePrepaid: (id: number, entry: PrepaidUpdate) =>
-    request<void>(`/api/cross-period/prepaid/${id}`, {
+    request<void>(`/api/ledger/cross-period/prepaid/${id}`, {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
   deletePrepaid: (id: number) =>
-    request<void>(`/api/cross-period/prepaid/${id}`, { method: "DELETE" }),
-  homeSummary: () => request<HomeSummary>("/api/home"),
+    request<void>(`/api/ledger/cross-period/prepaid/${id}`, { method: "DELETE" }),
+  homeSummary: () => request<HomeSummary>("/api/capture/home"),
+};
+
+export type Settings = components["schemas"]["SettingsResponse"];
+export type ModelSettingsUpdate = components["schemas"]["ModelSettingsUpdate"];
+export type RecordSettingsUpdate = components["schemas"]["RecordSettingsUpdate"];
+export type AccessSettingsUpdate = components["schemas"]["AccessSettingsUpdate"];
+export type PromptSettingsUpdate = components["schemas"]["PromptSettingsUpdate"];
+
+export const settingsApi = {
+  get: () => request<Settings>("/api/settings"),
+  prompts: (body: PromptSettingsUpdate) =>
+    request<Settings>("/api/settings/prompts", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  model: (body: ModelSettingsUpdate) =>
+    request<Settings>("/api/settings/model", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  records: (body: RecordSettingsUpdate) =>
+    request<Settings>("/api/settings/records", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  access: (body: AccessSettingsUpdate) =>
+    request<Settings>("/api/settings/access", {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 };
