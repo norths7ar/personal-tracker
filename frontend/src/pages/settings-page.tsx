@@ -27,6 +27,8 @@ const categoryTypes = ["支出", "收入", "迁移"] as const;
 type CategoryType = (typeof categoryTypes)[number];
 
 const modelSchema = z.object({
+  protocol: z.literal("openai_chat_completions"),
+  thinking: z.enum(["default", "disabled"]),
   base_url: z
     .string()
     .trim()
@@ -425,6 +427,22 @@ function ModelSection({ settings }: { settings: Settings }) {
             )}
           >
             <summary>解析参数</summary>
+            <Controller
+              control={form.control}
+              name="thinking"
+              render={({ field }) => (
+                <Text as="label" size="2" className="settings-checkbox">
+                  <Switch
+                    checked={field.value === "disabled"}
+                    onCheckedChange={(checked) => field.onChange(checked ? "disabled" : "default")}
+                  />
+                  关闭模型思考
+                </Text>
+              )}
+            />
+            <Text as="p" size="1" color="gray">
+              开启此项时明确关闭思考；关闭此项时遵循服务商默认行为，不代表强制开启思考。需服务商支持此参数。
+            </Text>
             <div className="settings-grid settings-grid-four">
               <Field label="温度" error={errors.temperature?.message} hint="0–2，较低时输出更稳定">
                 <TextField.Root

@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 from api.security import require_api_auth
 from core.batch.db import BatchSubmissionConflict
 from core.idempotency import IdempotencyConflict
+from core.llm import LLMError
 from workflows import entries as entry_service
 
 router = APIRouter(
@@ -131,7 +132,12 @@ class BatchSaveResponse(BaseModel):
 def prepare_transaction(
     body: TransactionPreparationRequest,
 ) -> dict:
-    return entry_service.prepare_transaction(body.type, body.description.strip())
+    try:
+        return entry_service.prepare_transaction(body.type, body.description.strip())
+    except LLMError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
 
 
 @router.post("/transactions", response_model=CreateResponse)
@@ -148,7 +154,7 @@ def create_transaction(body: TransactionCreateRequest, idempotency_key: Idempote
 def prepare_meal(body: MealPreparationRequest) -> dict:
     try:
         return entry_service.prepare_meal(body.description.strip(), body.time)
-    except ValueError as exc:
+    except (ValueError, LLMError) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
         ) from exc
@@ -170,7 +176,12 @@ def create_meal(body: MealCreateRequest, idempotency_key: IdempotencyKey) -> dic
 
 @router.post("/batch/prepare", response_model=BatchPrepareResponse)
 def prepare_batch(body: BatchPrepareRequest) -> dict:
-    return entry_service.prepare_batch(body.text.strip(), body.default_date.isoformat())
+    try:
+        return entry_service.prepare_batch(body.text.strip(), body.default_date.isoformat())
+    except LLMError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
 
 
 @router.post("/batch", response_model=BatchSaveResponse)

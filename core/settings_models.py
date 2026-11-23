@@ -1,5 +1,6 @@
 """Validated application settings; secrets never appear in public responses."""
 
+from typing import Literal
 from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -12,6 +13,8 @@ class SettingsModel(BaseModel):
 
 
 class ModelSettings(SettingsModel):
+    protocol: Literal["openai_chat_completions"]
+    thinking: Literal["default", "disabled"]
     base_url: str = Field(min_length=1)
     model: str = Field(min_length=1)
     temperature: float = Field(ge=0, le=2)

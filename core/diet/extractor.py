@@ -12,12 +12,12 @@ from core.text import display_text
 class DietExtractor:
     """从自然语言饮食描述中提取结构化信息（一餐多食物）。"""
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, llm: LLMClient):
         self.meal_types: list = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
         self.threshold: float = config.get("llm", {}).get(
             "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
         )
-        self._llm = LLMClient(config.get("llm", {}))
+        self._llm = llm
 
     def extract(self, description: str, meal_time: str) -> dict:
         """

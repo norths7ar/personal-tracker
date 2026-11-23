@@ -1,9 +1,8 @@
 from datetime import date
-from functools import lru_cache
 
 from core.batch.db import save_batch
 from core.batch.extractor import BatchExtractor
-from core.config import config_version, load_config
+from core.config import load_config, load_extraction_snapshot
 from core.constants import (
     BATCH_RECORD_TYPES,
     PENDING_CATEGORY,
@@ -18,26 +17,14 @@ from core.diet.meal_time import require_meal_time, resolve_meal_type
 from core.expense.classifier import Classifier
 from core.expense.db import _insert_transaction
 from core.idempotency import execute_idempotent
-
-
-@lru_cache(maxsize=4)
-def _classifier(_: str) -> Classifier:
-    return Classifier(load_config())
-
-
-@lru_cache(maxsize=4)
-def _diet_extractor(_: str) -> DietExtractor:
-    return DietExtractor(load_config())
-
-
-@lru_cache(maxsize=4)
-def _batch_extractor(_: str) -> BatchExtractor:
-    return BatchExtractor(load_config())
+from core.llm import LLMClient
 
 
 def prepare_transaction(type_: str, description: str) -> dict:
     if type_ == TYPE_EXPENSE:
-        return _classifier(config_version()).classify(description)
+        snapshot = load_extraction_snapshot()
+        with LLMClient(snapshot.llm, snapshot.api_key) as client:
+            return Classifier(snapshot.extraction_config(), client).classify(description)
     if type_ == TYPE_INCOME:
         return {
             "status": "review_required",
@@ -81,7 +68,11 @@ def create_transaction(payload: dict, idempotency_key: str) -> dict:
 
 def prepare_meal(description: str, meal_time: str) -> dict:
     normalized_time = require_meal_time(meal_time)
-    return _diet_extractor(config_version()).extract(description, normalized_time)
+    snapshot = load_extraction_snapshot()
+    with LLMClient(snapshot.llm, snapshot.api_key) as client:
+        return DietExtractor(snapshot.extraction_config(), client).extract(
+            description, normalized_time
+        )
 
 
 def create_meal(payload: dict, idempotency_key: str) -> dict:
@@ -112,7 +103,9 @@ def create_meal(payload: dict, idempotency_key: str) -> dict:
 
 
 def prepare_batch(text: str, default_date: str) -> dict:
-    result = _batch_extractor(config_version()).extract(text, default_date)
+    snapshot = load_extraction_snapshot()
+    with LLMClient(snapshot.llm, snapshot.api_key) as client:
+        result = BatchExtractor(snapshot.extraction_config(), client).extract(text, default_date)
     return {
         "status": result["status"],
         "records": result.get("records", []),

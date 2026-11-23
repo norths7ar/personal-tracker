@@ -1232,6 +1232,16 @@ export interface components {
         };
         /** ModelSettings */
         ModelSettings: {
+            /**
+             * Protocol
+             * @constant
+             */
+            protocol: "openai_chat_completions";
+            /**
+             * Thinking
+             * @enum {string}
+             */
+            thinking: "default" | "disabled";
             /** Base Url */
             base_url: string;
             /** Model */

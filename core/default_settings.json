@@ -1,5 +1,7 @@
 {
   "model": {
+    "protocol": "openai_chat_completions",
+    "thinking": "disabled",
     "base_url": "https://api.deepseek.com",
     "model": "deepseek-flash",
     "temperature": 0.3,

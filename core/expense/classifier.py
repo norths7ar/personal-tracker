@@ -6,12 +6,12 @@ from core.prompts import load_prompt
 
 
 class Classifier:
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, llm: LLMClient):
         self.categories: dict = config.get("支出", {})
         self.threshold: float = config.get("llm", {}).get(
             "confidence_threshold", DEFAULT_CONFIDENCE_THRESHOLD
         )
-        self._llm = LLMClient(config.get("llm", {}))
+        self._llm = llm
 
     def classify(self, description: str, category_hint: str | None = None) -> dict:
         """

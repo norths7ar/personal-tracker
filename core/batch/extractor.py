@@ -30,15 +30,15 @@ class BatchExtractor:
     RECORD_TYPES = FINANCE_TYPES | {TYPE_MEAL}
     EXPENSE_CATEGORY_ALIASES = {"旅游": "旅行"}
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, llm: LLMClient):
         self.config = config
         self.expense_categories: dict = config.get("支出", {})
         self.income_categories: dict = config.get("收入", {})
         self.transfer_categories: dict = config.get("迁移", {})
         self.meal_types: list = config.get("diet", {}).get("meal_types", list(DEFAULT_MEAL_TYPES))
-        self._llm = LLMClient(config.get("llm", {}))
-        self._classifier = Classifier(config)
-        self._diet_extractor = DietExtractor(config)
+        self._llm = llm
+        self._classifier = Classifier(config, llm)
+        self._diet_extractor = DietExtractor(config, llm)
 
     def extract(self, text: str, default_date: str | None = None) -> dict:
         default_date = default_date or date.today().isoformat()
