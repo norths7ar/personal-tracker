@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Badge, Checkbox, Flex, Heading, Switch, Text, TextField } from "@radix-ui/themes";
+import { Badge, Checkbox, Flex, Heading, Select, Text, TextField } from "@radix-ui/themes";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
@@ -93,26 +93,22 @@ export function ModelSection({ settings }: { settings: Settings }) {
           >
             <summary>解析参数</summary>
             <div className="settings-fields">
-              <div className="settings-field">
+              <Field label="思考模式" hint="显式开关需要服务商支持；求职匹配和追问始终开启思考">
                 <Controller
                   control={form.control}
                   name="thinking"
                   render={({ field }) => (
-                    <Text as="label" size="2" className="settings-checkbox">
-                      <Switch
-                        checked={field.value === "disabled"}
-                        onCheckedChange={(checked) =>
-                          field.onChange(checked ? "disabled" : "default")
-                        }
-                      />
-                      关闭模型思考
-                    </Text>
+                    <Select.Root value={field.value} onValueChange={field.onChange}>
+                      <Select.Trigger />
+                      <Select.Content>
+                        <Select.Item value="default">服务商默认</Select.Item>
+                        <Select.Item value="disabled">关闭</Select.Item>
+                        <Select.Item value="enabled">开启</Select.Item>
+                      </Select.Content>
+                    </Select.Root>
                   )}
                 />
-                <Text as="p" size="1" color="gray">
-                  发请求时关闭思考模式（需服务商支持）
-                </Text>
-              </div>
+              </Field>
               <div className="settings-grid settings-grid-four">
                 <Field
                   label="温度"
@@ -180,7 +176,7 @@ export function ModelSection({ settings }: { settings: Settings }) {
 
 const modelSchema = z.object({
   protocol: z.literal("openai_chat_completions"),
-  thinking: z.enum(["default", "disabled"]),
+  thinking: z.enum(["default", "disabled", "enabled"]),
   base_url: z
     .string()
     .trim()

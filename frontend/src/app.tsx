@@ -28,6 +28,9 @@ const PendingPage = lazy(() =>
 const DietPage = lazy(() =>
   import("@/features/diet/diet-page").then((module) => ({ default: module.DietPage })),
 );
+const JobsPage = lazy(() =>
+  import("@/features/jobs/jobs-page").then((module) => ({ default: module.JobsPage })),
+);
 const AnalysisPage = lazy(() =>
   import("@/features/analysis/analysis-page").then((module) => ({
     default: module.AnalysisPage,
@@ -72,6 +75,7 @@ export function App() {
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
+          <Route path="/jobs" element={<JobsPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />

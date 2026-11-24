@@ -2,6 +2,7 @@ import "@/components/app-shell.css";
 import {
   BarChart3,
   BookOpen,
+  Briefcase,
   CheckSquare2,
   ListTodo,
   LogOut,
@@ -58,6 +59,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
             label="待处理"
             count={pendingCount}
           />
+          <NavItem to="/jobs" icon={<Briefcase size={17} />} label="求职" />
           <div className="navigation-section">回看</div>
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <NavItem to="/analysis" icon={<BarChart3 size={17} />} label="开销分析" />
@@ -83,6 +85,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
               ["/todo", "待办"],
               ["/record", "记录"],
               ["/pending", "待处理"],
+              ["/jobs", "求职"],
               ["/ledger", "账目"],
               ["/analysis", "开销分析"],
               ["/diet", "饮食"],

@@ -14,6 +14,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from backend.capture.batch import DEFAULT_BATCH_BLOCKS, DEFAULT_BATCH_FINANCE_EVENTS
 from backend.db import connect
 from backend.diet.extractor import DEFAULT_DIET_EXTRACTOR
+from backend.jobs.prompts import DEFAULT_JOB_EXTRACTOR, DEFAULT_JOB_MATCHER
 from backend.ledger.classifier import DEFAULT_EXPENSE_CLASSIFIER
 from backend.llm import LLMConfig
 from backend.paths import data_directory, database_path
@@ -214,6 +215,8 @@ PROMPT_DEFAULTS = {
     "diet_extractor": DEFAULT_DIET_EXTRACTOR,
     "batch_blocks": DEFAULT_BATCH_BLOCKS,
     "batch_finance_events": DEFAULT_BATCH_FINANCE_EVENTS,
+    "job_extractor": DEFAULT_JOB_EXTRACTOR,
+    "job_matcher": DEFAULT_JOB_MATCHER,
 }
 
 

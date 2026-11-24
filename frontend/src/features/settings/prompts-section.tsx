@@ -11,6 +11,8 @@ const labels = {
   diet_extractor: "饮食提取",
   batch_blocks: "批量分块",
   batch_finance_events: "批量财务事件",
+  job_extractor: "岗位提取",
+  job_matcher: "求职匹配",
 } as const;
 type PromptName = keyof typeof labels;
 

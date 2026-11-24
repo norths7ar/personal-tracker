@@ -741,6 +741,197 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Jobs */
+        get: operations["list_jobs_api_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_api_jobs_profile_get"];
+        /** Save Profile */
+        put: operations["save_profile_api_jobs_profile_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/profile/docx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Preview Docx */
+        post: operations["preview_docx_api_jobs_profile_docx_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/intakes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Intakes */
+        get: operations["list_intakes_api_jobs_intakes_get"];
+        put?: never;
+        /** Create Intake */
+        post: operations["create_intake_api_jobs_intakes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/intakes/{intake_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Intake */
+        get: operations["get_intake_api_jobs_intakes__intake_id__get"];
+        put?: never;
+        post?: never;
+        /** Discard Intake */
+        delete: operations["discard_intake_api_jobs_intakes__intake_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/intakes/{intake_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Intake */
+        post: operations["retry_intake_api_jobs_intakes__intake_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/intakes/{intake_id}/save": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save Intake */
+        post: operations["save_intake_api_jobs_intakes__intake_id__save_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Job */
+        get: operations["get_job_api_jobs__job_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Job */
+        patch: operations["update_job_api_jobs__job_id__patch"];
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Analyze Job */
+        post: operations["analyze_job_api_jobs__job_id__analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/questions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask Question */
+        post: operations["ask_question_api_jobs__job_id__questions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{job_id}/context": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Copy Context */
+        get: operations["copy_context_api_jobs__job_id__context_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -791,6 +982,24 @@ export interface components {
              */
             reset_sessions: boolean;
         };
+        /** Analysis */
+        Analysis: {
+            /** Id */
+            id: number;
+            /**
+             * Match Level
+             * @enum {string}
+             */
+            match_level: "高" | "中高" | "中" | "中低" | "低";
+            /** Verdict */
+            verdict: string;
+            /** Analysis Markdown */
+            analysis_markdown: string;
+            /** Greeting */
+            greeting: string | null;
+            /** Created At */
+            created_at: string;
+        };
         /** AnalysisEntry */
         AnalysisEntry: {
             /** Id */
@@ -816,6 +1025,14 @@ export interface components {
              * @enum {string}
              */
             bucket: "income" | "expense";
+        };
+        /** AnalysisRequest */
+        AnalysisRequest: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
         };
         /** AuthenticationState */
         AuthenticationState: {
@@ -1063,6 +1280,11 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** Context */
+        Context: {
+            /** Text */
+            text: string;
+        };
         /** CountByDate */
         CountByDate: {
             /**
@@ -1122,6 +1344,69 @@ export interface components {
             ingredient_record_count: number;
             /** Daily Meals */
             daily_meals: components["schemas"]["CountByDate"][];
+        };
+        /** DocxPreview */
+        DocxPreview: {
+            /** Resume Text */
+            resume_text: string;
+            /** Source Filename */
+            source_filename: string;
+        };
+        /** Encounter */
+        Encounter: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Platform */
+            platform: string;
+            /**
+             * Contact
+             * @default
+             */
+            contact: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /** Raw Jd */
+            raw_jd: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Id */
+            id: number;
+        };
+        /** EncounterInput */
+        EncounterInput: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Platform */
+            platform: string;
+            /**
+             * Contact
+             * @default
+             */
+            contact: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /** Raw Jd */
+            raw_jd: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
         };
         /** ExpectedRecord */
         ExpectedRecord: {
@@ -1246,6 +1531,265 @@ export interface components {
             /** Today Meals */
             today_meals: components["schemas"]["TodayMeal"][];
         };
+        /** Intake */
+        Intake: {
+            /** Id */
+            id: number;
+            encounter: components["schemas"]["EncounterInput"];
+            /** Greeting Enabled */
+            greeting_enabled: boolean;
+            fields: components["schemas"]["JobFields"] | null;
+            /** Candidates */
+            candidates: components["schemas"]["JobSummary"][];
+            /**
+             * Match Source
+             * @enum {string}
+             */
+            match_source: "none" | "text" | "fields";
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "ready" | "failed" | "saved";
+            /** Error */
+            error: string;
+            /** Job Id */
+            job_id: number | null;
+        };
+        /** IntakeCreate */
+        IntakeCreate: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Platform */
+            platform: string;
+            /**
+             * Contact
+             * @default
+             */
+            contact: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /** Raw Jd */
+            raw_jd: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Greeting Enabled */
+            greeting_enabled?: boolean | null;
+        };
+        /** IntakeSave */
+        IntakeSave: {
+            /**
+             * Decision
+             * @enum {string}
+             */
+            decision: "merge_reuse" | "merge_analyze" | "new_analyze";
+            /** Job Id */
+            job_id?: number | null;
+            fields?: components["schemas"]["JobFields"] | null;
+            encounter?: components["schemas"]["EncounterInput"] | null;
+        };
+        /** JobDetail */
+        JobDetail: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /** Role */
+            role: string;
+            /**
+             * City
+             * @default
+             */
+            city: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /**
+             * Status
+             * @default 待看
+             * @enum {string}
+             */
+            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Is Headhunter
+             * @default false
+             */
+            is_headhunter: boolean;
+            /**
+             * Headhunter Agency
+             * @default
+             */
+            headhunter_agency: string;
+            /** Id */
+            id: number;
+            /** Encounter Count */
+            encounter_count: number;
+            /**
+             * Latest Encounter Date
+             * Format: date
+             */
+            latest_encounter_date: string;
+            latest_analysis: components["schemas"]["Analysis"] | null;
+            /**
+             * Analysis Status
+             * @enum {string}
+             */
+            analysis_status: "none" | "pending" | "complete" | "failed";
+            /** Analysis Error */
+            analysis_error: string;
+            /** Analysis Stale */
+            analysis_stale: boolean;
+            /** Encounters */
+            encounters: components["schemas"]["Encounter"][];
+            /** Analyses */
+            analyses: components["schemas"]["Analysis"][];
+            /** Messages */
+            messages: components["schemas"]["Message"][];
+            /** Unfinished Questions */
+            unfinished_questions: components["schemas"]["UnfinishedQuestion"][];
+        };
+        /** JobFields */
+        JobFields: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /** Role */
+            role: string;
+            /**
+             * City
+             * @default
+             */
+            city: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /**
+             * Status
+             * @default 待看
+             * @enum {string}
+             */
+            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Is Headhunter
+             * @default false
+             */
+            is_headhunter: boolean;
+            /**
+             * Headhunter Agency
+             * @default
+             */
+            headhunter_agency: string;
+        };
+        /** JobSummary */
+        JobSummary: {
+            /**
+             * Company
+             * @default
+             */
+            company: string;
+            /** Role */
+            role: string;
+            /**
+             * City
+             * @default
+             */
+            city: string;
+            /**
+             * Salary
+             * @default
+             */
+            salary: string;
+            /**
+             * Status
+             * @default 待看
+             * @enum {string}
+             */
+            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /**
+             * Is Headhunter
+             * @default false
+             */
+            is_headhunter: boolean;
+            /**
+             * Headhunter Agency
+             * @default
+             */
+            headhunter_agency: string;
+            /** Id */
+            id: number;
+            /** Encounter Count */
+            encounter_count: number;
+            /**
+             * Latest Encounter Date
+             * Format: date
+             */
+            latest_encounter_date: string;
+            latest_analysis: components["schemas"]["Analysis"] | null;
+            /**
+             * Analysis Status
+             * @enum {string}
+             */
+            analysis_status: "none" | "pending" | "complete" | "failed";
+            /** Analysis Error */
+            analysis_error: string;
+            /** Analysis Stale */
+            analysis_stale: boolean;
+        };
+        /** JobUpdate */
+        JobUpdate: {
+            /** Company */
+            company?: string | null;
+            /** Role */
+            role?: string | null;
+            /** City */
+            city?: string | null;
+            /** Salary */
+            salary?: string | null;
+            /** Status */
+            status?: ("待看" | "已沟通" | "已投递" | "面试中" | "已放弃") | null;
+            /** Notes */
+            notes?: string | null;
+            /** Is Headhunter */
+            is_headhunter?: boolean | null;
+            /** Headhunter Agency */
+            headhunter_agency?: string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /** Password */
@@ -1346,6 +1890,20 @@ export interface components {
             /** Foods */
             foods?: components["schemas"]["FoodInput"][];
         };
+        /** Message */
+        Message: {
+            /** Id */
+            id: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant";
+            /** Content */
+            content: string;
+            /** Created At */
+            created_at: string;
+        };
         /** ModelSettings */
         ModelSettings: {
             /**
@@ -1357,7 +1915,7 @@ export interface components {
              * Thinking
              * @enum {string}
              */
-            thinking: "default" | "disabled";
+            thinking: "default" | "disabled" | "enabled";
             /** Base Url */
             base_url: string;
             /** Model */
@@ -1440,6 +1998,28 @@ export interface components {
             /** Expected */
             expected: components["schemas"]["ExpectedRecord"][];
         };
+        /** Profile */
+        Profile: {
+            /** Resume Text */
+            resume_text: string;
+            /** Supplemental Notes */
+            supplemental_notes: string;
+            /** Imported Filename */
+            imported_filename: string | null;
+            /** Imported At */
+            imported_at: string | null;
+            /** Updated At */
+            updated_at: string | null;
+        };
+        /** ProfileWrite */
+        ProfileWrite: {
+            /** Resume Text */
+            resume_text: string;
+            /** Supplemental Notes */
+            supplemental_notes: string;
+            /** Imported Filename */
+            imported_filename?: string | null;
+        };
         /** PromptOverrides */
         PromptOverrides: {
             /** Expense Classifier */
@@ -1450,6 +2030,10 @@ export interface components {
             batch_blocks?: string | null;
             /** Batch Finance Events */
             batch_finance_events?: string | null;
+            /** Job Extractor */
+            job_extractor?: string | null;
+            /** Job Matcher */
+            job_matcher?: string | null;
         };
         /** PromptSettingsUpdate */
         PromptSettingsUpdate: {
@@ -1472,6 +2056,18 @@ export interface components {
             diet_extractor: components["schemas"]["PromptValue"];
             batch_blocks: components["schemas"]["PromptValue"];
             batch_finance_events: components["schemas"]["PromptValue"];
+            job_extractor: components["schemas"]["PromptValue"];
+            job_matcher: components["schemas"]["PromptValue"];
+        };
+        /** QuestionRequest */
+        QuestionRequest: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Question */
+            question: string;
         };
         /** RecordSettings */
         RecordSettings: {
@@ -1744,6 +2340,23 @@ export interface components {
             coverage_start?: string | null;
             /** Coverage End */
             coverage_end?: string | null;
+        };
+        /** UnfinishedQuestion */
+        UnfinishedQuestion: {
+            /**
+             * Request Id
+             * Format: uuid
+             */
+            request_id: string;
+            /** Question */
+            question: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "failed";
+            /** Error */
+            error: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -3439,6 +4052,524 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HomeSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_jobs_get: {
+        parameters: {
+            query?: {
+                q?: string;
+                status?: ("待看" | "已沟通" | "已投递" | "面试中" | "已放弃") | null;
+                platform?: string | null;
+                city?: string | null;
+                is_headhunter?: boolean | null;
+                match_level?: ("高" | "中高" | "中" | "中低" | "低") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_jobs_profile_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_profile_api_jobs_profile_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_docx_api_jobs_profile_docx_post: {
+        parameters: {
+            query: {
+                filename: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document": string;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocxPreview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_intakes_api_jobs_intakes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Intake"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_intake_api_jobs_intakes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntakeCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Intake"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_intake_api_jobs_intakes__intake_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intake_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Intake"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_intake_api_jobs_intakes__intake_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intake_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_intake_api_jobs_intakes__intake_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intake_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Intake"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_intake_api_jobs_intakes__intake_id__save_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intake_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IntakeSave"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_job_api_jobs__job_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_job_api_jobs__job_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["JobUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_job_api_jobs__job_id__analysis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_question_api_jobs__job_id__questions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["QuestionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    copy_context_api_jobs__job_id__context_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Context"];
                 };
             };
             /** @description Validation Error */

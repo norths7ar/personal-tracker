@@ -12,3 +12,7 @@ def data_directory() -> Path:
 
 def database_path() -> Path:
     return data_directory() / "tracker.db"
+
+
+def jobs_database_path() -> Path:
+    return data_directory() / "jobs.db"

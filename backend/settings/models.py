@@ -18,6 +18,8 @@ PROMPT_PLACEHOLDERS = {
     "diet_extractor": ("meal_time", "meal_types"),
     "batch_blocks": ("default_date", "meal_types"),
     "batch_finance_events": ("default_date", "category_context", "categories"),
+    "job_extractor": ("jd", "platform"),
+    "job_matcher": ("profile", "jd", "role_context", "greeting_instruction"),
 }
 
 
@@ -47,6 +49,8 @@ class PromptSettings(SettingsModel):
     diet_extractor: str | None
     batch_blocks: str | None
     batch_finance_events: str | None
+    job_extractor: str | None = None
+    job_matcher: str | None = None
 
     @field_validator("*")
     @classmethod
@@ -59,6 +63,8 @@ class PromptOverrides(SettingsModel):
     diet_extractor: str | None = None
     batch_blocks: str | None = None
     batch_finance_events: str | None = None
+    job_extractor: str | None = None
+    job_matcher: str | None = None
 
     @field_validator("*")
     @classmethod
@@ -77,6 +83,8 @@ class PromptValues(SettingsModel):
     diet_extractor: PromptValue
     batch_blocks: PromptValue
     batch_finance_events: PromptValue
+    job_extractor: PromptValue
+    job_matcher: PromptValue
 
 
 class PromptSettingsUpdate(SettingsModel):
@@ -86,7 +94,7 @@ class PromptSettingsUpdate(SettingsModel):
 
 class ModelSettings(SettingsModel):
     protocol: Literal["openai_chat_completions"]
-    thinking: Literal["default", "disabled"]
+    thinking: Literal["default", "disabled", "enabled"]
     base_url: str = Field(min_length=1)
     model: str = Field(min_length=1)
     temperature: float = Field(ge=0, le=2)
@@ -229,5 +237,7 @@ DEFAULT_SETTINGS = {
         "diet_extractor": None,
         "batch_blocks": None,
         "batch_finance_events": None,
+        "job_extractor": None,
+        "job_matcher": None,
     },
 }

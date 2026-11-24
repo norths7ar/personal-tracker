@@ -3,6 +3,7 @@
 import json
 import re
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Literal, Protocol, Self
@@ -19,11 +20,15 @@ class LLMConfig:
     temperature: float
     max_tokens: int
     timeout: float
-    thinking: Literal["default", "disabled"]
+    thinking: Literal["default", "disabled", "enabled"]
 
 
 class LLMError(RuntimeError):
     """Public-safe failure without request or response contents."""
+
+
+class _OutputTruncated(ValueError):
+    """The model reached its output token limit."""
 
 
 class ChatProtocol(Protocol):
@@ -32,9 +37,9 @@ class ChatProtocol(Protocol):
 
     def auth_headers(self, api_key: str) -> dict[str, str]: ...
 
-    def payload(self, system_prompt: str, user_msg: str) -> dict: ...
+    def payload(self, messages: list[dict[str, str]]) -> dict[str, object]: ...
 
-    def parse(self, response: httpx.Response) -> dict: ...
+    def parse(self, response: httpx.Response, *, reject_truncated: bool = False) -> str: ...
 
 
 class OpenAIChatCompletions:
@@ -64,32 +69,39 @@ class OpenAIChatCompletions:
             raise LLMError("模型 API Key 格式无效，请检查设置")
         return {"Authorization": f"Bearer {api_key}"}
 
-    def payload(self, system_prompt: str, user_msg: str) -> dict:
-        payload = {
+    def payload(self, messages: list[dict[str, str]]) -> dict[str, object]:
+        payload: dict[str, object] = {
             "model": self._config.model,
-            "temperature": self._config.temperature,
             "max_tokens": self._config.max_tokens,
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_msg},
-            ],
+            "messages": messages,
         }
-        if self._config.thinking == "disabled":
-            payload["thinking"] = {"type": "disabled"}
+        if self._config.thinking != "enabled":
+            payload["temperature"] = self._config.temperature
+        if self._config.thinking != "default":
+            payload["thinking"] = {"type": self._config.thinking}
         return payload
 
-    def parse(self, response: httpx.Response) -> dict:
-        content = response.json()["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
+    def parse(self, response: httpx.Response, *, reject_truncated: bool = False) -> str:
+        choice = response.json()["choices"][0]
+        if not isinstance(choice, dict):
+            raise ValueError("Invalid completion choice")
+        if reject_truncated and choice.get("finish_reason") == "length":
+            raise _OutputTruncated
+        content = choice["message"]["content"]
+        if not isinstance(content, str) or not content.strip():
             raise ValueError("Missing text content")
-        content = content.strip()
-        fenced = re.fullmatch(r"```(?:json)?\s*\n?(.*?)\n?```", content, re.DOTALL | re.IGNORECASE)
-        if fenced:
-            content = fenced.group(1)
-        result = json.loads(content)
-        if not isinstance(result, dict):
-            raise ValueError("Expected JSON object")
-        return result
+        return content
+
+
+def _parse_json_object(content: str) -> dict:
+    content = content.strip()
+    fenced = re.fullmatch(r"```(?:json)?\s*\n?(.*?)\n?```", content, re.DOTALL | re.IGNORECASE)
+    if fenced:
+        content = fenced.group(1)
+    result = json.loads(content)
+    if not isinstance(result, dict):
+        raise ValueError("Expected JSON object")
+    return result
 
 
 def create_protocol(config: LLMConfig) -> ChatProtocol:
@@ -131,7 +143,24 @@ class LLMClient:
         self._http.close()
 
     def invoke(self, system_prompt: str, user_msg: str) -> dict:
-        payload = self._protocol.payload(system_prompt, user_msg)
+        return self._invoke(
+            [{"role": "system", "content": system_prompt}, {"role": "user", "content": user_msg}],
+            _parse_json_object,
+            "模型返回的内容不是有效的 JSON 对象，请重试",
+        )
+
+    def invoke_messages(self, messages: list[dict[str, str]]) -> str:
+        return self._invoke(messages, str, "模型未返回有效文本，请重试", reject_truncated=True)
+
+    def _invoke[Result](
+        self,
+        messages: list[dict[str, str]],
+        decode: Callable[[str], Result],
+        invalid_content_error: str,
+        *,
+        reject_truncated: bool = False,
+    ) -> Result:
+        payload = self._protocol.payload(messages)
         error = "模型请求失败"
         for attempt in range(2):
             retry = False
@@ -144,9 +173,13 @@ class LLMClient:
                     error = f"模型服务拒绝请求（HTTP {response.status_code}），请检查模型设置"
                 else:
                     try:
-                        return self._protocol.parse(response)
+                        return decode(
+                            self._protocol.parse(response, reject_truncated=reject_truncated)
+                        )
+                    except _OutputTruncated:
+                        error = "模型输出达到长度限制，请提高最大输出 Token 数后重试"
                     except ValueError, KeyError, IndexError, TypeError:
-                        error = "模型返回的内容不是有效的 JSON 对象，请重试"
+                        error = invalid_content_error
                         retry = True
             except (
                 httpx.NetworkError,

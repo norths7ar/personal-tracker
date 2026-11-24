@@ -1,22 +1,26 @@
 import argparse
+import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
-from backend.paths import database_path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_DESTINATION = PROJECT_ROOT / "data" / "backups" / "rolling"
+from backend.paths import data_directory, database_path, jobs_database_path
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Create a consistent SQLite backup and retain recent snapshots."
     )
-    parser.add_argument("--source", type=Path, default=database_path())
-    parser.add_argument("--destination-dir", type=Path, default=DEFAULT_DESTINATION)
-    parser.add_argument("--keep", type=int, default=30)
+    parser.add_argument(
+        "--source",
+        type=Path,
+        help="Back up only this database; defaults to tracker.db and jobs.db.",
+    )
+    parser.add_argument(
+        "--destination-dir", type=Path, default=data_directory() / "backups" / "rolling"
+    )
+    parser.add_argument("--keep", type=int, default=30, help="Snapshots to retain per database.")
     return parser.parse_args()
 
 
@@ -31,7 +35,8 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
 
     destination_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    destination = destination_dir / f"tracker-{timestamp}.db"
+    prefix = source.stem
+    destination = destination_dir / f"{prefix}-{timestamp}.db"
     temporary = destination.with_suffix(".tmp")
 
     try:
@@ -56,7 +61,12 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
         temporary.unlink(missing_ok=True)
         raise
 
-    snapshots = sorted(path for path in destination_dir.glob("tracker-*.db") if path.is_file())
+    snapshot_name = re.compile(rf"{re.escape(prefix)}-\d{{8}}-\d{{6}}-\d{{6}}\.db")
+    snapshots = sorted(
+        path
+        for path in destination_dir.iterdir()
+        if path.is_file() and snapshot_name.fullmatch(path.name)
+    )
     for stale_snapshot in snapshots[:-keep]:
         stale_snapshot.unlink()
 
@@ -65,8 +75,16 @@ def create_backup(source: Path, destination_dir: Path, keep: int) -> Path:
 
 def main() -> None:
     args = parse_args()
-    destination = create_backup(args.source, args.destination_dir, args.keep)
-    print(f"Created SQLite backup: {destination}")
+    sources = [args.source] if args.source is not None else [database_path()]
+    if args.source is None:
+        jobs_source = jobs_database_path()
+        if jobs_source.exists():
+            sources.append(jobs_source)
+        else:
+            print(f"Skipped uninitialized jobs database: {jobs_source}")
+    for source in sources:
+        destination = create_backup(source, args.destination_dir, args.keep)
+        print(f"Created SQLite backup: {destination}")
 
 
 if __name__ == "__main__":
