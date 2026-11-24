@@ -20,9 +20,6 @@ export function PromptsSection({ settings }: { settings: Settings }) {
       <Heading as="h2" id="settings-prompts-title" size="4">
         提示词
       </Heading>
-      <Text size="2" color="gray">
-        未自定义的提示词随内置默认更新。每项独立保存，恢复默认后不再保留自定义覆写。
-      </Text>
       {(Object.keys(labels) as PromptName[]).map((name) => (
         <PromptEditor key={name} name={name} settings={settings} />
       ))}
@@ -75,8 +72,7 @@ function PromptEditor({ name, settings }: { name: PromptName; settings: Settings
         </Badge>
       </Flex>
       <Text as="p" size="1" color="gray" id={`prompt-hint-${name}`}>
-        必填占位符：{prompt.required_placeholders.map((item) => `\${${item}}`).join("、") || "无"}
-        。普通美元符号请写为 $$。
+        占位符：{prompt.required_placeholders.map((item) => `\${${item}}`).join("、") || "无"}
       </Text>
       <TextArea
         aria-label={`${labels[name]}提示词`}
@@ -110,18 +106,20 @@ function PromptEditor({ name, settings }: { name: PromptName; settings: Settings
           mutation.reset();
           queryClient.setQueryData(settingsQueryKey, next);
         }}
+        extraActions={
+          <Button
+            type="button"
+            variant="soft"
+            disabled={mutation.isPending || (!prompt.customized && !dirty)}
+            onClick={() => {
+              if (dirty && !window.confirm("恢复默认会放弃此项未保存的修改，是否继续？")) return;
+              mutation.mutate(null);
+            }}
+          >
+            恢复默认
+          </Button>
+        }
       />
-      <Button
-        type="button"
-        variant="soft"
-        disabled={mutation.isPending || (!prompt.customized && !dirty)}
-        onClick={() => {
-          if (dirty && !window.confirm("恢复默认会放弃此项未保存的修改，是否继续？")) return;
-          mutation.mutate(null);
-        }}
-      >
-        恢复默认
-      </Button>
     </form>
   );
 }

@@ -48,11 +48,7 @@ export function ModelSection({ settings }: { settings: Settings }) {
       >
         <fieldset disabled={mutation.isPending} className="settings-fields">
           <div className="settings-grid">
-            <Field
-              label="服务地址"
-              error={errors.base_url?.message}
-              hint="兼容 OpenAI API 的完整地址"
-            >
+            <Field label="服务地址" error={errors.base_url?.message}>
               <TextField.Root
                 {...form.register("base_url")}
                 placeholder="https://api.example.com/v1"
@@ -62,7 +58,7 @@ export function ModelSection({ settings }: { settings: Settings }) {
               <TextField.Root {...form.register("model")} placeholder="填写服务商提供的模型名称" />
             </Field>
           </div>
-          <Field label="API Key" hint="不会回显已保存的密钥。留空保留，输入新密钥则替换。">
+          <Field label="API Key">
             <TextField.Root
               {...form.register("api_key")}
               type="password"
@@ -96,61 +92,71 @@ export function ModelSection({ settings }: { settings: Settings }) {
             )}
           >
             <summary>解析参数</summary>
-            <Controller
-              control={form.control}
-              name="thinking"
-              render={({ field }) => (
-                <Text as="label" size="2" className="settings-checkbox">
-                  <Switch
-                    checked={field.value === "disabled"}
-                    onCheckedChange={(checked) => field.onChange(checked ? "disabled" : "default")}
-                  />
-                  关闭模型思考
+            <div className="settings-fields">
+              <div className="settings-field">
+                <Controller
+                  control={form.control}
+                  name="thinking"
+                  render={({ field }) => (
+                    <Text as="label" size="2" className="settings-checkbox">
+                      <Switch
+                        checked={field.value === "disabled"}
+                        onCheckedChange={(checked) =>
+                          field.onChange(checked ? "disabled" : "default")
+                        }
+                      />
+                      关闭模型思考
+                    </Text>
+                  )}
+                />
+                <Text as="p" size="1" color="gray">
+                  发请求时关闭思考模式（需服务商支持）
                 </Text>
-              )}
-            />
-            <Text as="p" size="1" color="gray">
-              开启此项时明确关闭思考；关闭此项时遵循服务商默认行为，不代表强制开启思考。需服务商支持此参数。
-            </Text>
-            <div className="settings-grid settings-grid-four">
-              <Field label="温度" error={errors.temperature?.message} hint="0–2，较低时输出更稳定">
-                <TextField.Root
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="2"
-                  {...form.register("temperature", { valueAsNumber: true })}
-                />
-              </Field>
-              <Field label="最大输出 Token" error={errors.max_tokens?.message}>
-                <TextField.Root
-                  type="number"
-                  min="1"
-                  step="1"
-                  {...form.register("max_tokens", { valueAsNumber: true })}
-                />
-              </Field>
-              <Field label="请求超时（秒）" error={errors.timeout?.message}>
-                <TextField.Root
-                  type="number"
-                  min="0.01"
-                  step="any"
-                  {...form.register("timeout", { valueAsNumber: true })}
-                />
-              </Field>
-              <Field
-                label="识别置信度阈值"
-                error={errors.confidence_threshold?.message}
-                hint="0–1，低于阈值的结果需要确认"
-              >
-                <TextField.Root
-                  type="number"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  {...form.register("confidence_threshold", { valueAsNumber: true })}
-                />
-              </Field>
+              </div>
+              <div className="settings-grid settings-grid-four">
+                <Field
+                  label="温度"
+                  error={errors.temperature?.message}
+                  hint="0–2，较低时输出更稳定"
+                >
+                  <TextField.Root
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="2"
+                    {...form.register("temperature", { valueAsNumber: true })}
+                  />
+                </Field>
+                <Field label="最大输出 Token" error={errors.max_tokens?.message}>
+                  <TextField.Root
+                    type="number"
+                    min="1"
+                    step="1"
+                    {...form.register("max_tokens", { valueAsNumber: true })}
+                  />
+                </Field>
+                <Field label="请求超时（秒）" error={errors.timeout?.message}>
+                  <TextField.Root
+                    type="number"
+                    min="0.01"
+                    step="any"
+                    {...form.register("timeout", { valueAsNumber: true })}
+                  />
+                </Field>
+                <Field
+                  label="识别置信度阈值"
+                  error={errors.confidence_threshold?.message}
+                  hint="低于阈值时进入待处理"
+                >
+                  <TextField.Root
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    {...form.register("confidence_threshold", { valueAsNumber: true })}
+                  />
+                </Field>
+              </div>
             </div>
           </details>
         </fieldset>

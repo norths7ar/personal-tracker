@@ -2,7 +2,9 @@ import type { components } from "./schema";
 
 export type Transaction = components["schemas"]["TransactionResponse"];
 export type TransactionUpdate = components["schemas"]["TransactionUpdate"];
+export type TransactionPreparation = components["schemas"]["TransactionPreparationResponse"];
 export type TransactionCreate = components["schemas"]["TransactionCreateRequest"];
+export type MealPreparation = components["schemas"]["MealPreparationResponse"];
 export type MealCreate = components["schemas"]["MealCreateRequest"];
 export type BatchRecord = components["schemas"]["BatchRecord"];
 export type CaptureItem = components["schemas"]["CaptureItem"];
@@ -152,11 +154,21 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ ids, ...changes }),
     }),
+  prepareTransaction: (type: TransactionCreate["type"], description: string) =>
+    request<TransactionPreparation>("/api/capture/transactions/prepare", {
+      method: "POST",
+      body: JSON.stringify({ type, description }),
+    }),
   createTransaction: (entry: TransactionCreate, idempotencyKey: string) =>
     request<{ id: number; duplicate: boolean }>("/api/capture/transactions", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
+    }),
+  prepareMeal: (description: string, time: string | null) =>
+    request<MealPreparation>("/api/capture/meals/prepare", {
+      method: "POST",
+      body: JSON.stringify({ description, time }),
     }),
   createMeal: (entry: MealCreate, idempotencyKey: string) =>
     request<{ id: number; duplicate: boolean }>("/api/capture/meals", {

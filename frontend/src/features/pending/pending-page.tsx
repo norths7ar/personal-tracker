@@ -17,13 +17,17 @@ export function PendingPage() {
           <h2 id="capture-review-title" className="section-title">
             收集记录
           </h2>
-          {Boolean(pending.data?.processing_count) && (
-            <span className="help-text">{pending.data?.processing_count} 项正在后台整理</span>
-          )}
+          <div className="pending-meta">
+            {Boolean(pending.data?.processing_count) && (
+              <span className="help-text">{pending.data?.processing_count} 项整理中</span>
+            )}
+            {pending.data && <span className="pending-count">{pending.data.items.length} 项</span>}
+          </div>
         </div>
-        <p className="help-text">高置信度记录已自动入账，这里只保留正在整理和需要你确认的内容。</p>
         {pending.isPending ? (
-          <p role="status">正在读取…</p>
+          <p className="muted-text" role="status">
+            正在读取…
+          </p>
         ) : pending.isError ? (
           <Feedback error={pending.error} />
         ) : pending.data.items.length ? (
@@ -33,7 +37,7 @@ export function PendingPage() {
             ))}
           </div>
         ) : (
-          <p className="muted-text">没有需要审阅的收集记录。</p>
+          <div className="pending-empty">暂无待审阅的收集记录。</div>
         )}
       </section>
       <LedgerPending />

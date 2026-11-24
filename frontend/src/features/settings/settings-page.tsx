@@ -87,7 +87,7 @@ export function SettingsPage() {
                   <dd>{settings.data.database_path}</dd>
                 </dl>
                 <Text size="2" color="gray">
-                  完整恢复需要同时保留业务数据、设置文件和加密主密钥。请按项目说明备份整个数据目录。
+                  恢复备份时需同时保留业务库、设置库与加密主密钥（整个 data 目录）。
                 </Text>
               </section>
             </div>

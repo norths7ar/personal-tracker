@@ -35,7 +35,7 @@ export function AccessSection({ settings }: { settings: Settings }) {
         访问控制
       </Heading>
       <form
-        onSubmit={form.handleSubmit(({ password, clear_password, ...values }) => {
+        onSubmit={form.handleSubmit(({ password, clear_password, session_days, ...values }) => {
           if (
             values.enabled &&
             (clear_password || (!password && !settings.access.password_configured))
@@ -51,6 +51,7 @@ export function AccessSection({ settings }: { settings: Settings }) {
           }
           mutation.mutate({
             ...values,
+            session_seconds: session_days * 86400,
             revision: baseline.revision(),
             password: clear_password ? "" : password || null,
           });
@@ -74,30 +75,20 @@ export function AccessSection({ settings }: { settings: Settings }) {
             )}
           />
           <div className="settings-grid">
-            <Field
-              label="访问密码"
-              hint={
-                settings.access.password_configured
-                  ? "已设置密码。留空保留，输入新密码则替换。"
-                  : "尚未设置访问密码。"
-              }
-              error={form.formState.errors.password?.message}
-            >
+            <Field label="访问密码" error={form.formState.errors.password?.message}>
               <TextField.Root
                 {...form.register("password")}
                 type="password"
                 autoComplete="new-password"
                 disabled={clearPassword}
-                placeholder="输入新的访问密码"
+                placeholder={
+                  settings.access.password_configured ? "已设置，留空保留" : "输入访问密码"
+                }
               />
             </Field>
-            <Field
-              label="登录有效期（秒）"
-              hint="默认 2592000 秒，即 30 天。"
-              error={form.formState.errors.session_seconds?.message}
-            >
+            <Field label="登录有效期（天）" error={form.formState.errors.session_days?.message}>
               <TextField.Root
-                {...form.register("session_seconds", { valueAsNumber: true })}
+                {...form.register("session_days", { valueAsNumber: true })}
                 type="number"
                 min="1"
                 step="1"
@@ -119,27 +110,29 @@ export function AccessSection({ settings }: { settings: Settings }) {
               )}
             />
           )}
-          <Controller
-            control={form.control}
-            name="cookie_secure"
-            render={({ field }) => (
-              <Text as="label" size="2" className="settings-checkbox">
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={(value) => field.onChange(value === true)}
-                />
-                登录 Cookie 仅通过 HTTPS 传输
+          <div className="settings-field">
+            <Controller
+              control={form.control}
+              name="cookie_secure"
+              render={({ field }) => (
+                <Text as="label" size="2" className="settings-checkbox">
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={(value) => field.onChange(value === true)}
+                  />
+                  登录 Cookie 仅通过 HTTPS 传输
+                </Text>
+              )}
+            />
+            <Text size="1" color="gray">
+              仅 HTTPS 入口启用
+            </Text>
+            {form.formState.errors.cookie_secure && (
+              <Text size="2" color="red" role="alert">
+                {form.formState.errors.cookie_secure.message}
               </Text>
             )}
-          />
-          <Text size="2" color="gray">
-            本机 HTTP 访问应关闭此项；使用 HTTPS 入口时再启用。
-          </Text>
-          {form.formState.errors.cookie_secure && (
-            <Text size="2" color="red" role="alert">
-              {form.formState.errors.cookie_secure.message}
-            </Text>
-          )}
+          </div>
           {secureCookie && window.location.protocol !== "https:" && (
             <Callout.Root color="gray">
               <Callout.Text>
@@ -185,7 +178,7 @@ const accessSchema = z.object({
   password: z.string(),
   clear_password: z.boolean(),
   cookie_secure: z.boolean(),
-  session_seconds: z.number().int("请输入整数秒数").positive("有效期必须大于 0"),
+  session_days: z.number().int("请输入整数天数").positive("有效期必须大于 0"),
   reset_sessions: z.boolean(),
 });
 
@@ -195,7 +188,7 @@ function accessValues(settings: Settings): AccessFormValues {
   return {
     enabled: settings.access.enabled,
     cookie_secure: settings.access.cookie_secure,
-    session_seconds: settings.access.session_seconds,
+    session_days: Math.max(1, Math.round(settings.access.session_seconds / 86400)),
     password: "",
     clear_password: false,
     reset_sessions: false,

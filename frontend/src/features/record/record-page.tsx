@@ -48,9 +48,7 @@ export function RecordPage() {
         <BatchEntry />
       </div>
       <details className="manual-entry">
-        <summary>
-          手动记一笔 <span className="help-text">不使用 AI，直接保存</span>
-        </summary>
+        <summary>手动记一笔</summary>
         <div aria-label="手动录入方式" className="page-tabs record-tabs">
           {tabs.map(({ value, label, icon: Icon }) => (
             <button

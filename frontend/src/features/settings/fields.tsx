@@ -39,12 +39,14 @@ export function SaveFooter({
   error,
   saved,
   onReload,
+  extraActions,
 }: {
   pending: boolean;
   dirty: boolean;
   error: Error | null;
   saved: boolean;
   onReload: () => Promise<void>;
+  extraActions?: ReactNode;
 }) {
   const [reloading, setReloading] = useState(false);
   const [reloadError, setReloadError] = useState("");
@@ -64,6 +66,7 @@ export function SaveFooter({
         <Button type="submit" loading={pending} disabled={!dirty || reloading}>
           保存设置
         </Button>
+        {extraActions}
         {saved && !dirty && (
           <Text size="2" color="gray" role="status">
             已保存并生效

@@ -26,11 +26,15 @@ def suggestions() -> list[dict]:
         ).fetchall()
     frequencies = {row["text"]: row["frequency"] for row in rows if 0 < len(row["text"]) <= 80}
     result = [{"text": text, "pinned": True, "count": frequencies.get(text, 0)} for text in pinned]
-    result.extend(
-        {"text": text, "pinned": False, "count": count}
-        for text, count in frequencies.items()
-        if text not in pinned
-    )
+    selected = [text.casefold() for text in pinned]
+    for text, count in frequencies.items():
+        if len(result) >= 10:
+            break
+        lowered = text.casefold()
+        if text in pinned or any(lowered in item or item in lowered for item in selected):
+            continue
+        result.append({"text": text, "pinned": False, "count": count})
+        selected.append(lowered)
     return result[:10]
 
 

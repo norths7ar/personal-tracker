@@ -31,11 +31,7 @@ export function BatchEntry() {
     },
     onSuccess: ({ result, key }) => {
       completeCaptureSubmission(key);
-      setMessage(
-        result.duplicate
-          ? "这段记录已收到，无需重复提交。"
-          : "已收下，正在后台整理。你可以继续记录或离开页面。",
-      );
+      setMessage(result.duplicate ? "这段记录已收到。" : "已收下，后台整理中。");
       void invalidateCapture(queryClient);
     },
   });
@@ -58,7 +54,6 @@ export function BatchEntry() {
       <div className="composer-heading">
         <div>
           <h2>今天，想记些什么？</h2>
-          <p className="help-text">随手写下收支和饮食，提交后自动整理，拿不准的留在待处理。</p>
         </div>
         <Field label="记录日期" className="batch-date">
           <Input
@@ -90,9 +85,7 @@ export function BatchEntry() {
         </p>
       )}
       <div className="composer-footer">
-        <span className="help-text">
-          {storageError ? "草稿未保存到本机" : "草稿自动保留在本机"} · Ctrl + Enter 提交
-        </span>
+        <span className="help-text">Ctrl + Enter</span>
         <Button
           data-primary-action="true"
           disabled={submit.isPending || (!draft.pending && (!draft.text.trim() || !draft.date))}

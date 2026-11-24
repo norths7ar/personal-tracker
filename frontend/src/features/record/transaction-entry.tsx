@@ -16,7 +16,12 @@ const initialEntry = () => ({
   subcategory: "",
   notes: "",
 });
-type SaveRequest = { payload: TransactionCreate; key: string };
+type SaveRequest = {
+  signature: string;
+  payload: TransactionCreate;
+  key: string;
+  autoClassify: boolean;
+};
 
 export function TransactionEntry() {
   const client = useQueryClient();
@@ -29,12 +34,62 @@ export function TransactionEntry() {
   const [pending, setPending] = useState<SaveRequest | null>(null);
   const [message, setMessage] = useState("");
   const save = useMutation({
-    mutationFn: ({ payload, key }: SaveRequest) => api.createTransaction(payload, key),
-    onSuccess: (result) => {
+    mutationFn: async (request: SaveRequest) => {
+      let finalPayload = request.payload;
+      if (request.autoClassify) {
+        try {
+          const prep = await api.prepareTransaction(
+            request.payload.type,
+            request.payload.description,
+          );
+          finalPayload =
+            prep.status === "confirmed"
+              ? {
+                  ...request.payload,
+                  category: prep.category,
+                  subcategory: prep.subcategory || null,
+                  confidence: prep.confidence ?? null,
+                  reviewed: false,
+                }
+              : {
+                  ...request.payload,
+                  category: null,
+                  subcategory: null,
+                  confidence: prep.confidence ?? null,
+                  reviewed: false,
+                };
+        } catch {
+          finalPayload = {
+            ...request.payload,
+            category: null,
+            subcategory: null,
+            confidence: null,
+            reviewed: false,
+          };
+        }
+        setPending({
+          signature: request.signature,
+          payload: finalPayload,
+          key: request.key,
+          autoClassify: false,
+        });
+      }
+      const result = await api.createTransaction(finalPayload, request.key);
+      return { result, payload: finalPayload };
+    },
+    onSuccess: ({ result, payload }) => {
       void invalidateFinance(client);
-      setMessage(
-        result.duplicate ? "这笔收支已保存。" : "已保存。未确认分类的支出可在待处理中补全。",
-      );
+      if (result.duplicate) {
+        setMessage("这笔收支已保存。");
+      } else if (payload.category) {
+        setMessage(
+          `已保存（${payload.category}${payload.subcategory ? ` / ${payload.subcategory}` : ""}）。`,
+        );
+      } else if (payload.type === "支出") {
+        setMessage("已保存，可在待处理中确认分类。");
+      } else {
+        setMessage("已保存。");
+      }
       setPending(null);
       setEntry(initialEntry());
     },
@@ -52,10 +107,16 @@ export function TransactionEntry() {
       notes: entry.notes.trim() || null,
       reviewed: Boolean(entry.category),
     };
-    const request =
-      pending && JSON.stringify(pending.payload) === JSON.stringify(payload)
+    const signature = JSON.stringify(payload);
+    const request: SaveRequest =
+      pending && pending.signature === signature
         ? pending
-        : { payload, key: crypto.randomUUID() };
+        : {
+            signature,
+            payload,
+            key: crypto.randomUUID(),
+            autoClassify: payload.type === "支出" && !payload.category,
+          };
     setPending(request);
     setMessage("");
     save.mutate(request);
@@ -116,7 +177,7 @@ export function TransactionEntry() {
               </Field>
             </div>
             <div className="paired-fields">
-              <Field label="主类别（可选）">
+              <Field label="主类别">
                 <select
                   className={selectClass}
                   value={entry.category}
@@ -124,14 +185,14 @@ export function TransactionEntry() {
                     setEntry({ ...entry, category: event.target.value, subcategory: "" })
                   }
                 >
-                  <option value="">稍后分类</option>
+                  <option value="">{entry.type === "支出" ? "自动分类" : "不选分类"}</option>
                   {Object.keys(categoryMap).map((item) => (
                     <option key={item}>{item}</option>
                   ))}
                 </select>
               </Field>
               {subcategories.length > 0 && (
-                <Field label="子类别（可选）">
+                <Field label="子类别">
                   <select
                     className={selectClass}
                     value={entry.subcategory}
@@ -145,7 +206,7 @@ export function TransactionEntry() {
                 </Field>
               )}
             </div>
-            <Field label="备注（可选）">
+            <Field label="备注">
               <TextArea
                 className={textareaClass}
                 value={entry.notes}
@@ -154,12 +215,14 @@ export function TransactionEntry() {
             </Field>
           </div>
         </details>
-        <Button
-          data-primary-action="true"
-          disabled={!entry.description.trim() || Number(entry.amount) <= 0}
-        >
-          {save.isPending ? "保存中…" : "保存收支"}
-        </Button>
+        <div className="composer-footer">
+          <Button
+            data-primary-action="true"
+            disabled={save.isPending || !entry.description.trim() || Number(entry.amount) <= 0}
+          >
+            {save.isPending ? "保存中…" : "保存收支"}
+          </Button>
+        </div>
       </fieldset>
       {save.isError && pending && (
         <Button type="button" variant="outline" onClick={() => save.mutate(pending)}>

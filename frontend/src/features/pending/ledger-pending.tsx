@@ -69,7 +69,7 @@ export function LedgerPending() {
   });
 
   return (
-    <section className="page-stack pending-page">
+    <section className="page-stack">
       <header className="page-heading">
         <h2 className="section-title">已入账待分类支出</h2>
         {pending.data && <span className="pending-count">{pending.data.length} 笔待确认</span>}
