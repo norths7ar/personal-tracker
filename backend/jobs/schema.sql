@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     role_key TEXT NOT NULL,
     city TEXT NOT NULL,
     salary TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('待看', '已沟通', '已投递', '面试中', '已放弃')),
+    status TEXT NOT NULL CHECK(status IN ('待决定', '已联系', '已跳过')),
     notes TEXT NOT NULL,
     is_headhunter INTEGER NOT NULL CHECK(is_headhunter IN (0, 1)),
     headhunter_agency TEXT NOT NULL

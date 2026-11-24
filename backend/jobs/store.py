@@ -76,9 +76,88 @@ def _json(value: object) -> str:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
 
 
+_STATUS_MIGRATION = {
+    "待看": "待决定",
+    "已沟通": "已联系",
+    "已投递": "已联系",
+    "面试中": "已联系",
+    "已放弃": "已跳过",
+}
+
+
+def _migrate_job_statuses(conn: Connection) -> None:
+    row = conn.execute(
+        "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'jobs'"
+    ).fetchone()
+    if row is None or "'待决定'" in (row["sql"] or ""):
+        return
+    if conn.in_transaction:
+        conn.commit()
+    conn.execute("PRAGMA foreign_keys = OFF")
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.execute(
+                """CREATE TABLE jobs_new (
+                    id INTEGER PRIMARY KEY,
+                    company TEXT NOT NULL,
+                    company_key TEXT NOT NULL,
+                    role TEXT NOT NULL CHECK(length(role) > 0),
+                    role_key TEXT NOT NULL,
+                    city TEXT NOT NULL,
+                    salary TEXT NOT NULL,
+                    status TEXT NOT NULL CHECK(status IN ('待决定', '已联系', '已跳过')),
+                    notes TEXT NOT NULL,
+                    is_headhunter INTEGER NOT NULL CHECK(is_headhunter IN (0, 1)),
+                    headhunter_agency TEXT NOT NULL
+                )"""
+            )
+            conn.execute(
+                """INSERT INTO jobs_new (
+                       id, company, company_key, role, role_key, city, salary,
+                       status, notes, is_headhunter, headhunter_agency
+                   )
+                   SELECT id, company, company_key, role, role_key, city, salary,
+                          CASE status
+                              WHEN '待看' THEN '待决定'
+                              WHEN '已沟通' THEN '已联系'
+                              WHEN '已投递' THEN '已联系'
+                              WHEN '面试中' THEN '已联系'
+                              WHEN '已放弃' THEN '已跳过'
+                              ELSE status
+                          END,
+                          notes, is_headhunter, headhunter_agency
+                   FROM jobs"""
+            )
+            conn.execute("DROP TABLE jobs")
+            conn.execute("ALTER TABLE jobs_new RENAME TO jobs")
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS jobs_identity_idx ON jobs(company_key, role_key)"
+            )
+            for intake in conn.execute(
+                "SELECT id, fields_json FROM intakes WHERE fields_json IS NOT NULL"
+            ).fetchall():
+                fields = json.loads(intake["fields_json"])
+                if isinstance(fields, dict) and fields.get("status") in _STATUS_MIGRATION:
+                    fields["status"] = _STATUS_MIGRATION[fields["status"]]
+                    conn.execute(
+                        "UPDATE intakes SET fields_json = ? WHERE id = ?",
+                        (_json(fields), intake["id"]),
+                    )
+            conn.commit()
+        except BaseException:
+            conn.rollback()
+            raise
+    finally:
+        conn.execute("PRAGMA foreign_keys = ON")
+    if fk_errors := conn.execute("PRAGMA foreign_key_check").fetchall():
+        raise RuntimeError(f"jobs 数据库迁移后外键校验失败：{len(fk_errors)} 条")
+
+
 def init_db() -> None:
     with closing(connect(jobs_database_path())) as conn:
         conn.executescript(Path(__file__).with_name("schema.sql").read_text(encoding="utf-8"))
+        _migrate_job_statuses(conn)
 
 
 @contextmanager
@@ -200,9 +279,11 @@ def list_jobs(
     if q := q.strip().casefold():
         filters.append(
             """(contains_folded(jobs.company, :q) OR contains_folded(jobs.headhunter_agency, :q)
-                OR contains_folded(jobs.role, :q) OR EXISTS (
+                OR contains_folded(jobs.role, :q) OR contains_folded(jobs.city, :q)
+                OR EXISTS (
                     SELECT 1 FROM encounters
-                    WHERE job_id = jobs.id AND (contains_folded(contact, :q)
+                    WHERE job_id = jobs.id AND (contains_folded(platform, :q)
+                       OR contains_folded(contact, :q)
                        OR contains_folded(raw_jd, :q))
                 ) OR EXISTS (
                     SELECT 1 FROM operations

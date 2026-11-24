@@ -1623,10 +1623,10 @@ export interface components {
             salary: string;
             /**
              * Status
-             * @default 待看
+             * @default 待决定
              * @enum {string}
              */
-            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            status: "待决定" | "已联系" | "已跳过";
             /**
              * Notes
              * @default
@@ -1691,10 +1691,10 @@ export interface components {
             salary: string;
             /**
              * Status
-             * @default 待看
+             * @default 待决定
              * @enum {string}
              */
-            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            status: "待决定" | "已联系" | "已跳过";
             /**
              * Notes
              * @default
@@ -1732,10 +1732,10 @@ export interface components {
             salary: string;
             /**
              * Status
-             * @default 待看
+             * @default 待决定
              * @enum {string}
              */
-            status: "待看" | "已沟通" | "已投递" | "面试中" | "已放弃";
+            status: "待决定" | "已联系" | "已跳过";
             /**
              * Notes
              * @default
@@ -1782,7 +1782,7 @@ export interface components {
             /** Salary */
             salary?: string | null;
             /** Status */
-            status?: ("待看" | "已沟通" | "已投递" | "面试中" | "已放弃") | null;
+            status?: ("待决定" | "已联系" | "已跳过") | null;
             /** Notes */
             notes?: string | null;
             /** Is Headhunter */
@@ -4069,7 +4069,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
-                status?: ("待看" | "已沟通" | "已投递" | "面试中" | "已放弃") | null;
+                status?: ("待决定" | "已联系" | "已跳过") | null;
                 platform?: string | null;
                 city?: string | null;
                 is_headhunter?: boolean | null;

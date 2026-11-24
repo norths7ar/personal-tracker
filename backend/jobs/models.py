@@ -4,7 +4,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-JobStatus = Literal["待看", "已沟通", "已投递", "面试中", "已放弃"]
+JobStatus = Literal["待决定", "已联系", "已跳过"]
 MatchLevel = Literal["高", "中高", "中", "中低", "低"]
 AnalysisStatus = Literal["none", "pending", "complete", "failed"]
 MatchSource = Literal["none", "text", "fields"]
@@ -44,7 +44,7 @@ class JobFields(JobRequest):
     role: str = Field(min_length=1, max_length=250)
     city: str = Field(default="", max_length=250)
     salary: str = Field(default="", max_length=250)
-    status: JobStatus = "待看"
+    status: JobStatus = "待决定"
     notes: str = Field(default="", max_length=30_000)
     is_headhunter: bool = False
     headhunter_agency: str = Field(default="", max_length=250)

@@ -2,7 +2,7 @@ import { Badge, Button, Flex, Select, Text, TextField } from "@radix-ui/themes";
 import { Search } from "lucide-react";
 import type { JobFilters, JobSummary } from "@/api/jobs";
 import { JobError, JobMatchBadge } from "./job-fields";
-import { JOB_STATUSES, MATCH_LEVELS } from "./job-options";
+import { JOB_STATUSES, jobStatusColor, MATCH_LEVELS } from "./job-options";
 
 type FilterOption = string | { value: string; label: string };
 
@@ -60,7 +60,7 @@ export function JobList({
         <TextField.Root
           size="2"
           aria-label="搜索岗位"
-          placeholder="职位、公司、JD、联系人…"
+          placeholder="职位、公司、城市、平台、JD…"
           maxLength={500}
           value={filters.q ?? ""}
           onChange={(event) => setFilters({ ...filters, q: event.target.value })}
@@ -79,11 +79,19 @@ export function JobList({
             }
           />
           <FilterSelect
+            label="全部匹配度"
+            value={filters.match_level}
+            options={MATCH_LEVELS}
+            onChange={(match) =>
+              setFilters({ ...filters, match_level: MATCH_LEVELS.find((value) => value === match) })
+            }
+          />
+          <FilterSelect
             label="全部渠道"
             value={filters.is_headhunter == null ? null : String(filters.is_headhunter)}
             options={[
               { value: "true", label: "猎头" },
-              { value: "false", label: "非猎头" },
+              { value: "false", label: "直招" },
             ]}
             onChange={(value) =>
               setFilters({
@@ -92,33 +100,7 @@ export function JobList({
               })
             }
           />
-          <FilterSelect
-            label="全部匹配度"
-            value={filters.match_level}
-            options={MATCH_LEVELS}
-            onChange={(match) =>
-              setFilters({ ...filters, match_level: MATCH_LEVELS.find((value) => value === match) })
-            }
-          />
         </Flex>
-        <div className="jobs-fields-grid">
-          <TextField.Root
-            size="1"
-            aria-label="筛选平台"
-            placeholder="平台关键词"
-            maxLength={150}
-            value={filters.platform ?? ""}
-            onChange={(event) => setFilters({ ...filters, platform: event.target.value })}
-          />
-          <TextField.Root
-            size="1"
-            aria-label="筛选城市"
-            placeholder="城市关键词"
-            maxLength={250}
-            value={filters.city ?? ""}
-            onChange={(event) => setFilters({ ...filters, city: event.target.value })}
-          />
-        </div>
       </div>
       {pending ? (
         <p className="loading-message" role="status">
@@ -146,13 +128,10 @@ export function JobList({
                   {[job.company || "公司未确认", job.city, job.salary].filter(Boolean).join(" · ")}
                 </span>
                 <span className="jobs-list-badges">
-                  <Badge color="gray">{job.status}</Badge>
+                  <Badge color={jobStatusColor(job.status)}>{job.status}</Badge>
                   {job.is_headhunter && <Badge color="gray">猎头</Badge>}
                   <JobMatchBadge analysis={job.latest_analysis} />
                 </span>
-                {job.latest_analysis?.verdict && (
-                  <span className="jobs-list-verdict">{job.latest_analysis.verdict}</span>
-                )}
                 <Text size="1" color="gray">
                   {job.encounter_count} 次遇见
                   {job.latest_encounter_date && ` · ${job.latest_encounter_date}`}
@@ -168,7 +147,7 @@ export function JobList({
             (value) => value !== "" && value !== undefined && value !== null,
           )
             ? "没有符合筛选条件的岗位。"
-            : "还没有岗位。可先录入一份 JD。"}
+            : "还没有岗位，切到「评估 JD」录入第一份。"}
         </p>
       )}
     </section>

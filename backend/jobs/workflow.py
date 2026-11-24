@@ -124,7 +124,8 @@ def analyze(claim: store.Claim) -> None:
         if not store.renew_claim(claim, config.timeout):
             return
         invitation = (
-            "根据平台生成一条自然、简洁且可直接编辑使用的开场招呼语。"
+            "若岗位匹配且值得联系，根据平台生成一条自然、简洁且可直接复制的开场招呼语；"
+            "若不匹配或建议跳过，greeting 返回 null。"
             if inputs.greeting_enabled
             else "本次不生成招呼语，greeting 返回 null。"
         )
@@ -141,8 +142,6 @@ def analyze(claim: store.Claim) -> None:
         )
         with LLMClient(config, snapshot.api_key) as client:
             result = _Evaluation.model_validate(client.invoke(_SYSTEM, prompt))
-        if inputs.greeting_enabled and not result.greeting:
-            raise ValueError("Missing requested greeting")
     except LLMError as exc:
         store.finish_operation(claim, error=str(exc))
         return
@@ -150,7 +149,7 @@ def analyze(claim: store.Claim) -> None:
         store.finish_operation(claim, error="未获得有效的匹配分析，岗位与 JD 已保存，可以重试")
         return
 
-    if not inputs.greeting_enabled:
+    if not inputs.greeting_enabled or not result.greeting:
         result.greeting = None
     store.finish_operation(
         claim, result=result.model_dump(), fingerprint=store.profile_fingerprint(inputs.profile)

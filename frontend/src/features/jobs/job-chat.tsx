@@ -100,6 +100,7 @@ export function JobChat({
           <TextArea
             rows={3}
             maxLength={10000}
+            placeholder="例如：对方若问到相关短板怎么回应？或帮忙核对某条任职要求"
             value={draft}
             disabled={submitted !== null}
             onChange={(event) => setDraft(event.target.value)}
