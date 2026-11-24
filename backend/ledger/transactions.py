@@ -207,7 +207,7 @@ def _validate_transaction_deletion(conn, id_: int) -> None:
         raise TransactionConflict(f"记录 #{id_} 是预计支出的历史入账，不能直接删除")
 
 
-def get_pending_transactions(limit: int = 200) -> list[dict]:
+def get_pending_transactions(limit: int | None = 200) -> list[dict]:
     query = f"""SELECT * FROM transactions
                WHERE type = '{TYPE_EXPENSE}'
                  AND (
@@ -223,7 +223,7 @@ def get_pending_transactions(limit: int = 200) -> list[dict]:
                ORDER BY date DESC, created_at DESC
                LIMIT ?"""
     with closing(connect()) as conn:
-        rows = conn.execute(query, (limit,)).fetchall()
+        rows = conn.execute(query, (-1 if limit is None else limit,)).fetchall()
     return [normalize_transaction(r) for r in rows]
 
 

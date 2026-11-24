@@ -430,4 +430,4 @@ def update_budget(month: str, body: MonthBudgetUpdate) -> dict:
 
 @router.get("/pending", response_model=list[TransactionResponse])
 def list_pending_transactions() -> list[dict]:
-    return get_pending_transactions()
+    return get_pending_transactions(limit=None)

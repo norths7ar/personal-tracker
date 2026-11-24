@@ -2,10 +2,11 @@ from datetime import date as Date
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from backend.auth import require_api_auth
 from backend.capture import entries as entry_service
+from backend.capture import phrases, queue
 from backend.capture.batch import BatchSubmissionConflict
 from backend.db import IdempotencyConflict
 from backend.diet.models import FoodInput
@@ -20,7 +21,19 @@ router = APIRouter(
 TransactionType = Literal["支出", "收入", "迁移"]
 
 
-class TransactionPreparationRequest(BaseModel):
+class CaptureInput(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
+    @field_validator("description", "text", check_fields=False)
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("内容不能为空")
+        return value
+
+
+class TransactionPreparationRequest(CaptureInput):
     type: TransactionType
     description: str = Field(min_length=1)
 
@@ -40,11 +53,11 @@ class TransactionPreparationResponse(BaseModel):
     candidates: list[ClassificationCandidate] = Field(default_factory=list)
 
 
-class TransactionCreateRequest(BaseModel):
-    type: TransactionType
+class TransactionCreateRequest(CaptureInput):
+    type: TransactionType = "支出"
     description: str = Field(min_length=1)
     amount: float = Field(gt=0)
-    date: Date
+    date: Date = Field(default_factory=Date.today)
     category: str | None = None
     subcategory: str | None = None
     notes: str | None = None
@@ -52,9 +65,9 @@ class TransactionCreateRequest(BaseModel):
     reviewed: bool = False
 
 
-class MealPreparationRequest(BaseModel):
+class MealPreparationRequest(CaptureInput):
     description: str = Field(min_length=1)
-    time: str = Field(pattern=r"^\d{2}:\d{2}$")
+    time: str | None = None
 
 
 class MealPreparationResponse(BaseModel):
@@ -65,14 +78,14 @@ class MealPreparationResponse(BaseModel):
     reasoning: str = ""
 
 
-class MealCreateRequest(BaseModel):
-    date: Date
-    time: str = Field(pattern=r"^\d{2}:\d{2}$")
+class MealCreateRequest(CaptureInput):
+    date: Date = Field(default_factory=Date.today)
+    time: str | None = None
     meal_type: str | None = None
     description: str = Field(min_length=1)
     notes: str | None = None
     confidence: float | None = Field(default=None, ge=0, le=1)
-    foods: list[FoodInput] = Field(min_length=1)
+    foods: list[FoodInput] = Field(default_factory=list)
 
 
 class CreateResponse(BaseModel):
@@ -80,11 +93,11 @@ class CreateResponse(BaseModel):
     duplicate: bool
 
 
-class BatchRecord(BaseModel):
+class BatchRecord(CaptureInput):
     include: bool = True
     record_type: Literal["支出", "收入", "迁移", "饮食"]
     date: Date
-    time: str = ""
+    time: str | None = ""
     description: str = Field(min_length=1)
     amount: float | None = None
     category: str = ""
@@ -96,7 +109,7 @@ class BatchRecord(BaseModel):
     reasoning: str = ""
 
 
-class BatchPrepareRequest(BaseModel):
+class BatchPrepareRequest(CaptureInput):
     text: str = Field(min_length=1)
     default_date: Date
 
@@ -120,6 +133,108 @@ class BatchSaveRequest(BaseModel):
 class BatchSaveResponse(BaseModel):
     saved_count: int
     duplicate: bool
+
+
+class CaptureSubmission(CaptureInput):
+    text: str = Field(min_length=1)
+    default_date: Date
+
+
+class CaptureItem(BaseModel):
+    id: int
+    submission_id: int
+    source_text: str
+    original_text: str
+    default_date: Date
+    status: Literal["queued", "processing", "review", "failed"]
+    record: BatchRecord | None
+    reason: str
+    created_at: str
+    can_retry: bool
+
+
+class PendingCaptureResponse(BaseModel):
+    change_token: str
+    items: list[CaptureItem]
+    pending_count: int
+    processing_count: int
+
+
+class CaptureRetryResponse(BaseModel):
+    id: int
+
+
+class PhraseInput(CaptureInput):
+    text: str = Field(min_length=1, max_length=80)
+
+
+class CaptureSuggestion(BaseModel):
+    text: str
+    pinned: bool
+    count: int
+
+
+@router.post("/submissions", response_model=CreateResponse, status_code=202)
+def submit_capture(body: CaptureSubmission, idempotency_key: IdempotencyKey) -> dict:
+    try:
+        return queue.submit(body.text, body.default_date.isoformat(), idempotency_key)
+    except IdempotencyConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.get("/pending", response_model=PendingCaptureResponse)
+def pending_captures() -> dict:
+    return queue.pending()
+
+
+@router.post("/items/{item_id}/confirm", response_model=CreateResponse)
+def confirm_capture(item_id: int, body: BatchRecord) -> dict:
+    try:
+        return queue.confirm(item_id, body.model_dump(mode="json"))
+    except queue.CaptureNotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except queue.CaptureConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.post("/items/{item_id}/retry", response_model=CaptureRetryResponse)
+def retry_capture(item_id: int) -> dict:
+    try:
+        return queue.retry(item_id)
+    except queue.CaptureNotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except queue.CaptureConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.post("/items/{item_id}/discard", status_code=204)
+def discard_capture(item_id: int) -> None:
+    try:
+        queue.discard(item_id)
+    except queue.CaptureNotFound as exc:
+        raise HTTPException(404, str(exc)) from exc
+    except queue.CaptureConflict as exc:
+        raise HTTPException(409, str(exc)) from exc
+
+
+@router.get("/suggestions", response_model=list[CaptureSuggestion])
+def capture_suggestions() -> list[dict]:
+    return phrases.suggestions()
+
+
+@router.put("/phrases", response_model=list[CaptureSuggestion])
+def pin_phrase(body: PhraseInput) -> list[dict]:
+    try:
+        return phrases.pin(body.text)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+
+
+@router.delete("/phrases", response_model=list[CaptureSuggestion])
+def unpin_phrase(body: PhraseInput) -> list[dict]:
+    return phrases.unpin(body.text)
 
 
 @router.post("/transactions/prepare", response_model=TransactionPreparationResponse)
@@ -207,6 +322,7 @@ class TodayMeal(BaseModel):
     time: str | None
     meal_type: str | None
     foods: list[str]
+    description: str
 
 
 class HomeSummary(BaseModel):
@@ -218,4 +334,6 @@ class HomeSummary(BaseModel):
 
 @router.get("/home", response_model=HomeSummary)
 def home_summary() -> dict:
-    return home_service.get_home_summary()
+    summary = home_service.get_home_summary()
+    summary["pending_count"] = queue.pending_count()
+    return summary

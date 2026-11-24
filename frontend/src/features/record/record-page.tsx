@@ -1,6 +1,6 @@
 import "@/features/record/record-page.css";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Layers3, NotebookPen, Utensils, Wallet } from "lucide-react";
+import { ArrowRight, NotebookPen, Utensils, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "@/api/client";
@@ -9,21 +9,21 @@ import { MealEntry } from "@/features/record/meal-entry";
 import { TransactionEntry } from "@/features/record/transaction-entry";
 import { cn } from "@/lib/utils";
 
-type Tab = "batch" | "transaction" | "meal";
+type Tab = "transaction" | "meal";
 const tabs = [
-  { value: "batch", label: "批量录入", icon: Layers3 },
   { value: "transaction", label: "开销与收支", icon: Wallet },
   { value: "meal", label: "饮食", icon: Utensils },
 ] as const;
 
 export function RecordPage() {
-  const [tab, setTab] = useState<Tab>("batch");
+  const [tab, setTab] = useState<Tab>("transaction");
 
   return (
     <section
       className="page-stack record-page"
       onKeyDown={(event) => {
         if (
+          event.defaultPrevented ||
           !event.ctrlKey ||
           event.key !== "Enter" ||
           event.repeat ||
@@ -33,7 +33,7 @@ export function RecordPage() {
         event.preventDefault();
         event.currentTarget
           .querySelector<HTMLButtonElement>(
-            `#record-${tab} button[data-primary-action="true"]:not(:disabled)`,
+            `#record-${(event.target as HTMLElement).closest(".manual-entry") ? tab : "batch"} button[data-primary-action="true"]:not(:disabled)`,
           )
           ?.click();
       }}
@@ -44,29 +44,34 @@ export function RecordPage() {
           <NotebookPen size={22} strokeWidth={1.5} />
         </div>
       </header>
-      <div aria-label="录入方式" className="page-tabs record-tabs">
-        {tabs.map(({ value, label, icon: Icon }) => (
-          <button
-            key={value}
-            aria-pressed={tab === value}
-            aria-controls={`record-${value}`}
-            className={cn("page-tab", tab === value && "page-tab-selected")}
-            onClick={() => setTab(value)}
-          >
-            <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
-            {label}
-          </button>
-        ))}
-      </div>
-      <div id="record-batch" hidden={tab !== "batch"}>
+      <div id="record-batch">
         <BatchEntry />
       </div>
-      <div id="record-transaction" hidden={tab !== "transaction"}>
-        <TransactionEntry />
-      </div>
-      <div id="record-meal" hidden={tab !== "meal"}>
-        <MealEntry />
-      </div>
+      <details className="manual-entry">
+        <summary>
+          手动记一笔 <span className="help-text">不使用 AI，直接保存</span>
+        </summary>
+        <div aria-label="手动录入方式" className="page-tabs record-tabs">
+          {tabs.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              aria-pressed={tab === value}
+              aria-controls={`record-${value}`}
+              className={cn("page-tab", tab === value && "page-tab-selected")}
+              onClick={() => setTab(value)}
+            >
+              <Icon size={16} aria-hidden="true" />
+              {label}
+            </button>
+          ))}
+        </div>
+        <div id="record-transaction" hidden={tab !== "transaction"}>
+          <TransactionEntry />
+        </div>
+        <div id="record-meal" hidden={tab !== "meal"}>
+          <MealEntry />
+        </div>
+      </details>
       <HomeSummary />
     </section>
   );
@@ -76,6 +81,7 @@ function HomeSummary() {
   const summary = useQuery({
     queryKey: ["capture", "home"],
     queryFn: api.homeSummary,
+    refetchInterval: 5000,
   });
   if (!summary.data) return null;
   const {
@@ -100,7 +106,7 @@ function HomeSummary() {
               </li>
             ))}
             {reminders.length > 4 && <li>• 另有 {reminders.length - 4} 项付款提醒</li>}
-            {pendingCount > 0 && <li>• 待分类支出 · {pendingCount} 笔</li>}
+            {pendingCount > 0 && <li>• 待处理记录 · {pendingCount} 项</li>}
           </ul>
           <div className="reminder-links">
             {reminders.length > 0 && (
@@ -111,7 +117,7 @@ function HomeSummary() {
             )}
             {pendingCount > 0 && (
               <Link className="reminder-link" to="/pending">
-                处理待分类
+                查看待处理
                 <ArrowRight size={14} />
               </Link>
             )}
@@ -129,7 +135,7 @@ function HomeSummary() {
                   {meal.time || "--:--"}
                   {meal.meal_type ? ` · ${meal.meal_type}` : ""}
                 </span>{" "}
-                {meal.foods.join("、")}
+                {meal.foods.join("、") || meal.description}
               </p>
             ))
           ) : (

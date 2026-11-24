@@ -1,3 +1,4 @@
+import math
 from string import Template
 
 from backend.constants import (
@@ -51,7 +52,10 @@ class DietExtractor:
     @staticmethod
     def _normalize(data: dict, meal_time: str) -> dict:
         try:
-            data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0.0))))
+            confidence = float(data.get("confidence", 0.0))
+            data["confidence"] = (
+                max(0.0, min(1.0, confidence)) if math.isfinite(confidence) else 0.0
+            )
         except TypeError, ValueError:
             data["confidence"] = 0.0
 

@@ -1,245 +1,172 @@
-import { settingsApi } from "@/api/client";
 import { TextArea } from "@radix-ui/themes";
-import "@/features/record/transaction-entry.css";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { api, type TransactionCreate, type TransactionPreparation } from "@/api/client";
+import { api, settingsApi, type TransactionCreate } from "@/api/client";
 import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Feedback, Field, selectClass, textareaClass, today } from "@/features/record/entry-shared";
-import { cn } from "@/lib/utils";
+import { Feedback, Field, selectClass, textareaClass, today } from "./entry-shared";
 
-const types = ["支出", "收入", "迁移"] as const;
-
-const initialEntry = (): TransactionCreate => ({
-  type: "支出",
+const initialEntry = () => ({
+  type: "支出" as "支出" | "收入" | "迁移",
   description: "",
-  amount: 0,
+  amount: "",
   date: today(),
-  category: null,
-  subcategory: null,
-  notes: null,
-  confidence: null,
-  reviewed: false,
+  category: "",
+  subcategory: "",
+  notes: "",
 });
+type SaveRequest = { payload: TransactionCreate; key: string };
 
 export function TransactionEntry() {
-  const queryClient = useQueryClient();
+  const client = useQueryClient();
   const categories = useQuery({
     queryKey: ["settings"],
     queryFn: settingsApi.get,
     select: (settings) => settings.records.categories,
   });
-  const [entry, setEntry] = useState<TransactionCreate>(initialEntry);
-  const [review, setReview] = useState<TransactionPreparation | null>(null);
-  const [requestKey, setRequestKey] = useState("");
-  const [pendingSave, setPendingSave] = useState<TransactionCreate | null>(null);
+  const [entry, setEntry] = useState(initialEntry);
+  const [pending, setPending] = useState<SaveRequest | null>(null);
   const [message, setMessage] = useState("");
-
   const save = useMutation({
-    mutationFn: ({ payload, key }: { payload: TransactionCreate; key: string }) =>
-      api.createTransaction(payload, key),
+    mutationFn: ({ payload, key }: SaveRequest) => api.createTransaction(payload, key),
     onSuccess: (result) => {
-      void invalidateFinance(queryClient);
+      void invalidateFinance(client);
       setMessage(
-        result.duplicate ? "该请求已经保存，重复提交已忽略。" : `已保存账目 #${result.id}`,
+        result.duplicate ? "这笔收支已保存。" : "已保存。未确认分类的支出可在待处理中补全。",
       );
-      setReview(null);
-      setRequestKey("");
-      setPendingSave(null);
-      setEntry((current) => ({
-        ...current,
-        description: "",
-        amount: 0,
-        notes: null,
-      }));
+      setPending(null);
+      setEntry(initialEntry());
     },
   });
-
-  const saveEntry = (payload: TransactionCreate, key: string) => {
-    setPendingSave(payload);
-    save.mutate({ payload, key });
-  };
-
-  const prepare = useMutation({
-    mutationFn: () => api.prepareTransaction(entry.type, entry.description),
-    onSuccess: (result) => {
-      const key = crypto.randomUUID();
-      setRequestKey(key);
-      if (result.status === "confirmed") {
-        const payload = {
-          ...entry,
-          category: result.category,
-          subcategory: result.subcategory || null,
-          confidence: result.confidence,
-          reviewed: false,
-        };
-        saveEntry(payload, key);
-        return;
-      }
-      setReview(result);
-      setEntry((current) => ({
-        ...current,
-        category: result.category || null,
-        subcategory: result.subcategory || null,
-        confidence: result.confidence,
-        reviewed: true,
-      }));
-    },
-  });
-
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (save.isPending) return;
+    const payload: TransactionCreate = {
+      type: entry.type,
+      description: entry.description.trim(),
+      amount: Number(entry.amount),
+      date: entry.date || today(),
+      category: entry.category || null,
+      subcategory: entry.subcategory || null,
+      notes: entry.notes.trim() || null,
+      reviewed: Boolean(entry.category),
+    };
+    const request =
+      pending && JSON.stringify(pending.payload) === JSON.stringify(payload)
+        ? pending
+        : { payload, key: crypto.randomUUID() };
+    setPending(request);
     setMessage("");
-    setReview(null);
-    setPendingSave(null);
-    prepare.mutate();
+    save.mutate(request);
   };
-
   const categoryMap = categories.data?.[entry.type] ?? {};
-  const subcategories = entry.category ? (categoryMap[entry.category] ?? []) : [];
-  const busy = prepare.isPending || save.isPending;
-
+  const subcategories = categoryMap[entry.category] ?? [];
   return (
-    <div className="content-panel record-composer transaction-composer">
-      <form className="form-stack" onSubmit={submit}>
-        <div className="entry-actions">
-          {types.map((type) => (
-            <button
-              type="button"
-              key={type}
-              aria-pressed={entry.type === type}
-              onClick={() =>
-                setEntry({
-                  ...entry,
-                  type,
-                  category: null,
-                  subcategory: null,
-                })
-              }
-              className={cn(
-                "transaction-type",
-                entry.type === type ? "transaction-type-selected" : "transaction-type-idle",
-              )}
-            >
-              {type}
-            </button>
-          ))}
-        </div>
-        <Field label="描述">
-          <Input
-            value={entry.description}
-            required
-            onChange={(event) => setEntry({ ...entry, description: event.target.value })}
-            placeholder="例：中午麦当劳"
-          />
-        </Field>
-        <div className="entry-fields">
+    <form className="content-panel record-composer form-stack" onSubmit={submit}>
+      <fieldset disabled={save.isPending} className="form-stack manual-fields">
+        <div className="paired-fields">
           <Field label="金额">
             <Input
               type="number"
               min="0.01"
               step="0.01"
               required
-              value={entry.amount || ""}
-              onChange={(event) => setEntry({ ...entry, amount: Number(event.target.value) })}
+              value={entry.amount}
+              onChange={(event) => setEntry({ ...entry, amount: event.target.value })}
             />
           </Field>
-          <Field label="日期">
+          <Field label="描述">
             <Input
-              type="date"
               required
-              value={entry.date}
-              onChange={(event) => setEntry({ ...entry, date: event.target.value })}
+              value={entry.description}
+              placeholder="例：中午麦当劳"
+              onChange={(event) => setEntry({ ...entry, description: event.target.value })}
             />
           </Field>
         </div>
-        <Field label="备注">
-          <TextArea
-            className={textareaClass}
-            value={entry.notes ?? ""}
-            onChange={(event) => setEntry({ ...entry, notes: event.target.value || null })}
-          />
-        </Field>
-        <div className="composer-footer">
-          <Button
-            data-primary-action={!review}
-            disabled={busy || !entry.description.trim() || entry.amount <= 0}
-          >
-            {prepare.isPending ? "分析中…" : save.isPending ? "保存中…" : "记录这笔收支"}
-          </Button>
-        </div>
-      </form>
-
-      {review && (
-        <div className="entry-review">
-          <div>
-            <strong>请确认分类</strong>
-            <p className="entry-description">{review.reasoning}</p>
-          </div>
-          <div className="entry-fields">
-            <Field label="主类别">
-              <select
-                className={selectClass}
-                value={entry.category ?? ""}
-                onChange={(event) =>
-                  setEntry({
-                    ...entry,
-                    category: event.target.value || null,
-                    subcategory: null,
-                  })
-                }
-              >
-                <option value="">无</option>
-                {Object.keys(categoryMap).map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
+        <details className="manual-options">
+          <summary>类型、日期、分类与备注</summary>
+          <div className="form-stack">
+            <div className="paired-fields">
+              <Field label="类型">
+                <select
+                  className={selectClass}
+                  value={entry.type}
+                  onChange={(event) =>
+                    setEntry({
+                      ...entry,
+                      type: event.target.value as typeof entry.type,
+                      category: "",
+                      subcategory: "",
+                    })
+                  }
+                >
+                  {["支出", "收入", "迁移"].map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="日期">
+                <Input
+                  type="date"
+                  value={entry.date}
+                  onChange={(event) => setEntry({ ...entry, date: event.target.value })}
+                />
+              </Field>
+            </div>
+            <div className="paired-fields">
+              <Field label="主类别（可选）">
+                <select
+                  className={selectClass}
+                  value={entry.category}
+                  onChange={(event) =>
+                    setEntry({ ...entry, category: event.target.value, subcategory: "" })
+                  }
+                >
+                  <option value="">稍后分类</option>
+                  {Object.keys(categoryMap).map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </Field>
+              {subcategories.length > 0 && (
+                <Field label="子类别（可选）">
+                  <select
+                    className={selectClass}
+                    value={entry.subcategory}
+                    onChange={(event) => setEntry({ ...entry, subcategory: event.target.value })}
+                  >
+                    <option value="">暂不填写</option>
+                    {subcategories.map((item) => (
+                      <option key={item}>{item}</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+            </div>
+            <Field label="备注（可选）">
+              <TextArea
+                className={textareaClass}
+                value={entry.notes}
+                onChange={(event) => setEntry({ ...entry, notes: event.target.value })}
+              />
             </Field>
-            <Field label="子类别">
-              <select
-                className={selectClass}
-                value={entry.subcategory ?? ""}
-                onChange={(event) =>
-                  setEntry({
-                    ...entry,
-                    subcategory: event.target.value || null,
-                  })
-                }
-              >
-                <option value="">无</option>
-                {subcategories.map((item) => (
-                  <option key={item}>{item}</option>
-                ))}
-              </select>
-            </Field>
           </div>
-          <div className="entry-actions">
-            <Button
-              data-primary-action="true"
-              onClick={() => saveEntry(entry, requestKey)}
-              disabled={busy}
-            >
-              确认保存
-            </Button>
-            <Button variant="outline" onClick={() => setReview(null)}>
-              取消
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {save.isError && pendingSave && requestKey && !review && (
+        </details>
         <Button
-          className="entry-primary-action"
-          variant="outline"
-          onClick={() => saveEntry(pendingSave, requestKey)}
+          data-primary-action="true"
+          disabled={!entry.description.trim() || Number(entry.amount) <= 0}
         >
-          使用同一请求重试保存
+          {save.isPending ? "保存中…" : "保存收支"}
+        </Button>
+      </fieldset>
+      {save.isError && pending && (
+        <Button type="button" variant="outline" onClick={() => save.mutate(pending)}>
+          重试上次保存
         </Button>
       )}
-      <Feedback message={message} error={prepare.error ?? save.error} />
-    </div>
+      <Feedback message={message} error={save.error} />
+    </form>
   );
 }

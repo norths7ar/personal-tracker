@@ -1,10 +1,10 @@
 import { TextArea } from "@radix-ui/themes";
-import { Plus, Trash2 } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { type Meal, type MealUpdate } from "@/api/client";
 import { EditorFooter } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FoodFields } from "./food-fields";
 import { MealTypeInput } from "./meal-type-input";
 import { Feedback, Field, textareaClass } from "@/features/record/entry-shared";
 
@@ -21,7 +21,7 @@ export function MealEditor({
   onSave: (payload: MealUpdate) => void;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState<MealUpdate>({
+  const [form, setForm] = useState<MealUpdate & { foods: Meal["foods"] }>({
     date: meal.date,
     time: meal.time ?? "",
     meal_type: meal.meal_type,
@@ -29,13 +29,6 @@ export function MealEditor({
     notes: meal.notes,
     foods: meal.foods,
   });
-  const updateFood = (index: number, changes: Partial<MealUpdate["foods"][number]>) =>
-    setForm({
-      ...form,
-      foods: form.foods.map((food, foodIndex) =>
-        foodIndex === index ? { ...food, ...changes } : food,
-      ),
-    });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onSave({
@@ -55,10 +48,10 @@ export function MealEditor({
             onChange={(event) => setForm({ ...form, date: event.target.value })}
           />
         </Field>
-        <Field label="时间">
+        <Field label="时间（可选）">
           <Input
             type="time"
-            value={form.time}
+            value={form.time ?? ""}
             onChange={(event) => setForm({ ...form, time: event.target.value })}
           />
         </Field>
@@ -76,60 +69,10 @@ export function MealEditor({
           onChange={(event) => setForm({ ...form, description: event.target.value })}
         />
       </Field>
-      <div className="editor-group">
-        <span className="field-label">食物清单</span>
-        {form.foods.map((food, index) => (
-          <div className="ingredient-list" key={index}>
-            <div className="ingredient-row">
-              <Input
-                value={food.food_name}
-                placeholder="食物"
-                onChange={(event) => updateFood(index, { food_name: event.target.value })}
-              />
-              <Input
-                value={food.quantity}
-                placeholder="份量"
-                onChange={(event) => updateFood(index, { quantity: event.target.value })}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() =>
-                  setForm({
-                    ...form,
-                    foods: form.foods.filter((_, itemIndex) => itemIndex !== index),
-                  })
-                }
-              >
-                <Trash2 size={15} />
-              </Button>
-            </div>
-            <Input
-              value={(food.ingredients ?? []).join("、")}
-              placeholder="主要食材"
-              onChange={(event) =>
-                updateFood(index, {
-                  ingredients: splitIngredients(event.target.value),
-                })
-              }
-            />
-          </div>
-        ))}
+      <div className="form-stack">
+        <span className="field-label">食物清单（可选）</span>
+        <FoodFields foods={form.foods} onChange={(foods) => setForm({ ...form, foods })} />
       </div>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() =>
-          setForm({
-            ...form,
-            foods: [...form.foods, { food_name: "", quantity: "", ingredients: [] }],
-          })
-        }
-      >
-        <Plus size={15} />
-        添加食物
-      </Button>
       <Field label="备注">
         <TextArea
           className={textareaClass}
@@ -142,21 +85,10 @@ export function MealEditor({
         <Button type="button" variant="outline" disabled={saving} onClick={onClose}>
           取消
         </Button>
-        <Button
-          disabled={
-            saving || !form.description.trim() || !form.foods.some((food) => food.food_name.trim())
-          }
-        >
+        <Button disabled={saving || !form.description.trim()}>
           {saving ? "保存中…" : "保存修改"}
         </Button>
       </EditorFooter>
     </form>
   );
-}
-
-function splitIngredients(value: string): string[] {
-  return value
-    .split(/[、,，;；]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
 }

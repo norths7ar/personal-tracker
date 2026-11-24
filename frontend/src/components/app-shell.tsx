@@ -10,7 +10,9 @@ import {
   Settings,
   Utensils,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCapturePending } from "@/features/pending/use-capture-pending";
 import { NavLink } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,20 @@ type AppShellProps = {
 };
 
 export function AppShell({ children, onLogout }: AppShellProps) {
+  const pending = useCapturePending();
+  const client = useQueryClient();
+  const lastToken = useRef<string | null>(null);
+  const token = pending.data?.change_token;
+  useEffect(() => {
+    if (token !== undefined && lastToken.current !== null && lastToken.current !== token) {
+      void client.invalidateQueries({ queryKey: ["ledger"] });
+      void client.invalidateQueries({ queryKey: ["diet"] });
+      void client.invalidateQueries({ queryKey: ["capture", "home"] });
+      void client.invalidateQueries({ queryKey: ["capture", "suggestions"] });
+    }
+    if (token !== undefined) lastToken.current = token;
+  }, [client, token]);
+  const pendingCount = pending.data?.pending_count ?? 0;
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -37,7 +53,12 @@ export function AppShell({ children, onLogout }: AppShellProps) {
           <div className="navigation-section">日常</div>
           <NavItem to="/todo" icon={<ListTodo size={17} />} label="待办" />
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
-          <NavItem to="/pending" icon={<CheckSquare2 size={17} />} label="待处理" />
+          <NavItem
+            to="/pending"
+            icon={<CheckSquare2 size={17} />}
+            label="待处理"
+            count={pendingCount}
+          />
           <div className="navigation-section">回看</div>
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <NavItem to="/analysis" icon={<BarChart3 size={17} />} label="开销分析" />
@@ -79,6 +100,11 @@ export function AppShell({ children, onLogout }: AppShellProps) {
               }
             >
               {label}
+              {to === "/pending" && pendingCount > 0 && (
+                <span className="navigation-count" aria-label={`${pendingCount} 项待处理`}>
+                  {pendingCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -88,7 +114,17 @@ export function AppShell({ children, onLogout }: AppShellProps) {
   );
 }
 
-function NavItem({ to, icon, label }: { to: string; icon: ReactNode; label: string }) {
+function NavItem({
+  to,
+  icon,
+  label,
+  count = 0,
+}: {
+  to: string;
+  icon: ReactNode;
+  label: string;
+  count?: number;
+}) {
   return (
     <NavLink
       to={to}
@@ -98,6 +134,11 @@ function NavItem({ to, icon, label }: { to: string; icon: ReactNode; label: stri
     >
       {icon}
       {label}
+      {count > 0 && (
+        <span className="navigation-count" aria-label={`${count} 项待处理`}>
+          {count}
+        </span>
+      )}
     </NavLink>
   );
 }

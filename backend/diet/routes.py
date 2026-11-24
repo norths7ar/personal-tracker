@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.auth import require_api_auth
 from backend.diet import store as meal_service
 from backend.diet.models import FoodInput
-from backend.diet.store import require_meal_time
+from backend.diet.store import optional_meal_time
 
 router = APIRouter(prefix="/api/diet", tags=["diet"], dependencies=[Depends(require_api_auth)])
 
@@ -26,11 +26,19 @@ class MealResponse(BaseModel):
 
 class MealUpdate(BaseModel):
     date: Date
-    time: str = Field(pattern=r"^\d{2}:\d{2}$")
+    time: str | None = None
     meal_type: str | None = None
     description: str = Field(min_length=1)
     notes: str | None = None
-    foods: list[FoodInput] = Field(min_length=1)
+    foods: list[FoodInput] = Field(default_factory=list)
+
+    @field_validator("description")
+    @classmethod
+    def nonblank_description(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("描述不能为空")
+        return value
 
 
 class BulkMealIds(BaseModel):
@@ -45,17 +53,17 @@ class BulkMealUpdate(BulkMealIds):
     meal_type: str | None = None
     notes: str | None = None
 
-    @field_validator("date", "time")
+    @field_validator("date")
     @classmethod
     def require_non_null(cls, value):
         if value is None:
-            raise ValueError("日期和时间不能清空")
+            raise ValueError("日期不能清空")
         return value
 
     @field_validator("time")
     @classmethod
     def validate_time(cls, value):
-        return require_meal_time(value)
+        return optional_meal_time(value)
 
     @model_validator(mode="after")
     def require_a_change(self):
@@ -133,8 +141,8 @@ def bulk_delete_meals(body: BulkMealIds) -> BulkMealDeleteResponse:
 
 @router.patch("/meals/{meal_id}", response_model=MealResponse)
 def update_meal(meal_id: int, body: MealUpdate) -> dict:
-    payload = body.model_dump(mode="json")
-    foods = payload.pop("foods")
+    payload = body.model_dump(mode="json", exclude_unset=True)
+    foods = payload.pop("foods", None)
     payload["description"] = body.description.strip()
     try:
         return meal_service.update_meal(meal_id, foods, payload)

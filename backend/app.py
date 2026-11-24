@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from backend.auth import router as auth_router
 from backend.capture.routes import router as capture_router
+from backend.capture.worker import CaptureWorker
 from backend.db import init_db
 from backend.diet.routes import router as diet_router
 from backend.ledger.routes import router as ledger_router
@@ -59,7 +60,12 @@ def shutdown(
 async def lifespan(_: FastAPI):
     initialize_settings()
     init_db()
-    yield
+    worker = CaptureWorker()
+    worker.start()
+    try:
+        yield
+    finally:
+        worker.stop()
 
 
 def create_app() -> FastAPI:

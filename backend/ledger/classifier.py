@@ -1,4 +1,5 @@
 import contextlib
+import math
 from string import Template
 
 from backend.constants import DEFAULT_CATEGORY, DEFAULT_CONFIDENCE_THRESHOLD
@@ -70,18 +71,24 @@ class Classifier:
     @staticmethod
     def _normalize(data: dict) -> dict:
         try:
-            data["confidence"] = max(0.0, min(1.0, float(data.get("confidence", 0.0))))
+            confidence = float(data.get("confidence", 0.0))
+            data["confidence"] = (
+                max(0.0, min(1.0, confidence)) if math.isfinite(confidence) else 0.0
+            )
         except TypeError, ValueError:
             data["confidence"] = 0.0
 
         candidates = []
         for c in data.get("candidates", []):
             with contextlib.suppress(TypeError, ValueError):
+                confidence = float(c.get("confidence", 0.0))
                 candidates.append(
                     {
                         "category": c.get("category", DEFAULT_CATEGORY),
                         "subcategory": c.get("subcategory", c.get("category", DEFAULT_CATEGORY)),
-                        "confidence": max(0.0, min(1.0, float(c.get("confidence", 0.0)))),
+                        "confidence": max(0.0, min(1.0, confidence))
+                        if math.isfinite(confidence)
+                        else 0.0,
                     }
                 )
         data["candidates"] = candidates

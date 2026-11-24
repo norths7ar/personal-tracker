@@ -226,7 +226,9 @@ export function DietPage() {
                         <td className="diet-date-cell">{meal.date}</td>
                         <td className="diet-time-cell">{meal.time || "—"}</td>
                         <td className="diet-time-cell">{meal.meal_type || "—"}</td>
-                        <td className="data-cell">{meal.foods.map(foodLabel).join("、")}</td>
+                        <td className="data-cell">
+                          {meal.foods.map(foodLabel).join("、") || meal.description}
+                        </td>
                         <td className="diet-note-cell">{meal.notes || ""}</td>
                       </tr>
                     ))}

@@ -42,6 +42,37 @@ def init_db() -> None:
 
 def _create_tables(connection: sqlite3.Connection) -> None:
     connection.execute("""
+        CREATE TABLE IF NOT EXISTS capture_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            original_text TEXT NOT NULL,
+            default_date TEXT NOT NULL,
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS capture_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            submission_id INTEGER NOT NULL REFERENCES capture_submissions(id),
+            parent_id INTEGER REFERENCES capture_items(id),
+            source_text TEXT NOT NULL,
+            default_date TEXT NOT NULL,
+            status TEXT NOT NULL CHECK(status IN
+                ('queued', 'processing', 'review', 'failed', 'expanded', 'saved', 'discarded')),
+            record_json TEXT,
+            reason TEXT NOT NULL DEFAULT '',
+            claim_token TEXT,
+            result_id INTEGER,
+            result_type TEXT,
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS capture_phrases (
+            text TEXT PRIMARY KEY,
+            created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
+    connection.execute("""
         CREATE TABLE IF NOT EXISTS todos (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL CHECK(length(trim(title)) > 0),
@@ -177,6 +208,7 @@ def _create_tables(connection: sqlite3.Connection) -> None:
 
 def _create_indexes(connection: sqlite3.Connection) -> None:
     for statement in (
+        "CREATE INDEX IF NOT EXISTS idx_capture_items_status ON capture_items(status, id)",
         "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)",
         """CREATE INDEX IF NOT EXISTS idx_transactions_filter
            ON transactions(type, category, subcategory, date)""",

@@ -421,6 +421,7 @@ def get_home_summary() -> dict:
                 "time": meal.get("time"),
                 "meal_type": meal.get("meal_type"),
                 "foods": [food["food_name"] for food in meal.get("foods", [])],
+                "description": meal["description"],
             }
             for meal in meals
         ],

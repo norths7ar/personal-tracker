@@ -25,6 +25,12 @@ def normalize_meal_time(value: object) -> str | None:
     return f"{hour:02d}:{minute:02d}"
 
 
+def optional_meal_time(value: object) -> str | None:
+    if value is None or not str(value).strip():
+        return None
+    return require_meal_time(value)
+
+
 def require_meal_time(value: object) -> str:
     normalized = normalize_meal_time(value)
     if normalized is None:
@@ -107,14 +113,16 @@ def _insert_foods(conn, meal_id: int, foods: list[dict]) -> None:
 def insert_meal(
     conn,
     date: str,
-    time: str,
+    time: str | None,
     meal_type: str | None,
     description: str,
     notes: str | None,
     confidence: float | None,
     foods: list[dict],
+    *,
+    allow_empty_foods: bool = False,
 ) -> int:
-    normalized_time = require_meal_time(time)
+    normalized_time = optional_meal_time(time)
     normalized_meal_type = str(meal_type or "").strip() or None
     cur = conn.execute(
         """INSERT INTO diet_meals
@@ -130,7 +138,8 @@ def insert_meal(
         ),
     )
     meal_id = cur.lastrowid
-    _insert_foods(conn, meal_id, foods)
+    if foods or not allow_empty_foods:
+        _insert_foods(conn, meal_id, foods)
     return meal_id
 
 
@@ -213,7 +222,7 @@ def update_meal_with_foods(meal_id: int, foods: list, **fields):
     allowed = {"date", "time", "meal_type", "description", "notes", "confidence"}
     updates = {k: v for k, v in fields.items() if k in allowed}
     if "time" in updates:
-        updates["time"] = require_meal_time(updates["time"])
+        updates["time"] = optional_meal_time(updates["time"])
     if "meal_type" in updates:
         updates["meal_type"] = str(updates["meal_type"] or "").strip() or None
     with closing(connect()) as conn:
@@ -224,7 +233,8 @@ def update_meal_with_foods(meal_id: int, foods: list, **fields):
                 [*updates.values(), meal_id],
             )
         conn.execute("DELETE FROM diet_foods WHERE meal_id = ?", (meal_id,))
-        _insert_foods(conn, meal_id, foods)
+        if foods:
+            _insert_foods(conn, meal_id, foods)
         conn.commit()
 
 
@@ -259,7 +269,7 @@ def update_meals(meal_ids: list[int], changes: dict) -> int:
     if "date" in updates:
         updates["date"] = Date.fromisoformat(str(updates["date"])).isoformat()
     if "time" in updates:
-        updates["time"] = require_meal_time(updates["time"])
+        updates["time"] = optional_meal_time(updates["time"])
     if "meal_type" in updates:
         updates["meal_type"] = str(updates["meal_type"] or "").strip() or None
     with closing(connect()) as conn, conn:
@@ -356,9 +366,9 @@ def get_meal(meal_id: int) -> dict:
     return meal
 
 
-def update_meal(meal_id: int, foods: list[dict], changes: dict) -> dict:
-    get_meal(meal_id)
-    update_meal_with_foods(meal_id, foods, **changes)
+def update_meal(meal_id: int, foods: list[dict] | None, changes: dict) -> dict:
+    current = get_meal(meal_id)
+    update_meal_with_foods(meal_id, current["foods"] if foods is None else foods, **changes)
     return get_meal(meal_id)
 
 

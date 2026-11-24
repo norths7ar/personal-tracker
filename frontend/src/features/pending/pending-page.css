@@ -113,3 +113,105 @@
 .pending-editor-heading .section-title {
   color: var(--brand-ink);
 }
+
+.capture-queue {
+  display: grid;
+  gap: var(--space-2);
+}
+.capture-row {
+  border: 1px solid var(--gray-5);
+  border-radius: var(--radius-3);
+  background: var(--color-panel-solid);
+  overflow: hidden;
+}
+.capture-row-review {
+  border-left: 3px solid var(--amber-8);
+}
+.capture-row-summary {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  text-align: left;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+.capture-row-summary:hover {
+  background: var(--gray-2);
+}
+.capture-row-review .capture-row-summary > svg {
+  color: var(--amber-11);
+}
+.capture-row-working .capture-row-summary > svg {
+  color: var(--gray-10);
+}
+.capture-row-main {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+.capture-row-main strong {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.capture-row-main > span {
+  color: var(--gray-11);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.capture-row-date {
+  color: var(--gray-10);
+  font-size: 12px;
+}
+.capture-row-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--gray-3);
+}
+.capture-row-review .capture-row-status {
+  background: var(--amber-3);
+  color: var(--amber-11);
+}
+.capture-row-details {
+  padding: var(--space-4);
+  border-top: 1px solid var(--gray-4);
+  display: grid;
+  gap: var(--space-4);
+}
+.capture-source {
+  color: var(--gray-11);
+  font-size: 13px;
+}
+.capture-source summary {
+  cursor: pointer;
+}
+.capture-source p {
+  margin-top: var(--space-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.capture-editor {
+  max-width: 760px;
+}
+@media (max-width: 639px) {
+  .capture-row-date {
+    display: none;
+  }
+  .capture-row-summary {
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+}
+
+.capture-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}

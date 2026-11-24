@@ -85,9 +85,9 @@ export function BulkMealEditor({
                   type={key === "date" || key === "time" ? key : "text"}
                   value={values[key]}
                   disabled={!enabled[key]}
-                  required={Boolean(enabled[key]) && (key === "date" || key === "time")}
+                  required={Boolean(enabled[key]) && key === "date"}
                   placeholder={
-                    key === "notes" || key === "meal_type"
+                    key === "notes" || key === "meal_type" || key === "time"
                       ? "留空将清除所选记录的此字段"
                       : undefined
                   }

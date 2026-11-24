@@ -1,10 +1,10 @@
 import logging
+import math
 from contextlib import closing
 from datetime import date
 from string import Template
 
 from backend.constants import (
-    DEFAULT_CATEGORY,
     DEFAULT_MEAL_TYPES,
     PENDING_CATEGORY,
     TRANSACTION_TYPES,
@@ -68,6 +68,10 @@ class BatchExtractor:
                     block["date"],
                     defaults=block,
                 )
+                if not block_events and not block_rejected:
+                    block_rejected.append(
+                        {"reason": "财务片段未提取出事件，请重试或人工补全", "record": block}
+                    )
                 events.extend(block_events)
                 rejected_events.extend(block_rejected)
             except Exception as e:
@@ -171,7 +175,7 @@ class BatchExtractor:
             subcategory=subcategory,
             meal_type="",
             foods=[],
-            confidence=confidence,
+            confidence=min(confidence, event.get("confidence", 0.0)),
             reasoning=reasoning,
         )
 
@@ -263,14 +267,8 @@ class BatchExtractor:
                 return category_hint, ""
             if subcategory_hint in subs:
                 return category_hint, subcategory_hint
-            return category_hint, subs[0]
-        if DEFAULT_CATEGORY in categories:
-            return DEFAULT_CATEGORY, ""
-        if categories:
-            first = next(iter(categories))
-            subs = categories.get(first) or []
-            return first, subs[0] if subs else ""
-        return DEFAULT_CATEGORY, ""
+            return category_hint, ""
+        return PENDING_CATEGORY, ""
 
     def _resolve_expense_category_hint(self, value: str) -> str:
         hint = str(value or "").strip()
@@ -352,7 +350,7 @@ class BatchExtractor:
                 except TypeError, ValueError:
                     rejected.append({"reason": "财务事件缺少有效金额", "record": item})
                     continue
-                if amount <= 0:
+                if not math.isfinite(amount) or amount <= 0:
                     rejected.append({"reason": "财务事件金额必须大于 0", "record": item})
                     continue
             else:
@@ -387,7 +385,8 @@ class BatchExtractor:
     @staticmethod
     def _normalize_confidence(value) -> float:
         try:
-            return max(0.0, min(1.0, float(value)))
+            value = float(value)
+            return max(0.0, min(1.0, value)) if math.isfinite(value) else 0.0
         except TypeError, ValueError:
             return 0.0
 
@@ -515,7 +514,7 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
                 }
 
             for record in records:
-                _insert_record(conn, record)
+                insert_record(conn, record)
             conn.commit()
             logger.info(
                 "batch saved submission_id=%s record_count=%s",
@@ -529,7 +528,7 @@ def save_batch(submission_id: str, records: list[dict]) -> dict:
     return {"saved_count": len(records), "duplicate": False}
 
 
-def _insert_record(conn, record: dict) -> int:
+def insert_record(conn, record: dict, *, allow_empty_foods: bool = False) -> int:
     record_type = str(record.get("record_type") or "").strip()
     if record_type == TYPE_MEAL:
         return insert_meal(
@@ -541,6 +540,7 @@ def _insert_record(conn, record: dict) -> int:
             notes=record.get("notes"),
             confidence=record.get("confidence"),
             foods=record.get("foods") or [],
+            allow_empty_foods=allow_empty_foods,
         )
     if record_type not in TRANSACTION_TYPES:
         raise ValueError(f"不支持的批量记录类型：{record_type}")

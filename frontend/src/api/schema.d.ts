@@ -4,3217 +4,3678 @@
  */
 
 export interface paths {
-  "/api/auth/login": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login */
+        post: operations["login_api_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Login */
-    post: operations["login_api_auth_login_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/logout": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Logout */
+        post: operations["logout_api_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Logout */
-    post: operations["logout_api_auth_logout_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/auth/me": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Me */
+        get: operations["me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Me */
-    get: operations["me_api_auth_me_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/settings": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Settings */
+        get: operations["settings_api_settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Settings */
-    get: operations["settings_api_settings_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/settings/model": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/settings/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Model */
+        put: operations["update_model_api_settings_model_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Update Model */
-    put: operations["update_model_api_settings_model_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/settings/records": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/settings/records": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Records */
+        put: operations["update_records_api_settings_records_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Update Records */
-    put: operations["update_records_api_settings_records_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/settings/access": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/settings/access": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Access */
+        put: operations["update_access_api_settings_access_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Update Access */
-    put: operations["update_access_api_settings_access_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/settings/prompts": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/settings/prompts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Prompts */
+        put: operations["update_prompts_api_settings_prompts_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Update Prompts */
-    put: operations["update_prompts_api_settings_prompts_put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/todos": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/todos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Todos */
+        get: operations["list_todos_api_todos_get"];
+        put?: never;
+        /** Create Todo */
+        post: operations["create_todo_api_todos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List Todos */
-    get: operations["list_todos_api_todos_get"];
-    put?: never;
-    /** Create Todo */
-    post: operations["create_todo_api_todos_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/todos/{todo_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/todos/{todo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit Todo */
+        put: operations["edit_todo_api_todos__todo_id__put"];
+        post?: never;
+        /** Delete Todo */
+        delete: operations["delete_todo_api_todos__todo_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Edit Todo */
-    put: operations["edit_todo_api_todos__todo_id__put"];
-    post?: never;
-    /** Delete Todo */
-    delete: operations["delete_todo_api_todos__todo_id__delete"];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/todos/{todo_id}/state": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/todos/{todo_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set State */
+        post: operations["set_state_api_todos__todo_id__state_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Set State */
-    post: operations["set_state_api_todos__todo_id__state_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/todos/{todo_id}/move": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/todos/{todo_id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Todo */
+        post: operations["move_todo_api_todos__todo_id__move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Move Todo */
-    post: operations["move_todo_api_todos__todo_id__move_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/diet/meals": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/diet/meals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Meals */
+        get: operations["list_meals_api_diet_meals_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List Meals */
-    get: operations["list_meals_api_diet_meals_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/diet/stats": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/diet/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Diet Stats */
+        get: operations["diet_stats_api_diet_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Diet Stats */
-    get: operations["diet_stats_api_diet_stats_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/diet/meals/bulk-update": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/diet/meals/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bulk Update Meals */
+        patch: operations["bulk_update_meals_api_diet_meals_bulk_update_patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Bulk Update Meals */
-    patch: operations["bulk_update_meals_api_diet_meals_bulk_update_patch"];
-    trace?: never;
-  };
-  "/api/diet/meals/bulk-delete": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/diet/meals/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Delete Meals */
+        post: operations["bulk_delete_meals_api_diet_meals_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Bulk Delete Meals */
-    post: operations["bulk_delete_meals_api_diet_meals_bulk_delete_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/diet/meals/{meal_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/diet/meals/{meal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Meal */
+        delete: operations["delete_meal_api_diet_meals__meal_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Meal */
+        patch: operations["update_meal_api_diet_meals__meal_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete Meal */
-    delete: operations["delete_meal_api_diet_meals__meal_id__delete"];
-    options?: never;
-    head?: never;
-    /** Update Meal */
-    patch: operations["update_meal_api_diet_meals__meal_id__patch"];
-    trace?: never;
-  };
-  "/api/ledger/transactions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Transactions */
+        get: operations["list_transactions_api_ledger_transactions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List Transactions */
-    get: operations["list_transactions_api_ledger_transactions_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/transactions/bulk-update": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions/bulk-update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Bulk Update Transactions */
+        patch: operations["bulk_update_transactions_api_ledger_transactions_bulk_update_patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Bulk Update Transactions */
-    patch: operations["bulk_update_transactions_api_ledger_transactions_bulk_update_patch"];
-    trace?: never;
-  };
-  "/api/ledger/transactions/{transaction_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions/{transaction_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Transaction */
+        patch: operations["update_transaction_api_ledger_transactions__transaction_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** Update Transaction */
-    patch: operations["update_transaction_api_ledger_transactions__transaction_id__patch"];
-    trace?: never;
-  };
-  "/api/ledger/transactions/bulk-delete": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions/bulk-delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bulk Delete Transactions */
+        post: operations["bulk_delete_transactions_api_ledger_transactions_bulk_delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Bulk Delete Transactions */
-    post: operations["bulk_delete_transactions_api_ledger_transactions_bulk_delete_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/transactions/{transaction_id}/refunds": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions/{transaction_id}/refunds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Refund */
+        post: operations["create_refund_api_ledger_transactions__transaction_id__refunds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Refund */
-    post: operations["create_refund_api_ledger_transactions__transaction_id__refunds_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/transactions/{transaction_id}/subscription": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/transactions/{transaction_id}/subscription": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Subscription */
+        post: operations["create_subscription_api_ledger_transactions__transaction_id__subscription_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Subscription */
-    post: operations["create_subscription_api_ledger_transactions__transaction_id__subscription_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/cross-period": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Cross Period */
+        get: operations["list_cross_period_api_ledger_cross_period_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List Cross Period */
-    get: operations["list_cross_period_api_ledger_cross_period_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/cross-period/expected": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period/expected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Expected */
+        post: operations["create_expected_api_ledger_cross_period_expected_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Expected */
-    post: operations["create_expected_api_ledger_cross_period_expected_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/cross-period/expected/{source}/{record_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period/expected/{source}/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Expected */
+        delete: operations["delete_expected_api_ledger_cross_period_expected__source___record_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Expected */
+        patch: operations["update_expected_api_ledger_cross_period_expected__source___record_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete Expected */
-    delete: operations["delete_expected_api_ledger_cross_period_expected__source___record_id__delete"];
-    options?: never;
-    head?: never;
-    /** Update Expected */
-    patch: operations["update_expected_api_ledger_cross_period_expected__source___record_id__patch"];
-    trace?: never;
-  };
-  "/api/ledger/cross-period/expected/{source}/{record_id}/confirm": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period/expected/{source}/{record_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Expected */
+        post: operations["confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Confirm Expected */
-    post: operations["confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/cross-period/prepaid": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period/prepaid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Prepaid */
+        post: operations["create_prepaid_api_ledger_cross_period_prepaid_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Prepaid */
-    post: operations["create_prepaid_api_ledger_cross_period_prepaid_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/cross-period/prepaid/{record_id}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/cross-period/prepaid/{record_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Prepaid */
+        delete: operations["delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Prepaid */
+        patch: operations["update_prepaid_api_ledger_cross_period_prepaid__record_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /** Delete Prepaid */
-    delete: operations["delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete"];
-    options?: never;
-    head?: never;
-    /** Update Prepaid */
-    patch: operations["update_prepaid_api_ledger_cross_period_prepaid__record_id__patch"];
-    trace?: never;
-  };
-  "/api/ledger/analysis": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Expense Analysis */
+        get: operations["expense_analysis_api_ledger_analysis_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Expense Analysis */
-    get: operations["expense_analysis_api_ledger_analysis_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/budgets/{month}": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/budgets/{month}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Budget */
+        put: operations["update_budget_api_ledger_budgets__month__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    /** Update Budget */
-    put: operations["update_budget_api_ledger_budgets__month__put"];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/ledger/pending": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/ledger/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Pending Transactions */
+        get: operations["list_pending_transactions_api_ledger_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** List Pending Transactions */
-    get: operations["list_pending_transactions_api_ledger_pending_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/transactions/prepare": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit Capture */
+        post: operations["submit_capture_api_capture_submissions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Prepare Transaction */
-    post: operations["prepare_transaction_api_capture_transactions_prepare_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/transactions": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pending Captures */
+        get: operations["pending_captures_api_capture_pending_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Transaction */
-    post: operations["create_transaction_api_capture_transactions_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/meals/prepare": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/items/{item_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Capture */
+        post: operations["confirm_capture_api_capture_items__item_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Prepare Meal */
-    post: operations["prepare_meal_api_capture_meals_prepare_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/meals": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/items/{item_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Capture */
+        post: operations["retry_capture_api_capture_items__item_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Create Meal */
-    post: operations["create_meal_api_capture_meals_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/batch/prepare": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/items/{item_id}/discard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Discard Capture */
+        post: operations["discard_capture_api_capture_items__item_id__discard_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Prepare Batch */
-    post: operations["prepare_batch_api_capture_batch_prepare_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/batch": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Capture Suggestions */
+        get: operations["capture_suggestions_api_capture_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /** Save Batch */
-    post: operations["save_batch_api_capture_batch_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/capture/home": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/phrases": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pin Phrase */
+        put: operations["pin_phrase_api_capture_phrases_put"];
+        post?: never;
+        /** Unpin Phrase */
+        delete: operations["unpin_phrase_api_capture_phrases_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Home Summary */
-    get: operations["home_summary_api_capture_home_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/health": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/capture/transactions/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Transaction */
+        post: operations["prepare_transaction_api_capture_transactions_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Health */
-    get: operations["health_api_health_get"];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
+    "/api/capture/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Transaction */
+        post: operations["create_transaction_api_capture_transactions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/capture/meals/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Meal */
+        post: operations["prepare_meal_api_capture_meals_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/capture/meals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Meal */
+        post: operations["create_meal_api_capture_meals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/capture/batch/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Prepare Batch */
+        post: operations["prepare_batch_api_capture_batch_prepare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/capture/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Save Batch */
+        post: operations["save_batch_api_capture_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/capture/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home Summary */
+        get: operations["home_summary_api_capture_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health */
+        get: operations["health_api_health_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /** AccessSettings */
-    AccessSettings: {
-      /** Enabled */
-      enabled: boolean;
-      /** Password Configured */
-      password_configured: boolean;
-      /** Cookie Secure */
-      cookie_secure: boolean;
-      /** Session Seconds */
-      session_seconds: number;
-    };
-    /** AccessSettingsUpdate */
-    AccessSettingsUpdate: {
-      /** Revision */
-      revision: string;
-      /** Enabled */
-      enabled: boolean;
-      /** Password */
-      password?: string | null;
-      /** Cookie Secure */
-      cookie_secure: boolean;
-      /** Session Seconds */
-      session_seconds: number;
-      /**
-       * Reset Sessions
-       * @default false
-       */
-      reset_sessions: boolean;
-    };
-    /** AnalysisEntry */
-    AnalysisEntry: {
-      /** Id */
-      id: number;
-      /** Date */
-      date: string;
-      /** Allocation Date */
-      allocation_date: string;
-      /** Description */
-      description: string;
-      /** Category */
-      category: string;
-      /** Subcategory */
-      subcategory: string;
-      /** Amount */
-      amount: number;
-      /** Contribution */
-      contribution: number;
-      /** Type */
-      type: string;
-      /**
-       * Bucket
-       * @enum {string}
-       */
-      bucket: "income" | "expense";
-    };
-    /** AuthenticationState */
-    AuthenticationState: {
-      /** Authenticated */
-      authenticated: boolean;
-    };
-    /** BatchDiagnostics */
-    BatchDiagnostics: {
-      /** Rejected Records */
-      rejected_records?: {
-        [key: string]: unknown;
-      }[];
-      /**
-       * Reasoning
-       * @default
-       */
-      reasoning: string;
-    };
-    /** BatchPrepareRequest */
-    BatchPrepareRequest: {
-      /** Text */
-      text: string;
-      /**
-       * Default Date
-       * Format: date
-       */
-      default_date: string;
-    };
-    /** BatchPrepareResponse */
-    BatchPrepareResponse: {
-      /** Status */
-      status: string;
-      /** Records */
-      records: components["schemas"]["BatchRecord"][];
-      diagnostics: components["schemas"]["BatchDiagnostics"];
-    };
-    /** BatchRecord */
-    BatchRecord: {
-      /**
-       * Include
-       * @default true
-       */
-      include: boolean;
-      /**
-       * Record Type
-       * @enum {string}
-       */
-      record_type: "支出" | "收入" | "迁移" | "饮食";
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /**
-       * Time
-       * @default
-       */
-      time: string;
-      /** Description */
-      description: string;
-      /** Amount */
-      amount?: number | null;
-      /**
-       * Category
-       * @default
-       */
-      category: string;
-      /**
-       * Subcategory
-       * @default
-       */
-      subcategory: string;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Foods */
-      foods?: components["schemas"]["FoodInput"][];
-      /** Notes */
-      notes?: string | null;
-      /**
-       * Confidence
-       * @default 0
-       */
-      confidence: number;
-      /**
-       * Reasoning
-       * @default
-       */
-      reasoning: string;
-    };
-    /** BatchSaveRequest */
-    BatchSaveRequest: {
-      /** Submission Id */
-      submission_id: string;
-      /** Records */
-      records: components["schemas"]["BatchRecord"][];
-    };
-    /** BatchSaveResponse */
-    BatchSaveResponse: {
-      /** Saved Count */
-      saved_count: number;
-      /** Duplicate */
-      duplicate: boolean;
-    };
-    /** BreakdownItem */
-    BreakdownItem: {
-      /** Category */
-      category: string | null;
-      /** Subcategory */
-      subcategory: string | null;
-      /** Total */
-      total: number;
-      /** Count */
-      count: number;
-    };
-    /** BulkCategoryUpdateResponse */
-    BulkCategoryUpdateResponse: {
-      /** Updated Count */
-      updated_count: number;
-    };
-    /** BulkDeleteRequest */
-    BulkDeleteRequest: {
-      /** Ids */
-      ids: number[];
-    };
-    /** BulkDeleteResponse */
-    BulkDeleteResponse: {
-      /** Deleted Count */
-      deleted_count: number;
-    };
-    /** BulkMealDeleteResponse */
-    BulkMealDeleteResponse: {
-      /** Deleted Count */
-      deleted_count: number;
-    };
-    /** BulkMealIds */
-    BulkMealIds: {
-      /** Ids */
-      ids: number[];
-    };
-    /** BulkMealUpdate */
-    BulkMealUpdate: {
-      /** Ids */
-      ids: number[];
-      /** Date */
-      date?: string | null;
-      /** Time */
-      time?: string | null;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Notes */
-      notes?: string | null;
-    };
-    /** BulkMealUpdateResponse */
-    BulkMealUpdateResponse: {
-      /** Updated Count */
-      updated_count: number;
-    };
-    /** BulkTransactionUpdateRequest */
-    BulkTransactionUpdateRequest: {
-      /** Ids */
-      ids: number[];
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-    };
-    /** ClassificationCandidate */
-    ClassificationCandidate: {
-      /** Category */
-      category: string;
-      /** Subcategory */
-      subcategory: string;
-      /** Confidence */
-      confidence: number;
-    };
-    /** ConfirmExpected */
-    ConfirmExpected: {
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /**
-       * Payment Date
-       * Format: date
-       */
-      payment_date: string;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-    };
-    /** CountByDate */
-    CountByDate: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Count */
-      count: number;
-    };
-    /** CountByFood */
-    CountByFood: {
-      /** Food Name */
-      food_name: string;
-      /** Count */
-      count: number;
-    };
-    /** CountByIngredient */
-    CountByIngredient: {
-      /** Ingredient Name */
-      ingredient_name: string;
-      /** Count */
-      count: number;
-    };
-    /** CreateResponse */
-    CreateResponse: {
-      /** Id */
-      id: number;
-      /** Duplicate */
-      duplicate: boolean;
-    };
-    /** CreatedRecord */
-    CreatedRecord: {
-      /** Id */
-      id: number;
-      /** Duplicate */
-      duplicate: boolean;
-    };
-    /** CrossPeriodResponse */
-    CrossPeriodResponse: {
-      /** Expected */
-      expected: components["schemas"]["ExpectedRecord"][];
-      /** Prepaid */
-      prepaid: components["schemas"]["PrepaidRecord"][];
-    };
-    /** DailyPoint */
-    DailyPoint: {
-      /** Date */
-      date: string;
-      /** Income */
-      income: number;
-      /** Expense */
-      expense: number;
-    };
-    /** DietStatsResponse */
-    DietStatsResponse: {
-      /** Meal Times */
-      meal_times: components["schemas"]["MealTimePoint"][];
-      /** Food Freq */
-      food_freq: components["schemas"]["CountByFood"][];
-      /** Ingredient Freq */
-      ingredient_freq: components["schemas"]["CountByIngredient"][];
-      /** Ingredient Record Count */
-      ingredient_record_count: number;
-      /** Daily Meals */
-      daily_meals: components["schemas"]["CountByDate"][];
-    };
-    /** ExpectedRecord */
-    ExpectedRecord: {
-      /** Id */
-      id: number;
-      /**
-       * Source
-       * @enum {string}
-       */
-      source: "subscription" | "plan";
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /** Next Date */
-      next_date: string | null;
-      /** Cycle */
-      cycle: string;
-      /** Category */
-      category: string | null;
-      /** Subcategory */
-      subcategory: string | null;
-      /** Notes */
-      notes: string | null;
-      /** Renewal Mode */
-      renewal_mode: ("same_day" | "fixed_days") | null;
-      /** Renewal Interval */
-      renewal_interval: number | null;
-      /** State */
-      state: string;
-    };
-    /** ExpectedWrite */
-    ExpectedWrite: {
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /**
-       * Recurring
-       * @default false
-       */
-      recurring: boolean;
-      /** Due Date */
-      due_date?: string | null;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-      /**
-       * Renewal Mode
-       * @default same_day
-       * @enum {string}
-       */
-      renewal_mode: "same_day" | "fixed_days";
-      /**
-       * Renewal Interval
-       * @default 1
-       */
-      renewal_interval: number;
-    };
-    /** ExpenseAnalysisResponse */
-    ExpenseAnalysisResponse: {
-      /** Months */
-      months: string[];
-      /** Years */
-      years: string[];
-      /** Selected Period */
-      selected_period: string | null;
-      /** Days */
-      days?: number | null;
-      /** Start Date */
-      start_date?: string | null;
-      /** End Date */
-      end_date?: string | null;
-      current?: components["schemas"]["PeriodData"] | null;
-      cash_current?: components["schemas"]["PeriodData"] | null;
-      /** Timeline */
-      timeline?: components["schemas"]["PeriodSummary"][];
-      /** Fixed Monthly Cost */
-      fixed_monthly_cost?: number | null;
-      budget?: components["schemas"]["MonthBudget"] | null;
-      /** Cash Expense */
-      cash_expense?: number | null;
-      /** Amortized Expense */
-      amortized_expense?: number | null;
-    };
-    /** FoodInput */
-    FoodInput: {
-      /** Food Name */
-      food_name: string;
-      /**
-       * Quantity
-       * @default
-       */
-      quantity: string;
-      /** Ingredients */
-      ingredients?: string[];
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components["schemas"]["ValidationError"][];
-    };
-    /** HomeSummary */
-    HomeSummary: {
-      /** Reminders */
-      reminders: components["schemas"]["Reminder"][];
-      /** Pending Count */
-      pending_count: number;
-      /** Today Expense */
-      today_expense: number;
-      /** Today Meals */
-      today_meals: components["schemas"]["TodayMeal"][];
-    };
-    /** LoginRequest */
-    LoginRequest: {
-      /** Password */
-      password: string;
-    };
-    /** MealCreateRequest */
-    MealCreateRequest: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Time */
-      time: string;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Description */
-      description: string;
-      /** Notes */
-      notes?: string | null;
-      /** Confidence */
-      confidence?: number | null;
-      /** Foods */
-      foods: components["schemas"]["FoodInput"][];
-    };
-    /** MealPreparationRequest */
-    MealPreparationRequest: {
-      /** Description */
-      description: string;
-      /** Time */
-      time: string;
-    };
-    /** MealPreparationResponse */
-    MealPreparationResponse: {
-      /** Status */
-      status: string;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Foods */
-      foods: components["schemas"]["FoodInput"][];
-      /** Confidence */
-      confidence: number;
-      /**
-       * Reasoning
-       * @default
-       */
-      reasoning: string;
-    };
-    /** MealResponse */
-    MealResponse: {
-      /** Id */
-      id: number;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Time */
-      time?: string | null;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Description */
-      description: string;
-      /** Notes */
-      notes?: string | null;
-      /** Confidence */
-      confidence?: number | null;
-      /** Created At */
-      created_at?: string | null;
-      /** Foods */
-      foods: components["schemas"]["FoodInput"][];
-    };
-    /** MealTimePoint */
-    MealTimePoint: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Time */
-      time: string;
-    };
-    /** MealUpdate */
-    MealUpdate: {
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Time */
-      time: string;
-      /** Meal Type */
-      meal_type?: string | null;
-      /** Description */
-      description: string;
-      /** Notes */
-      notes?: string | null;
-      /** Foods */
-      foods: components["schemas"]["FoodInput"][];
-    };
-    /** ModelSettings */
-    ModelSettings: {
-      /**
-       * Protocol
-       * @constant
-       */
-      protocol: "openai_chat_completions";
-      /**
-       * Thinking
-       * @enum {string}
-       */
-      thinking: "default" | "disabled";
-      /** Base Url */
-      base_url: string;
-      /** Model */
-      model: string;
-      /** Temperature */
-      temperature: number;
-      /** Max Tokens */
-      max_tokens: number;
-      /** Timeout */
-      timeout: number;
-      /** Confidence Threshold */
-      confidence_threshold: number;
-    };
-    /** ModelSettingsUpdate */
-    ModelSettingsUpdate: {
-      /** Revision */
-      revision: string;
-      model: components["schemas"]["ModelSettings"];
-      /** Api Key */
-      api_key?: string | null;
-    };
-    /** MonthBudget */
-    MonthBudget: {
-      /** Amortized Total */
-      amortized_total: number | null;
-      /** Cash Total */
-      cash_total: number | null;
-    };
-    /** MonthBudgetUpdate */
-    MonthBudgetUpdate: {
-      /** Amortized Total */
-      amortized_total?: number | null;
-      /** Cash Total */
-      cash_total?: number | null;
-    };
-    /** PeriodData */
-    PeriodData: {
-      /** Income */
-      income: number;
-      /** Expense */
-      expense: number;
-      /** Balance */
-      balance: number;
-      /** Daily */
-      daily: components["schemas"]["DailyPoint"][];
-      /** Expense Breakdown */
-      expense_breakdown: components["schemas"]["BreakdownItem"][];
-      /** Income Breakdown */
-      income_breakdown: components["schemas"]["BreakdownItem"][];
-      /** Entries */
-      entries?: components["schemas"]["AnalysisEntry"][];
-    };
-    /** PeriodSummary */
-    PeriodSummary: {
-      /** Label */
-      label: string;
-      /** Income */
-      income: number;
-      /** Expense */
-      expense: number;
-    };
-    /** PrepaidRecord */
-    PrepaidRecord: {
-      /** Id */
-      id: number;
-      /** Transaction Id */
-      transaction_id: number;
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /** Monthly Equivalent */
-      monthly_equivalent: number;
-      /** Months */
-      months: number;
-      /** Remaining Months */
-      remaining_months: number;
-      /** Start Month */
-      start_month: string;
-      /** Category */
-      category: string | null;
-      /** Subcategory */
-      subcategory: string | null;
-      /** Notes */
-      notes: string | null;
-    };
-    /** PrepaidUpdate */
-    PrepaidUpdate: {
-      /** Description */
-      description: string;
-      /** Months */
-      months: number;
-      /** Start Month */
-      start_month: string;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-    };
-    /** PrepaidWrite */
-    PrepaidWrite: {
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /**
-       * Payment Date
-       * Format: date
-       */
-      payment_date: string;
-      /** Months */
-      months: number;
-      /** Start Month */
-      start_month: string;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-    };
-    /** PromptOverrides */
-    PromptOverrides: {
-      /** Expense Classifier */
-      expense_classifier?: string | null;
-      /** Diet Extractor */
-      diet_extractor?: string | null;
-      /** Batch Blocks */
-      batch_blocks?: string | null;
-      /** Batch Finance Events */
-      batch_finance_events?: string | null;
-    };
-    /** PromptSettingsUpdate */
-    PromptSettingsUpdate: {
-      /** Revision */
-      revision: string;
-      prompts: components["schemas"]["PromptOverrides"];
-    };
-    /** PromptValue */
-    PromptValue: {
-      /** Text */
-      text: string;
-      /** Customized */
-      customized: boolean;
-      /** Required Placeholders */
-      required_placeholders: string[];
-    };
-    /** PromptValues */
-    PromptValues: {
-      expense_classifier: components["schemas"]["PromptValue"];
-      diet_extractor: components["schemas"]["PromptValue"];
-      batch_blocks: components["schemas"]["PromptValue"];
-      batch_finance_events: components["schemas"]["PromptValue"];
-    };
-    /** RecordSettings */
-    RecordSettings: {
-      /** Categories */
-      categories: {
-        [key: string]: {
-          [key: string]: string[];
+    schemas: {
+        /** AccessSettings */
+        AccessSettings: {
+            /** Enabled */
+            enabled: boolean;
+            /** Password Configured */
+            password_configured: boolean;
+            /** Cookie Secure */
+            cookie_secure: boolean;
+            /** Session Seconds */
+            session_seconds: number;
         };
-      };
-      /** Meal Types */
-      meal_types: string[];
+        /** AccessSettingsUpdate */
+        AccessSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Password */
+            password?: string | null;
+            /** Cookie Secure */
+            cookie_secure: boolean;
+            /** Session Seconds */
+            session_seconds: number;
+            /**
+             * Reset Sessions
+             * @default false
+             */
+            reset_sessions: boolean;
+        };
+        /** AnalysisEntry */
+        AnalysisEntry: {
+            /** Id */
+            id: number;
+            /** Date */
+            date: string;
+            /** Allocation Date */
+            allocation_date: string;
+            /** Description */
+            description: string;
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Amount */
+            amount: number;
+            /** Contribution */
+            contribution: number;
+            /** Type */
+            type: string;
+            /**
+             * Bucket
+             * @enum {string}
+             */
+            bucket: "income" | "expense";
+        };
+        /** AuthenticationState */
+        AuthenticationState: {
+            /** Authenticated */
+            authenticated: boolean;
+        };
+        /** BatchDiagnostics */
+        BatchDiagnostics: {
+            /** Rejected Records */
+            rejected_records?: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** BatchPrepareRequest */
+        BatchPrepareRequest: {
+            /** Text */
+            text: string;
+            /**
+             * Default Date
+             * Format: date
+             */
+            default_date: string;
+        };
+        /** BatchPrepareResponse */
+        BatchPrepareResponse: {
+            /** Status */
+            status: string;
+            /** Records */
+            records: components["schemas"]["BatchRecord"][];
+            diagnostics: components["schemas"]["BatchDiagnostics"];
+        };
+        /** BatchRecord */
+        BatchRecord: {
+            /**
+             * Include
+             * @default true
+             */
+            include: boolean;
+            /**
+             * Record Type
+             * @enum {string}
+             */
+            record_type: "支出" | "收入" | "迁移" | "饮食";
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /**
+             * Time
+             * @default
+             */
+            time: string | null;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount?: number | null;
+            /**
+             * Category
+             * @default
+             */
+            category: string;
+            /**
+             * Subcategory
+             * @default
+             */
+            subcategory: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Foods */
+            foods?: components["schemas"]["FoodInput"][];
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** BatchSaveRequest */
+        BatchSaveRequest: {
+            /** Submission Id */
+            submission_id: string;
+            /** Records */
+            records: components["schemas"]["BatchRecord"][];
+        };
+        /** BatchSaveResponse */
+        BatchSaveResponse: {
+            /** Saved Count */
+            saved_count: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** BreakdownItem */
+        BreakdownItem: {
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Total */
+            total: number;
+            /** Count */
+            count: number;
+        };
+        /** BulkCategoryUpdateResponse */
+        BulkCategoryUpdateResponse: {
+            /** Updated Count */
+            updated_count: number;
+        };
+        /** BulkDeleteRequest */
+        BulkDeleteRequest: {
+            /** Ids */
+            ids: number[];
+        };
+        /** BulkDeleteResponse */
+        BulkDeleteResponse: {
+            /** Deleted Count */
+            deleted_count: number;
+        };
+        /** BulkMealDeleteResponse */
+        BulkMealDeleteResponse: {
+            /** Deleted Count */
+            deleted_count: number;
+        };
+        /** BulkMealIds */
+        BulkMealIds: {
+            /** Ids */
+            ids: number[];
+        };
+        /** BulkMealUpdate */
+        BulkMealUpdate: {
+            /** Ids */
+            ids: number[];
+            /** Date */
+            date?: string | null;
+            /** Time */
+            time?: string | null;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** BulkMealUpdateResponse */
+        BulkMealUpdateResponse: {
+            /** Updated Count */
+            updated_count: number;
+        };
+        /** BulkTransactionUpdateRequest */
+        BulkTransactionUpdateRequest: {
+            /** Ids */
+            ids: number[];
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** CaptureItem */
+        CaptureItem: {
+            /** Id */
+            id: number;
+            /** Submission Id */
+            submission_id: number;
+            /** Source Text */
+            source_text: string;
+            /** Original Text */
+            original_text: string;
+            /**
+             * Default Date
+             * Format: date
+             */
+            default_date: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "processing" | "review" | "failed";
+            record: components["schemas"]["BatchRecord"] | null;
+            /** Reason */
+            reason: string;
+            /** Created At */
+            created_at: string;
+            /** Can Retry */
+            can_retry: boolean;
+        };
+        /** CaptureRetryResponse */
+        CaptureRetryResponse: {
+            /** Id */
+            id: number;
+        };
+        /** CaptureSubmission */
+        CaptureSubmission: {
+            /** Text */
+            text: string;
+            /**
+             * Default Date
+             * Format: date
+             */
+            default_date: string;
+        };
+        /** CaptureSuggestion */
+        CaptureSuggestion: {
+            /** Text */
+            text: string;
+            /** Pinned */
+            pinned: boolean;
+            /** Count */
+            count: number;
+        };
+        /** ClassificationCandidate */
+        ClassificationCandidate: {
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Confidence */
+            confidence: number;
+        };
+        /** ConfirmExpected */
+        ConfirmExpected: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Payment Date
+             * Format: date
+             */
+            payment_date: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** CountByDate */
+        CountByDate: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Count */
+            count: number;
+        };
+        /** CountByFood */
+        CountByFood: {
+            /** Food Name */
+            food_name: string;
+            /** Count */
+            count: number;
+        };
+        /** CountByIngredient */
+        CountByIngredient: {
+            /** Ingredient Name */
+            ingredient_name: string;
+            /** Count */
+            count: number;
+        };
+        /** CreateResponse */
+        CreateResponse: {
+            /** Id */
+            id: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** CreatedRecord */
+        CreatedRecord: {
+            /** Id */
+            id: number;
+            /** Duplicate */
+            duplicate: boolean;
+        };
+        /** CrossPeriodResponse */
+        CrossPeriodResponse: {
+            /** Expected */
+            expected: components["schemas"]["ExpectedRecord"][];
+            /** Prepaid */
+            prepaid: components["schemas"]["PrepaidRecord"][];
+        };
+        /** DailyPoint */
+        DailyPoint: {
+            /** Date */
+            date: string;
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
+        };
+        /** DietStatsResponse */
+        DietStatsResponse: {
+            /** Meal Times */
+            meal_times: components["schemas"]["MealTimePoint"][];
+            /** Food Freq */
+            food_freq: components["schemas"]["CountByFood"][];
+            /** Ingredient Freq */
+            ingredient_freq: components["schemas"]["CountByIngredient"][];
+            /** Ingredient Record Count */
+            ingredient_record_count: number;
+            /** Daily Meals */
+            daily_meals: components["schemas"]["CountByDate"][];
+        };
+        /** ExpectedRecord */
+        ExpectedRecord: {
+            /** Id */
+            id: number;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "subscription" | "plan";
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Next Date */
+            next_date: string | null;
+            /** Cycle */
+            cycle: string;
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Notes */
+            notes: string | null;
+            /** Renewal Mode */
+            renewal_mode: ("same_day" | "fixed_days") | null;
+            /** Renewal Interval */
+            renewal_interval: number | null;
+            /** State */
+            state: string;
+        };
+        /** ExpectedWrite */
+        ExpectedWrite: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Recurring
+             * @default false
+             */
+            recurring: boolean;
+            /** Due Date */
+            due_date?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Renewal Mode
+             * @default same_day
+             * @enum {string}
+             */
+            renewal_mode: "same_day" | "fixed_days";
+            /**
+             * Renewal Interval
+             * @default 1
+             */
+            renewal_interval: number;
+        };
+        /** ExpenseAnalysisResponse */
+        ExpenseAnalysisResponse: {
+            /** Months */
+            months: string[];
+            /** Years */
+            years: string[];
+            /** Selected Period */
+            selected_period: string | null;
+            /** Days */
+            days?: number | null;
+            /** Start Date */
+            start_date?: string | null;
+            /** End Date */
+            end_date?: string | null;
+            current?: components["schemas"]["PeriodData"] | null;
+            cash_current?: components["schemas"]["PeriodData"] | null;
+            /** Timeline */
+            timeline?: components["schemas"]["PeriodSummary"][];
+            /** Fixed Monthly Cost */
+            fixed_monthly_cost?: number | null;
+            budget?: components["schemas"]["MonthBudget"] | null;
+            /** Cash Expense */
+            cash_expense?: number | null;
+            /** Amortized Expense */
+            amortized_expense?: number | null;
+        };
+        /** FoodInput */
+        FoodInput: {
+            /** Food Name */
+            food_name: string;
+            /**
+             * Quantity
+             * @default
+             */
+            quantity: string;
+            /** Ingredients */
+            ingredients?: string[];
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** HomeSummary */
+        HomeSummary: {
+            /** Reminders */
+            reminders: components["schemas"]["Reminder"][];
+            /** Pending Count */
+            pending_count: number;
+            /** Today Expense */
+            today_expense: number;
+            /** Today Meals */
+            today_meals: components["schemas"]["TodayMeal"][];
+        };
+        /** LoginRequest */
+        LoginRequest: {
+            /** Password */
+            password: string;
+        };
+        /** MealCreateRequest */
+        MealCreateRequest: {
+            /**
+             * Date
+             * Format: date
+             */
+            date?: string;
+            /** Time */
+            time?: string | null;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Foods */
+            foods?: components["schemas"]["FoodInput"][];
+        };
+        /** MealPreparationRequest */
+        MealPreparationRequest: {
+            /** Description */
+            description: string;
+            /** Time */
+            time?: string | null;
+        };
+        /** MealPreparationResponse */
+        MealPreparationResponse: {
+            /** Status */
+            status: string;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
+            /** Confidence */
+            confidence: number;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+        };
+        /** MealResponse */
+        MealResponse: {
+            /** Id */
+            id: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time?: string | null;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Foods */
+            foods: components["schemas"]["FoodInput"][];
+        };
+        /** MealTimePoint */
+        MealTimePoint: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time: string;
+        };
+        /** MealUpdate */
+        MealUpdate: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Time */
+            time?: string | null;
+            /** Meal Type */
+            meal_type?: string | null;
+            /** Description */
+            description: string;
+            /** Notes */
+            notes?: string | null;
+            /** Foods */
+            foods?: components["schemas"]["FoodInput"][];
+        };
+        /** ModelSettings */
+        ModelSettings: {
+            /**
+             * Protocol
+             * @constant
+             */
+            protocol: "openai_chat_completions";
+            /**
+             * Thinking
+             * @enum {string}
+             */
+            thinking: "default" | "disabled";
+            /** Base Url */
+            base_url: string;
+            /** Model */
+            model: string;
+            /** Temperature */
+            temperature: number;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Timeout */
+            timeout: number;
+            /** Confidence Threshold */
+            confidence_threshold: number;
+        };
+        /** ModelSettingsUpdate */
+        ModelSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            model: components["schemas"]["ModelSettings"];
+            /** Api Key */
+            api_key?: string | null;
+        };
+        /** MonthBudget */
+        MonthBudget: {
+            /** Amortized Total */
+            amortized_total: number | null;
+            /** Cash Total */
+            cash_total: number | null;
+        };
+        /** MonthBudgetUpdate */
+        MonthBudgetUpdate: {
+            /** Amortized Total */
+            amortized_total?: number | null;
+            /** Cash Total */
+            cash_total?: number | null;
+        };
+        /** PendingCaptureResponse */
+        PendingCaptureResponse: {
+            /** Change Token */
+            change_token: string;
+            /** Items */
+            items: components["schemas"]["CaptureItem"][];
+            /** Pending Count */
+            pending_count: number;
+            /** Processing Count */
+            processing_count: number;
+        };
+        /** PeriodData */
+        PeriodData: {
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
+            /** Balance */
+            balance: number;
+            /** Daily */
+            daily: components["schemas"]["DailyPoint"][];
+            /** Expense Breakdown */
+            expense_breakdown: components["schemas"]["BreakdownItem"][];
+            /** Income Breakdown */
+            income_breakdown: components["schemas"]["BreakdownItem"][];
+            /** Entries */
+            entries?: components["schemas"]["AnalysisEntry"][];
+        };
+        /** PeriodSummary */
+        PeriodSummary: {
+            /** Label */
+            label: string;
+            /** Income */
+            income: number;
+            /** Expense */
+            expense: number;
+        };
+        /** PhraseInput */
+        PhraseInput: {
+            /** Text */
+            text: string;
+        };
+        /** PrepaidRecord */
+        PrepaidRecord: {
+            /** Id */
+            id: number;
+            /** Transaction Id */
+            transaction_id: number;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Monthly Equivalent */
+            monthly_equivalent: number;
+            /** Months */
+            months: number;
+            /** Remaining Months */
+            remaining_months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category: string | null;
+            /** Subcategory */
+            subcategory: string | null;
+            /** Notes */
+            notes: string | null;
+        };
+        /** PrepaidUpdate */
+        PrepaidUpdate: {
+            /** Description */
+            description: string;
+            /** Months */
+            months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** PrepaidWrite */
+        PrepaidWrite: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Payment Date
+             * Format: date
+             */
+            payment_date: string;
+            /** Months */
+            months: number;
+            /** Start Month */
+            start_month: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** PromptOverrides */
+        PromptOverrides: {
+            /** Expense Classifier */
+            expense_classifier?: string | null;
+            /** Diet Extractor */
+            diet_extractor?: string | null;
+            /** Batch Blocks */
+            batch_blocks?: string | null;
+            /** Batch Finance Events */
+            batch_finance_events?: string | null;
+        };
+        /** PromptSettingsUpdate */
+        PromptSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            prompts: components["schemas"]["PromptOverrides"];
+        };
+        /** PromptValue */
+        PromptValue: {
+            /** Text */
+            text: string;
+            /** Customized */
+            customized: boolean;
+            /** Required Placeholders */
+            required_placeholders: string[];
+        };
+        /** PromptValues */
+        PromptValues: {
+            expense_classifier: components["schemas"]["PromptValue"];
+            diet_extractor: components["schemas"]["PromptValue"];
+            batch_blocks: components["schemas"]["PromptValue"];
+            batch_finance_events: components["schemas"]["PromptValue"];
+        };
+        /** RecordSettings */
+        RecordSettings: {
+            /** Categories */
+            categories: {
+                [key: string]: {
+                    [key: string]: string[];
+                };
+            };
+            /** Meal Types */
+            meal_types: string[];
+        };
+        /** RecordSettingsUpdate */
+        RecordSettingsUpdate: {
+            /** Revision */
+            revision: string;
+            records: components["schemas"]["RecordSettings"];
+        };
+        /** RefundCreate */
+        RefundCreate: {
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+        };
+        /** Reminder */
+        Reminder: {
+            /** Source */
+            source: string;
+            /** Id */
+            id: number;
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Due Date */
+            due_date: string;
+            /** Days Until Due */
+            days_until_due: number;
+        };
+        /** SettingsResponse */
+        SettingsResponse: {
+            /** Revision */
+            revision: string;
+            model: components["schemas"]["ModelSettings"];
+            records: components["schemas"]["RecordSettings"];
+            prompts: components["schemas"]["PromptValues"];
+            access: components["schemas"]["AccessSettings"];
+            /** Api Key Configured */
+            api_key_configured: boolean;
+            /** Data Directory */
+            data_directory: string;
+            /** Database Path */
+            database_path: string;
+        };
+        /** SubscriptionCreate */
+        SubscriptionCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Next Renewal Date
+             * Format: date
+             */
+            next_renewal_date: string;
+            /**
+             * Renewal Mode
+             * @enum {string}
+             */
+            renewal_mode: "same_day" | "fixed_days";
+            /** Renewal Interval */
+            renewal_interval: number;
+            /** Renewal Anchor Day */
+            renewal_anchor_day?: number | null;
+        };
+        /** TodayMeal */
+        TodayMeal: {
+            /** Id */
+            id: number;
+            /** Time */
+            time: string | null;
+            /** Meal Type */
+            meal_type: string | null;
+            /** Foods */
+            foods: string[];
+            /** Description */
+            description: string;
+        };
+        /** TodoMove */
+        TodoMove: {
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "up" | "down";
+        };
+        /** TodoResponse */
+        TodoResponse: {
+            /** Title */
+            title: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Id */
+            id: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "active" | "completed";
+            /** Position */
+            position: number;
+            /** Completed At */
+            completed_at: string | null;
+        };
+        /** TodoState */
+        TodoState: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "active" | "completed";
+        };
+        /** TodoWrite */
+        TodoWrite: {
+            /** Title */
+            title: string;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+        };
+        /** TransactionCreateRequest */
+        TransactionCreateRequest: {
+            /**
+             * Type
+             * @default 支出
+             * @enum {string}
+             */
+            type: "支出" | "收入" | "迁移";
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date?: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Reviewed
+             * @default false
+             */
+            reviewed: boolean;
+        };
+        /** TransactionPreparationRequest */
+        TransactionPreparationRequest: {
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "支出" | "收入" | "迁移";
+            /** Description */
+            description: string;
+        };
+        /** TransactionPreparationResponse */
+        TransactionPreparationResponse: {
+            /** Status */
+            status: string;
+            /** Category */
+            category: string;
+            /** Subcategory */
+            subcategory: string;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Reasoning
+             * @default
+             */
+            reasoning: string;
+            /** Candidates */
+            candidates?: components["schemas"]["ClassificationCandidate"][];
+        };
+        /** TransactionResponse */
+        TransactionResponse: {
+            /** Id */
+            id: number;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "支出" | "收入" | "迁移";
+            /** Description */
+            description: string;
+            /** Amount */
+            amount: number;
+            /** Amount Cents */
+            amount_cents?: number | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Reviewed
+             * @default false
+             */
+            reviewed: boolean;
+            /** Refund For Id */
+            refund_for_id?: number | null;
+            /** Amortization Months */
+            amortization_months?: number | null;
+            /** Amortization Start */
+            amortization_start?: string | null;
+            /** Subscription Id */
+            subscription_id?: number | null;
+            /** Created At */
+            created_at?: string | null;
+        };
+        /** TransactionUpdate */
+        TransactionUpdate: {
+            /** Type */
+            type?: ("支出" | "收入" | "迁移") | null;
+            /** Description */
+            description?: string | null;
+            /** Amount */
+            amount?: number | null;
+            /** Date */
+            date?: string | null;
+            /** Category */
+            category?: string | null;
+            /** Subcategory */
+            subcategory?: string | null;
+            /** Notes */
+            notes?: string | null;
+            /** Reviewed */
+            reviewed?: boolean | null;
+            /** Amortization Months */
+            amortization_months?: number | null;
+            /** Amortization Start */
+            amortization_start?: string | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+            /** Input */
+            input?: unknown;
+            /** Context */
+            ctx?: Record<string, never>;
+        };
+        /** WriteResult */
+        WriteResult: {
+            /** Id */
+            id?: number | null;
+            /** Source */
+            source?: string | null;
+            /** Transaction Id */
+            transaction_id?: number | null;
+            /** Subscription Id */
+            subscription_id?: number | null;
+            /** Duplicate */
+            duplicate: boolean;
+        };
     };
-    /** RecordSettingsUpdate */
-    RecordSettingsUpdate: {
-      /** Revision */
-      revision: string;
-      records: components["schemas"]["RecordSettings"];
-    };
-    /** RefundCreate */
-    RefundCreate: {
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-    };
-    /** Reminder */
-    Reminder: {
-      /** Source */
-      source: string;
-      /** Id */
-      id: number;
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /** Due Date */
-      due_date: string;
-      /** Days Until Due */
-      days_until_due: number;
-    };
-    /** SettingsResponse */
-    SettingsResponse: {
-      /** Revision */
-      revision: string;
-      model: components["schemas"]["ModelSettings"];
-      records: components["schemas"]["RecordSettings"];
-      prompts: components["schemas"]["PromptValues"];
-      access: components["schemas"]["AccessSettings"];
-      /** Api Key Configured */
-      api_key_configured: boolean;
-      /** Data Directory */
-      data_directory: string;
-      /** Database Path */
-      database_path: string;
-    };
-    /** SubscriptionCreate */
-    SubscriptionCreate: {
-      /** Name */
-      name: string;
-      /**
-       * Next Renewal Date
-       * Format: date
-       */
-      next_renewal_date: string;
-      /**
-       * Renewal Mode
-       * @enum {string}
-       */
-      renewal_mode: "same_day" | "fixed_days";
-      /** Renewal Interval */
-      renewal_interval: number;
-      /** Renewal Anchor Day */
-      renewal_anchor_day?: number | null;
-    };
-    /** TodayMeal */
-    TodayMeal: {
-      /** Id */
-      id: number;
-      /** Time */
-      time: string | null;
-      /** Meal Type */
-      meal_type: string | null;
-      /** Foods */
-      foods: string[];
-    };
-    /** TodoMove */
-    TodoMove: {
-      /**
-       * Direction
-       * @enum {string}
-       */
-      direction: "up" | "down";
-    };
-    /** TodoResponse */
-    TodoResponse: {
-      /** Title */
-      title: string;
-      /**
-       * Notes
-       * @default
-       */
-      notes: string;
-      /** Id */
-      id: number;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "pending" | "active" | "completed";
-      /** Position */
-      position: number;
-      /** Completed At */
-      completed_at: string | null;
-    };
-    /** TodoState */
-    TodoState: {
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: "pending" | "active" | "completed";
-    };
-    /** TodoWrite */
-    TodoWrite: {
-      /** Title */
-      title: string;
-      /**
-       * Notes
-       * @default
-       */
-      notes: string;
-    };
-    /** TransactionCreateRequest */
-    TransactionCreateRequest: {
-      /**
-       * Type
-       * @enum {string}
-       */
-      type: "支出" | "收入" | "迁移";
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-      /** Confidence */
-      confidence?: number | null;
-      /**
-       * Reviewed
-       * @default false
-       */
-      reviewed: boolean;
-    };
-    /** TransactionPreparationRequest */
-    TransactionPreparationRequest: {
-      /**
-       * Type
-       * @enum {string}
-       */
-      type: "支出" | "收入" | "迁移";
-      /** Description */
-      description: string;
-    };
-    /** TransactionPreparationResponse */
-    TransactionPreparationResponse: {
-      /** Status */
-      status: string;
-      /** Category */
-      category: string;
-      /** Subcategory */
-      subcategory: string;
-      /** Confidence */
-      confidence?: number | null;
-      /**
-       * Reasoning
-       * @default
-       */
-      reasoning: string;
-      /** Candidates */
-      candidates?: components["schemas"]["ClassificationCandidate"][];
-    };
-    /** TransactionResponse */
-    TransactionResponse: {
-      /** Id */
-      id: number;
-      /**
-       * Type
-       * @enum {string}
-       */
-      type: "支出" | "收入" | "迁移";
-      /** Description */
-      description: string;
-      /** Amount */
-      amount: number;
-      /** Amount Cents */
-      amount_cents?: number | null;
-      /**
-       * Date
-       * Format: date
-       */
-      date: string;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-      /** Confidence */
-      confidence?: number | null;
-      /**
-       * Reviewed
-       * @default false
-       */
-      reviewed: boolean;
-      /** Refund For Id */
-      refund_for_id?: number | null;
-      /** Amortization Months */
-      amortization_months?: number | null;
-      /** Amortization Start */
-      amortization_start?: string | null;
-      /** Subscription Id */
-      subscription_id?: number | null;
-      /** Created At */
-      created_at?: string | null;
-    };
-    /** TransactionUpdate */
-    TransactionUpdate: {
-      /** Type */
-      type?: ("支出" | "收入" | "迁移") | null;
-      /** Description */
-      description?: string | null;
-      /** Amount */
-      amount?: number | null;
-      /** Date */
-      date?: string | null;
-      /** Category */
-      category?: string | null;
-      /** Subcategory */
-      subcategory?: string | null;
-      /** Notes */
-      notes?: string | null;
-      /** Reviewed */
-      reviewed?: boolean | null;
-      /** Amortization Months */
-      amortization_months?: number | null;
-      /** Amortization Start */
-      amortization_start?: string | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-      /** Input */
-      input?: unknown;
-      /** Context */
-      ctx?: Record<string, never>;
-    };
-    /** WriteResult */
-    WriteResult: {
-      /** Id */
-      id?: number | null;
-      /** Source */
-      source?: string | null;
-      /** Transaction Id */
-      transaction_id?: number | null;
-      /** Subscription Id */
-      subscription_id?: number | null;
-      /** Duplicate */
-      duplicate: boolean;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  login_api_auth_login_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["LoginRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AuthenticationState"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  logout_api_auth_logout_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AuthenticationState"];
-        };
-      };
-    };
-  };
-  me_api_auth_me_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["AuthenticationState"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  settings_api_settings_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_model_api_settings_model_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ModelSettingsUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_records_api_settings_records_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RecordSettingsUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_access_api_settings_access_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["AccessSettingsUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_prompts_api_settings_prompts_put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PromptSettingsUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["SettingsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_todos_api_todos_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TodoResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_todo_api_todos_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TodoWrite"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TodoResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  edit_todo_api_todos__todo_id__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        todo_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TodoWrite"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TodoResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_todo_api_todos__todo_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        todo_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  set_state_api_todos__todo_id__state_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        todo_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TodoState"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TodoResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  move_todo_api_todos__todo_id__move_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        todo_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TodoMove"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_meals_api_diet_meals_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["MealResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  diet_stats_api_diet_stats_get: {
-    parameters: {
-      query: {
-        start_date: string;
-        end_date: string;
-      };
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["DietStatsResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_update_meals_api_diet_meals_bulk_update_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkMealUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BulkMealUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_delete_meals_api_diet_meals_bulk_delete_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkMealIds"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BulkMealDeleteResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_meal_api_diet_meals__meal_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        meal_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_meal_api_diet_meals__meal_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        meal_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MealUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["MealResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_transactions_api_ledger_transactions_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TransactionResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_update_transactions_api_ledger_transactions_bulk_update_patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkTransactionUpdateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BulkCategoryUpdateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_transaction_api_ledger_transactions__transaction_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        transaction_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TransactionUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TransactionResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  bulk_delete_transactions_api_ledger_transactions_bulk_delete_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BulkDeleteRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BulkDeleteResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_refund_api_ledger_transactions__transaction_id__refunds_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path: {
-        transaction_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["RefundCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CreatedRecord"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_subscription_api_ledger_transactions__transaction_id__subscription_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path: {
-        transaction_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["SubscriptionCreate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CreatedRecord"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_cross_period_api_ledger_cross_period_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CrossPeriodResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_expected_api_ledger_cross_period_expected_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ExpectedWrite"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WriteResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_expected_api_ledger_cross_period_expected__source___record_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        source: "subscription" | "plan";
-        record_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_expected_api_ledger_cross_period_expected__source___record_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        source: "subscription" | "plan";
-        record_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ExpectedWrite"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path: {
-        source: "subscription" | "plan";
-        record_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ConfirmExpected"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WriteResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_prepaid_api_ledger_cross_period_prepaid_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PrepaidWrite"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["WriteResult"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        record_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_prepaid_api_ledger_cross_period_prepaid__record_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        record_id: number;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PrepaidUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  expense_analysis_api_ledger_analysis_get: {
-    parameters: {
-      query?: {
-        granularity?: "month" | "year";
-        period?: string | null;
-        basis?: "cash" | "amortized";
-      };
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ExpenseAnalysisResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  update_budget_api_ledger_budgets__month__put: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        month: string;
-      };
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MonthBudgetUpdate"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["MonthBudget"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_pending_transactions_api_ledger_pending_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TransactionResponse"][];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  prepare_transaction_api_capture_transactions_prepare_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TransactionPreparationRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["TransactionPreparationResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_transaction_api_capture_transactions_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["TransactionCreateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CreateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  prepare_meal_api_capture_meals_prepare_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MealPreparationRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["MealPreparationResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  create_meal_api_capture_meals_post: {
-    parameters: {
-      query?: never;
-      header: {
-        "Idempotency-Key": string;
-      };
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["MealCreateRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["CreateResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  prepare_batch_api_capture_batch_prepare_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BatchPrepareRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BatchPrepareResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  save_batch_api_capture_batch_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["BatchSaveRequest"];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["BatchSaveResponse"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  home_summary_api_capture_home_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: {
-        tracker_session?: string | null;
-      };
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HomeSummary"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  health_api_health_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": {
-            [key: string]: string;
-          };
-        };
-      };
-    };
-  };
+    login_api_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticationState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticationState"];
+                };
+            };
+        };
+    };
+    me_api_auth_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticationState"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    settings_api_settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_model_api_settings_model_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_records_api_settings_records_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_access_api_settings_access_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccessSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_prompts_api_settings_prompts_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PromptSettingsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_todos_api_todos_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_todo_api_todos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_todo_api_todos__todo_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_todo_api_todos__todo_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_state_api_todos__todo_id__state_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoState"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TodoResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_todo_api_todos__todo_id__move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                todo_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TodoMove"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_meals_api_diet_meals_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    diet_stats_api_diet_stats_get: {
+        parameters: {
+            query: {
+                start_date: string;
+                end_date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DietStatsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_meals_api_diet_meals_bulk_update_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkMealUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkMealUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_meals_api_diet_meals_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkMealIds"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkMealDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_meal_api_diet_meals__meal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meal_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_meal_api_diet_meals__meal_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                meal_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_api_ledger_transactions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_update_transactions_api_ledger_transactions_bulk_update_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkTransactionUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkCategoryUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_transaction_api_ledger_transactions__transaction_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transaction_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_delete_transactions_api_ledger_transactions_bulk_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkDeleteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkDeleteResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_refund_api_ledger_transactions__transaction_id__refunds_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                transaction_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RefundCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_subscription_api_ledger_transactions__transaction_id__subscription_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                transaction_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscriptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedRecord"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cross_period_api_ledger_cross_period_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CrossPeriodResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_expected_api_ledger_cross_period_expected_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_expected_api_ledger_cross_period_expected__source___record_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_expected_api_ledger_cross_period_expected__source___record_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpectedWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                source: "subscription" | "plan";
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmExpected"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_prepaid_api_ledger_cross_period_prepaid_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepaidWrite"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WriteResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_prepaid_api_ledger_cross_period_prepaid__record_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                record_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepaidUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    expense_analysis_api_ledger_analysis_get: {
+        parameters: {
+            query?: {
+                granularity?: "month" | "year";
+                period?: string | null;
+                basis?: "cash" | "amortized";
+            };
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExpenseAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_budget_api_ledger_budgets__month__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                month: string;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonthBudgetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonthBudget"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_pending_transactions_api_ledger_pending_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_capture_api_capture_submissions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CaptureSubmission"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pending_captures_api_capture_pending_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingCaptureResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_capture_api_capture_items__item_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchRecord"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_capture_api_capture_items__item_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureRetryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_capture_api_capture_items__item_id__discard_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: number;
+            };
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    capture_suggestions_api_capture_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureSuggestion"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pin_phrase_api_capture_phrases_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhraseInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureSuggestion"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unpin_phrase_api_capture_phrases_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PhraseInput"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CaptureSuggestion"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_transaction_api_capture_transactions_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionPreparationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPreparationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_transaction_api_capture_transactions_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransactionCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_meal_api_capture_meals_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealPreparationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MealPreparationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_meal_api_capture_meals_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MealCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    prepare_batch_api_capture_batch_prepare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchPrepareResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_batch_api_capture_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatchSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BatchSaveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    home_summary_api_capture_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: {
+                tracker_session?: string | null;
+            };
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    health_api_health_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
+    };
 }

@@ -272,3 +272,36 @@
     padding: 18px;
   }
 }
+
+.manual-entry {
+  border-top: 1px solid var(--gray-5);
+  padding-top: var(--space-3);
+}
+.manual-entry > summary {
+  cursor: pointer;
+  color: var(--gray-11);
+  padding: var(--space-2) 0;
+}
+.manual-entry > summary .help-text {
+  margin-left: var(--space-2);
+}
+.manual-entry .record-tabs {
+  margin-block: var(--space-3);
+}
+.manual-fields {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.manual-fields > :not([hidden]) ~ :not([hidden]) {
+  margin-top: var(--space-4);
+}
+.manual-options > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-11);
+}
+.manual-options > .form-stack {
+  margin-top: var(--space-4);
+}

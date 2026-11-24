@@ -2,12 +2,12 @@ import type { components } from "./schema";
 
 export type Transaction = components["schemas"]["TransactionResponse"];
 export type TransactionUpdate = components["schemas"]["TransactionUpdate"];
-export type TransactionPreparation = components["schemas"]["TransactionPreparationResponse"];
 export type TransactionCreate = components["schemas"]["TransactionCreateRequest"];
-export type MealPreparation = components["schemas"]["MealPreparationResponse"];
 export type MealCreate = components["schemas"]["MealCreateRequest"];
 export type BatchRecord = components["schemas"]["BatchRecord"];
-export type BatchPreparation = components["schemas"]["BatchPrepareResponse"];
+export type CaptureItem = components["schemas"]["CaptureItem"];
+export type CapturePending = components["schemas"]["PendingCaptureResponse"];
+export type CaptureSuggestion = components["schemas"]["CaptureSuggestion"];
 export type Meal = components["schemas"]["MealResponse"];
 export type MealUpdate = components["schemas"]["MealUpdate"];
 export type MealBulkChanges = Partial<Pick<MealUpdate, "date" | "time" | "meal_type" | "notes">>;
@@ -64,6 +64,33 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  submitCapture: (text: string, defaultDate: string, key: string) =>
+    request<{ id: number; duplicate: boolean }>("/api/capture/submissions", {
+      method: "POST",
+      headers: { "Idempotency-Key": key },
+      body: JSON.stringify({ text, default_date: defaultDate }),
+    }),
+  capturePending: () => request<CapturePending>("/api/capture/pending"),
+  confirmCapture: (id: number, record: BatchRecord) =>
+    request<{ id: number; duplicate: boolean }>(`/api/capture/items/${id}/confirm`, {
+      method: "POST",
+      body: JSON.stringify(record),
+    }),
+  retryCapture: (id: number) =>
+    request<{ id: number }>(`/api/capture/items/${id}/retry`, { method: "POST" }),
+  discardCapture: (id: number) =>
+    request<void>(`/api/capture/items/${id}/discard`, { method: "POST" }),
+  captureSuggestions: () => request<CaptureSuggestion[]>("/api/capture/suggestions"),
+  pinPhrase: (text: string) =>
+    request<CaptureSuggestion[]>("/api/capture/phrases", {
+      method: "PUT",
+      body: JSON.stringify({ text }),
+    }),
+  unpinPhrase: (text: string) =>
+    request<CaptureSuggestion[]>("/api/capture/phrases", {
+      method: "DELETE",
+      body: JSON.stringify({ text }),
+    }),
   todos: () => request<Todo[]>("/api/todos"),
   createTodo: (entry: TodoWrite) =>
     request<Todo>("/api/todos", {
@@ -125,37 +152,17 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ ids, ...changes }),
     }),
-  prepareTransaction: (type: TransactionCreate["type"], description: string) =>
-    request<TransactionPreparation>("/api/capture/transactions/prepare", {
-      method: "POST",
-      body: JSON.stringify({ type, description }),
-    }),
   createTransaction: (entry: TransactionCreate, idempotencyKey: string) =>
     request<{ id: number; duplicate: boolean }>("/api/capture/transactions", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
-  prepareMeal: (description: string, time: string) =>
-    request<MealPreparation>("/api/capture/meals/prepare", {
-      method: "POST",
-      body: JSON.stringify({ description, time }),
-    }),
   createMeal: (entry: MealCreate, idempotencyKey: string) =>
     request<{ id: number; duplicate: boolean }>("/api/capture/meals", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
-    }),
-  prepareBatch: (text: string, defaultDate: string) =>
-    request<BatchPreparation>("/api/capture/batch/prepare", {
-      method: "POST",
-      body: JSON.stringify({ text, default_date: defaultDate }),
-    }),
-  saveBatch: (submissionId: string, records: BatchRecord[]) =>
-    request<{ saved_count: number; duplicate: boolean }>("/api/capture/batch", {
-      method: "POST",
-      body: JSON.stringify({ submission_id: submissionId, records }),
     }),
   meals: () => request<Meal[]>("/api/diet/meals"),
   updateMeal: (id: number, entry: MealUpdate) =>

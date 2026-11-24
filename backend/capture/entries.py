@@ -1,3 +1,4 @@
+import math
 from datetime import date
 
 from backend.capture.batch import BatchExtractor, save_batch
@@ -11,7 +12,7 @@ from backend.constants import (
 )
 from backend.db import execute_idempotent
 from backend.diet.extractor import DietExtractor
-from backend.diet.store import insert_meal, require_meal_time, resolve_meal_type
+from backend.diet.store import insert_meal, optional_meal_time, resolve_meal_type
 from backend.ledger.classifier import Classifier
 from backend.ledger.transactions import insert_transaction
 from backend.llm import LLMClient
@@ -64,17 +65,17 @@ def create_transaction(payload: dict, idempotency_key: str) -> dict:
     return {**result, "duplicate": duplicate}
 
 
-def prepare_meal(description: str, meal_time: str) -> dict:
-    normalized_time = require_meal_time(meal_time)
+def prepare_meal(description: str, meal_time: str | None) -> dict:
+    normalized_time = optional_meal_time(meal_time)
     snapshot = load_extraction_snapshot()
     with LLMClient(snapshot.llm, snapshot.api_key) as client:
         return DietExtractor(snapshot.extraction_config(), client).extract(
-            description, normalized_time
+            description, normalized_time or ""
         )
 
 
 def create_meal(payload: dict, idempotency_key: str) -> dict:
-    normalized_time = require_meal_time(payload["time"])
+    normalized_time = optional_meal_time(payload.get("time"))
     normalized_payload = {
         **payload,
         "time": normalized_time,
@@ -90,7 +91,8 @@ def create_meal(payload: dict, idempotency_key: str) -> dict:
             description=normalized_payload["description"],
             notes=normalized_payload.get("notes"),
             confidence=normalized_payload.get("confidence"),
-            foods=normalized_payload["foods"],
+            foods=normalized_payload.get("foods") or [],
+            allow_empty_foods=True,
         )
         return {"id": meal_id}
 
@@ -117,12 +119,12 @@ def prepare_batch(text: str, default_date: str) -> dict:
 def save_reviewed_batch(submission_id: str, records: list[dict]) -> dict:
     config = load_config()
     normalized = [
-        _normalize_batch_record(record, config) for record in records if record.get("include", True)
+        normalize_batch_record(record, config) for record in records if record.get("include", True)
     ]
     return save_batch(submission_id, normalized)
 
 
-def _normalize_batch_record(record: dict, config: dict) -> dict:
+def normalize_batch_record(record: dict, config: dict, *, allow_empty_foods: bool = False) -> dict:
     record_type = str(record.get("record_type") or "").strip()
     if record_type not in BATCH_RECORD_TYPES:
         raise ValueError(f"批量记录类型无效：{record_type}")
@@ -135,24 +137,26 @@ def _normalize_batch_record(record: dict, config: dict) -> dict:
     if not description:
         raise ValueError("批量记录缺少描述")
 
+    confidence = float(record.get("confidence") or 0)
+    confidence = confidence if math.isfinite(confidence) else 0.0
     normalized = {
         "record_type": record_type,
         "date": record_date,
         "description": description,
         "notes": str(record.get("notes") or "").strip() or None,
-        "confidence": float(record.get("confidence") or 0),
+        "confidence": confidence,
     }
     if record_type == TYPE_MEAL:
-        normalized["time"] = require_meal_time(record.get("time"))
+        normalized["time"] = optional_meal_time(record.get("time"))
         normalized["meal_type"] = resolve_meal_type(record.get("meal_type"), normalized["time"])
         normalized["foods"] = record.get("foods") or []
         has_food = any(str(food.get("food_name") or "").strip() for food in normalized["foods"])
-        if not has_food:
+        if not has_food and not allow_empty_foods:
             raise ValueError("批量饮食记录缺少食物清单")
         return normalized
 
     amount = float(record.get("amount") or 0)
-    if amount <= 0:
+    if not math.isfinite(amount) or amount <= 0:
         raise ValueError("批量账目金额必须大于 0")
     category = str(record.get("category") or "").strip() or None
     subcategory = str(record.get("subcategory") or "").strip() or None

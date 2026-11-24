@@ -10,7 +10,7 @@ export function exportMeals(meals: Meal[]) {
     ...meals.map((meal) => [
       meal.id,
       meal.date,
-      meal.time,
+      meal.time ?? "",
       meal.meal_type ?? "",
       meal.description,
       meal.foods

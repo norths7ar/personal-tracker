@@ -1,375 +1,112 @@
-import { settingsApi } from "@/api/client";
 import { TextArea } from "@radix-ui/themes";
-import "@/features/record/batch-entry.css";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
-import { useState } from "react";
-import { api, type BatchPreparation, type BatchRecord } from "@/api/client";
-import { invalidateFinance, invalidateMeals } from "@/api/invalidate";
+import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "@/api/client";
+import { invalidateCapture } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MealTypeInput } from "@/features/diet/meal-type-input";
-import { Feedback, Field, selectClass, textareaClass, today } from "@/features/record/entry-shared";
-import { Checkbox } from "@radix-ui/themes";
-
-type IndexedRecord = { record: BatchRecord; index: number };
-
-function rejectedText(record: unknown): string {
-  if (typeof record === "string") return record;
-  if (record && typeof record === "object") {
-    const item = record as { text?: string; description?: string };
-    return item.text || item.description || "原文中的一条记录";
-  }
-  return "原文中的一条记录";
-}
+import { Feedback, Field, textareaClass } from "./entry-shared";
+import {
+  beginCaptureSubmission,
+  completeCaptureSubmission,
+  updateCaptureDraft,
+  useCaptureDraft,
+} from "./capture-draft";
+import { PhraseSuggestions } from "./phrase-suggestions";
+import "./batch-entry.css";
 
 export function BatchEntry() {
   const queryClient = useQueryClient();
-  const categories = useQuery({
-    queryKey: ["settings"],
-    queryFn: settingsApi.get,
-    select: (settings) => settings.records.categories,
-  });
-  const [text, setText] = useState("");
-  const [defaultDate, setDefaultDate] = useState(today);
-  const [records, setRecords] = useState<BatchRecord[]>([]);
-  const [diagnostics, setDiagnostics] = useState<BatchPreparation["diagnostics"] | null>(null);
-  const [submissionId, setSubmissionId] = useState("");
+  const { draft, storageError } = useCaptureDraft();
   const [message, setMessage] = useState("");
-
-  const prepare = useMutation({
-    mutationFn: () => api.prepareBatch(text, defaultDate),
-    onSuccess: (result) => {
-      setRecords(result.records);
-      setDiagnostics(result.diagnostics);
-      setSubmissionId(crypto.randomUUID());
-      setMessage(
-        result.records.length
-          ? `解析出 ${result.records.length} 条记录，请确认。`
-          : "没有解析出可保存的记录。",
-      );
+  const input = useRef<HTMLTextAreaElement>(null);
+  const submit = useMutation({
+    mutationFn: () => {
+      const pending = beginCaptureSubmission();
+      return api
+        .submitCapture(pending.text, pending.date, pending.key)
+        .then((result) => ({ result, key: pending.key }));
     },
-  });
-  const save = useMutation({
-    mutationFn: () => api.saveBatch(submissionId, records),
-    onSuccess: (result) => {
-      void invalidateFinance(queryClient);
-      void invalidateMeals(queryClient);
+    onSuccess: ({ result, key }) => {
+      completeCaptureSubmission(key);
       setMessage(
         result.duplicate
-          ? "该批次已经保存，重复提交已忽略。"
-          : `已保存 ${result.saved_count} 条记录。`,
+          ? "这段记录已收到，无需重复提交。"
+          : "已收下，正在后台整理。你可以继续记录或离开页面。",
       );
-      setRecords([]);
-      setDiagnostics(null);
-      setText("");
+      void invalidateCapture(queryClient);
     },
   });
-
-  const update = (index: number, changes: Partial<BatchRecord>) => {
-    setRecords((current) =>
-      current.map((record, recordIndex) =>
-        recordIndex === index ? { ...record, ...changes } : record,
-      ),
-    );
+  const append = (phrase: string) => {
+    const text = draft.text.trimEnd();
+    updateCaptureDraft({
+      text: text ? `${text}${/[，。；！？、\n]$/.test(text) ? "" : "，"}${phrase}` : phrase,
+    });
+    input.current?.focus();
   };
-  const indexed = records.map((record, index) => ({ record, index }));
-  const finance = indexed.filter(({ record }) => record.record_type !== "饮食");
-  const meals = indexed.filter(({ record }) => record.record_type === "饮食");
-
   return (
-    <div className="page-stack">
-      <div className="content-panel record-composer batch-composer">
-        <div className="composer-heading">
+    <form
+      className="content-panel record-composer batch-composer"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (!submit.isPending && (draft.pending || (draft.text.trim() && draft.date)))
+          submit.mutate();
+      }}
+    >
+      <div className="composer-heading">
+        <div>
           <h2>今天，想记些什么？</h2>
-          <Field label="默认日期" className="batch-date">
-            <Input
-              type="date"
-              value={defaultDate}
-              onChange={(event) => setDefaultDate(event.target.value)}
-            />
-          </Field>
+          <p className="help-text">随手写下收支和饮食，提交后自动整理，拿不准的留在待处理。</p>
         </div>
-        <Field label="批量描述" className="batch-result batch-description">
-          <TextArea
-            className={`${textareaClass} batch-input`}
-            value={text}
-            onChange={(event) => setText(event.target.value)}
-            placeholder={"午饭花了 32 元，吃了番茄牛腩饭。\n下班买了水果 26 元，晚饭在家煮面。"}
+        <Field label="记录日期" className="batch-date">
+          <Input
+            type="date"
+            value={draft.date}
+            required={!draft.pending}
+            onChange={(event) => updateCaptureDraft({ date: event.target.value })}
           />
         </Field>
-        <div className="composer-footer">
-          <Button
-            data-primary-action={records.length === 0}
-            onClick={() => prepare.mutate()}
-            disabled={prepare.isPending || save.isPending || !text.trim()}
-          >
-            {prepare.isPending ? "解析中…" : "解析"}
-            <ArrowRight size={16} aria-hidden="true" />
-          </Button>
-        </div>
-        <Feedback message={message} error={prepare.error ?? save.error} />
-        {diagnostics &&
-          ((diagnostics.rejected_records?.length ?? 0) > 0 || prepare.data?.status === "error") && (
-            <details className="batch-explanation">
-              <summary className="batch-disclosure">未能识别的内容</summary>
-              <p className="batch-rejected">这些内容尚未加入待保存记录，请检查原文后重新录入。</p>
-              <ul className="batch-rejected-list">
-                {diagnostics.rejected_records?.map((item, index) => (
-                  <li key={index}>
-                    {rejectedText(item.record)}：{String(item.reason ?? "无法识别")}
-                  </li>
-                ))}
-              </ul>
-              {diagnostics.reasoning && <p>{diagnostics.reasoning}</p>}
-            </details>
-          )}
       </div>
-
-      {finance.length > 0 && (
-        <FinanceReview rows={finance} categories={categories.data ?? {}} update={update} />
+      <Field label="日常描述" className="batch-description">
+        <TextArea
+          ref={input}
+          className={`${textareaClass} batch-input`}
+          value={draft.text}
+          onChange={(event) => updateCaptureDraft({ text: event.target.value })}
+          placeholder={"午饭花了 32 元，吃了番茄牛腩饭。\n下班买了水果 26 元，晚饭在家煮面。"}
+        />
+      </Field>
+      <PhraseSuggestions onInsert={append} />
+      {storageError && (
+        <p role="alert" className="feedback-error">
+          {storageError}
+        </p>
       )}
-      {meals.length > 0 && <MealReview rows={meals} update={update} />}
-
-      {records.length > 0 && (
-        <div className="batch-actions">
-          <Button
-            data-primary-action="true"
-            onClick={() => save.mutate()}
-            disabled={
-              prepare.isPending || save.isPending || !records.some((record) => record.include)
-            }
-          >
-            {save.isPending ? "保存中…" : "保存所选记录"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setRecords([]);
-              setDiagnostics(null);
-              setSubmissionId("");
-            }}
-          >
-            放弃草稿
-          </Button>
-        </div>
+      {draft.pending && !submit.isPending && (
+        <p className="help-text">
+          上次提交尚未确认。点击下方按钮安全重试；当前输入的新内容会保留。
+        </p>
       )}
-    </div>
-  );
-}
-
-function FinanceReview({
-  rows,
-  categories,
-  update,
-}: {
-  rows: IndexedRecord[];
-  categories: Record<string, Record<string, string[]>>;
-  update: (index: number, changes: Partial<BatchRecord>) => void;
-}) {
-  return (
-    <ReviewTable title="账目">
-      {rows.map(({ record, index }) => {
-        const categoryMap = categories[record.record_type] ?? {};
-        const subcategories = categoryMap[record.category] ?? [];
-        return (
-          <tr className="data-row" key={index}>
-            <IncludeCell record={record} index={index} update={update} />
-            <td className="batch-cell">
-              <Input
-                type="date"
-                value={record.date}
-                onChange={(event) => update(index, { date: event.target.value })}
-              />
-            </td>
-            <td className="batch-cell">
-              <select
-                className={selectClass}
-                value={record.record_type}
-                onChange={(event) =>
-                  update(index, {
-                    record_type: event.target.value as BatchRecord["record_type"],
-                    category: "",
-                    subcategory: "",
-                  })
-                }
-              >
-                {(["支出", "收入", "迁移"] as const).map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </td>
-            <td className="batch-cell">
-              <Input
-                value={record.description}
-                onChange={(event) => update(index, { description: event.target.value })}
-              />
-            </td>
-            <td className="batch-cell">
-              <Input
-                type="number"
-                min="0.01"
-                step="0.01"
-                value={record.amount ?? ""}
-                onChange={(event) => update(index, { amount: Number(event.target.value) })}
-              />
-            </td>
-            <td className="batch-cell">
-              <select
-                className={selectClass}
-                value={record.category}
-                onChange={(event) =>
-                  update(index, {
-                    category: event.target.value,
-                    subcategory: "",
-                  })
-                }
-              >
-                <option value="">无</option>
-                {Object.keys(categoryMap).map((category) => (
-                  <option key={category}>{category}</option>
-                ))}
-              </select>
-            </td>
-            <td className="batch-cell">
-              <select
-                className={selectClass}
-                value={record.subcategory}
-                onChange={(event) => update(index, { subcategory: event.target.value })}
-              >
-                <option value="">无</option>
-                {subcategories.map((subcategory) => (
-                  <option key={subcategory}>{subcategory}</option>
-                ))}
-              </select>
-            </td>
-          </tr>
-        );
-      })}
-    </ReviewTable>
-  );
-}
-
-function MealReview({
-  rows,
-  update,
-}: {
-  rows: IndexedRecord[];
-  update: (index: number, changes: Partial<BatchRecord>) => void;
-}) {
-  return (
-    <ReviewTable title="饮食">
-      {rows.map(({ record, index }) => (
-        <tr className="data-row" key={index}>
-          <IncludeCell record={record} index={index} update={update} />
-          <td className="batch-editor-cell">
-            <Input
-              type="date"
-              value={record.date}
-              onChange={(event) => update(index, { date: event.target.value })}
-            />
-            <Input
-              type="time"
-              value={record.time}
-              onChange={(event) => update(index, { time: event.target.value })}
-            />
-          </td>
-          <td className="batch-muted-cell">饮食</td>
-          <td className="batch-cell">
-            <Input
-              value={record.description}
-              onChange={(event) => update(index, { description: event.target.value })}
-            />
-          </td>
-          <td className="batch-cell" colSpan={2}>
-            <Input
-              value={foodsToText(record.foods ?? [])}
-              onChange={(event) => update(index, { foods: textToFoods(event.target.value) })}
-              placeholder="菜品:份量【食材1、食材2】；…"
-            />
-          </td>
-          <td className="batch-cell">
-            <MealTypeInput
-              value={record.meal_type ?? ""}
-              onChange={(event) => update(index, { meal_type: event.target.value })}
-              placeholder="餐顿标签"
-            />
-          </td>
-        </tr>
-      ))}
-    </ReviewTable>
-  );
-}
-
-function ReviewTable({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="table-panel">
-      <h2 className="batch-heading">{title}</h2>
-      <div className="table-scroll">
-        <table className="batch-table">
-          <thead className="data-table-heading">
-            <tr>
-              <th className="data-cell">保存</th>
-              <th className="data-cell">日期 / 时间</th>
-              <th className="data-cell">类型</th>
-              <th className="data-cell">描述</th>
-              <th className="data-cell">金额 / 食物</th>
-              <th className="data-cell">主类别</th>
-              <th className="data-cell">子类别 / 餐顿</th>
-            </tr>
-          </thead>
-          <tbody>{children}</tbody>
-        </table>
+      <div className="composer-footer">
+        <span className="help-text">
+          {storageError ? "草稿未保存到本机" : "草稿自动保留在本机"} · Ctrl + Enter 提交
+        </span>
+        <Button
+          data-primary-action="true"
+          disabled={submit.isPending || (!draft.pending && (!draft.text.trim() || !draft.date))}
+        >
+          {submit.isPending ? "正在收下…" : draft.pending ? "确认上次提交" : "提交记录"}
+          <ArrowRight size={16} aria-hidden="true" />
+        </Button>
       </div>
-    </div>
+      <Feedback message={message} error={submit.error} />
+      {message && (
+        <Link className="reminder-link" to="/pending">
+          查看待处理 <ArrowRight size={14} />
+        </Link>
+      )}
+    </form>
   );
-}
-
-function IncludeCell({
-  record,
-  index,
-  update,
-}: {
-  record: BatchRecord;
-  index: number;
-  update: (index: number, changes: Partial<BatchRecord>) => void;
-}) {
-  return (
-    <td className="data-cell">
-      <Checkbox
-        checked={record.include}
-        onCheckedChange={(checked) => update(index, { include: Boolean(checked) })}
-      />
-    </td>
-  );
-}
-
-function foodsToText(foods: NonNullable<BatchRecord["foods"]>): string {
-  return foods
-    .map((food) => {
-      let value = food.food_name;
-      if (food.quantity) value += `:${food.quantity}`;
-      if (food.ingredients?.length) value += `【${food.ingredients.join("、")}】`;
-      return value;
-    })
-    .join("；");
-}
-
-function textToFoods(value: string): NonNullable<BatchRecord["foods"]> {
-  return value
-    .split(/[；;]/)
-    .map((part) => {
-      const ingredientMatch = part.match(/【(.*)】$/);
-      const withoutIngredients = ingredientMatch ? part.slice(0, ingredientMatch.index) : part;
-      const [foodName = "", quantity = ""] = withoutIngredients.split(/[:：]/, 2);
-      return {
-        food_name: foodName.trim(),
-        quantity: quantity.trim(),
-        ingredients: (ingredientMatch?.[1] ?? "")
-          .split(/[、,，]/)
-          .map((item) => item.trim())
-          .filter(Boolean),
-      };
-    })
-    .filter((food) => food.food_name);
 }
