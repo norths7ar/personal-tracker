@@ -13,17 +13,58 @@ import {
 } from "@tanstack/react-table";
 import { Download } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { api, type Transaction } from "@/api/client";
 import { invalidateFinance } from "@/api/invalidate";
 import { RecordActions } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
 import { useRecordSelection } from "@/lib/use-record-selection";
+import { cn } from "@/lib/utils";
 import { csvCell } from "./utils";
 import { BulkTransactionEditor } from "./bulk-editor";
 import { TransactionEditor } from "./transaction-editor";
+import { PlansPanel } from "./plans/plans-panel";
 import "./ledger-page.css";
 
 export function LedgerPage() {
+  const [params, setParams] = useSearchParams();
+  const showPlans = params.get("tab") === "plans";
+  const selectTab = (plans: boolean) => {
+    if (plans === showPlans) return;
+    const next = new URLSearchParams(params);
+    if (plans) next.set("tab", "plans");
+    else next.delete("tab");
+    setParams(next);
+  };
+  return (
+    <section className="page-stack">
+      <header className="page-heading">
+        <h1 className="page-title">账目</h1>
+      </header>
+      <div className="page-tabs ledger-tabs" aria-label="账目视图">
+        <button
+          type="button"
+          className={cn("page-tab", !showPlans && "page-tab-selected")}
+          aria-pressed={!showPlans}
+          onClick={() => selectTab(false)}
+        >
+          流水
+        </button>
+        <button
+          type="button"
+          className={cn("page-tab", showPlans && "page-tab-selected")}
+          aria-pressed={showPlans}
+          onClick={() => selectTab(true)}
+        >
+          周期计划
+        </button>
+      </div>
+      {showPlans ? <PlansPanel /> : <LedgerTransactions />}
+    </section>
+  );
+}
+
+function LedgerTransactions() {
   const queryClient = useQueryClient();
   const transactions = useQuery({
     queryKey: ["ledger", "transactions"],
@@ -49,6 +90,7 @@ export function LedgerPage() {
     typeFilter,
     startDate,
     endDate,
+    coveredOnly,
   } = filters;
   const table = useReactTable({
     data: filteredRows,
@@ -74,6 +116,7 @@ export function LedgerPage() {
     typeFilter,
     startDate,
     endDate,
+    coveredOnly,
     setRowSelection,
   ]);
 
@@ -120,16 +163,13 @@ export function LedgerPage() {
   };
 
   return (
-    <section className="page-stack">
-      <header className="page-heading">
-        <div>
-          <h1 className="page-title">账目</h1>
-        </div>
+    <div className="page-stack">
+      <div className="ledger-export">
         <Button variant="outline" onClick={exportCsv} disabled={!filteredRows.length}>
           <Download size={16} />
           导出当前结果
         </Button>
-      </header>
+      </div>
 
       <LedgerFilters filters={filters} />
       <LedgerTable
@@ -194,7 +234,7 @@ export function LedgerPage() {
           setEditing(null);
         }}
       />
-    </section>
+    </div>
   );
 }
 

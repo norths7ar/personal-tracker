@@ -206,24 +206,6 @@
   opacity: 1;
 }
 
-.editor-tabs {
-  margin-bottom: 1.25rem;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-1);
-  border-radius: var(--radius-3);
-  background-color: var(--gray-3);
-  padding: var(--space-1);
-}
-
-.editor-tab {
-  border-radius: var(--radius-2);
-  padding-inline: var(--space-2);
-  padding-block: var(--space-2);
-  font-size: var(--font-size-2, 0.875rem);
-  line-height: 1.25rem;
-}
-
 .editor-note {
   border-radius: var(--radius-3);
   background-color: var(--gray-3);
@@ -249,4 +231,43 @@
 
 .ledger-error {
   color: var(--red-11);
+}
+.ledger-tabs {
+  width: min(100%, 320px);
+}
+
+.ledger-export {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ledger-coverage-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-inline: var(--space-2);
+  font-size: var(--font-size-2);
+  white-space: nowrap;
+}
+
+.ledger-coverage-marker {
+  display: inline-block;
+  margin-inline-start: var(--space-2);
+  border-radius: var(--radius-2);
+  padding: 1px var(--space-1);
+  background-color: var(--gray-3);
+  color: var(--gray-11);
+  font-size: var(--font-size-1);
+  font-weight: 400;
+}
+
+.transaction-extra-actions {
+  margin-top: var(--space-4);
+  border-top: 1px solid var(--gray-5);
+  padding-top: var(--space-4);
+}
+
+.transaction-action-footer {
+  display: flex;
+  justify-content: flex-end;
 }

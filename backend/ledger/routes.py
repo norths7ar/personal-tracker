@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 from backend.auth import require_api_auth
 from backend.db import IdempotencyConflict
-from backend.http import IdempotencyKey
+from backend.http import IdempotencyKey, IsoDate
 from backend.ledger import analysis as analysis_service
 from backend.ledger import planning
 from backend.ledger import transactions as transaction_service
@@ -15,6 +15,7 @@ from backend.ledger.transactions import get_pending_transactions
 router = APIRouter(prefix="/api/ledger", tags=["ledger"], dependencies=[Depends(require_api_auth)])
 
 TransactionType = Literal["支出", "收入", "迁移"]
+CoverageUnit = Literal["months", "days"]
 
 
 class TransactionResponse(BaseModel):
@@ -30,8 +31,8 @@ class TransactionResponse(BaseModel):
     confidence: float | None = None
     reviewed: bool = False
     refund_for_id: int | None = None
-    amortization_months: int | None = None
-    amortization_start: Date | None = None
+    coverage_start: Date | None = None
+    coverage_end: Date | None = None
     subscription_id: int | None = None
     created_at: str | None = None
 
@@ -45,8 +46,8 @@ class TransactionUpdate(BaseModel):
     subcategory: str | None = None
     notes: str | None = None
     reviewed: bool | None = None
-    amortization_months: int | None = Field(default=None, ge=2, le=120)
-    amortization_start: Date | None = None
+    coverage_start: IsoDate | None = None
+    coverage_end: IsoDate | None = None
 
     @field_validator("type", "description", "amount", "date", "reviewed")
     @classmethod
@@ -99,6 +100,8 @@ class SubscriptionCreate(BaseModel):
     renewal_mode: Literal["same_day", "fixed_days"]
     renewal_interval: int = Field(ge=1, le=730)
     renewal_anchor_day: int | None = Field(default=None, ge=1, le=31)
+    coverage_unit: CoverageUnit | None = None
+    coverage_interval: int | None = Field(default=None, ge=1, strict=True)
 
 
 class CreatedRecord(BaseModel):
@@ -127,10 +130,7 @@ def bulk_update_transactions(
 
 @router.patch("/transactions/{transaction_id}", response_model=TransactionResponse)
 def update_transaction(transaction_id: int, body: TransactionUpdate) -> dict:
-    changes = body.model_dump(exclude_unset=True)
-    for field in ("date", "amortization_start"):
-        if isinstance(changes.get(field), Date):
-            changes[field] = changes[field].isoformat()
+    changes = body.model_dump(mode="json", exclude_unset=True)
     try:
         return planning.update_transaction(transaction_id, changes)
     except transaction_service.TransactionNotFound as exc:
@@ -187,26 +187,13 @@ class ExpectedRecord(BaseModel):
     notes: str | None
     renewal_mode: RenewalMode | None
     renewal_interval: int | None
+    coverage_unit: CoverageUnit | None
+    coverage_interval: int | None
     state: str
 
 
-class PrepaidRecord(BaseModel):
-    id: int
-    transaction_id: int
-    description: str
-    amount: float
-    monthly_equivalent: float
-    months: int
-    remaining_months: int
-    start_month: str
-    category: str | None
-    subcategory: str | None
-    notes: str | None
-
-
-class CrossPeriodResponse(BaseModel):
+class PlansResponse(BaseModel):
     expected: list[ExpectedRecord]
-    prepaid: list[PrepaidRecord]
 
 
 class ExpectedWrite(BaseModel):
@@ -219,6 +206,8 @@ class ExpectedWrite(BaseModel):
     notes: str | None = None
     renewal_mode: RenewalMode = "same_day"
     renewal_interval: int = Field(default=1, ge=1, le=730)
+    coverage_unit: CoverageUnit | None = None
+    coverage_interval: int | None = Field(default=None, ge=1, strict=True)
 
 
 class ConfirmExpected(BaseModel):
@@ -230,65 +219,38 @@ class ConfirmExpected(BaseModel):
     notes: str | None = None
 
 
-class PrepaidWrite(BaseModel):
-    description: str = Field(min_length=1)
-    amount: float = Field(gt=0)
-    payment_date: Date
-    months: int = Field(ge=1, le=120)
-    start_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
-    category: str | None = None
-    subcategory: str | None = None
-    notes: str | None = None
-
-
-class PrepaidUpdate(BaseModel):
-    description: str = Field(min_length=1)
-    months: int = Field(ge=1, le=120)
-    start_month: str = Field(pattern=r"^\d{4}-(0[1-9]|1[0-2])$")
-    category: str | None = None
-    subcategory: str | None = None
-    notes: str | None = None
-
-
 class WriteResult(BaseModel):
     id: int | None = None
     source: str | None = None
     transaction_id: int | None = None
-    subscription_id: int | None = None
     duplicate: bool
 
 
-@router.get("/cross-period", response_model=CrossPeriodResponse)
-def list_cross_period() -> dict:
-    return planning.list_cross_period()
+@router.get("/plans", response_model=PlansResponse)
+def list_plans() -> dict:
+    return planning.list_plans()
 
 
-@router.post("/cross-period/expected", response_model=WriteResult)
+@router.post("/plans", response_model=WriteResult)
 def create_expected(body: ExpectedWrite, idempotency_key: IdempotencyKey) -> dict:
     payload = body.model_dump(mode="json")
-    if body.recurring and body.due_date is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="周期性付款必须设置付款日",
-        )
     try:
         return planning.create_expected(payload, idempotency_key)
     except IdempotencyConflict as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
 
 
-@router.patch("/cross-period/expected/{source}/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/plans/{source}/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def update_expected(source: Source, record_id: int, body: ExpectedWrite) -> None:
     payload = body.model_dump(mode="json")
-    if source == "subscription" and body.due_date is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail="周期性付款必须设置付款日",
-        )
     _run_value_error(planning.update_expected, source, record_id, payload)
 
 
-@router.post("/cross-period/expected/{source}/{record_id}/confirm", response_model=WriteResult)
+@router.post("/plans/{source}/{record_id}/confirm", response_model=WriteResult)
 def confirm_expected(
     source: Source,
     record_id: int,
@@ -307,29 +269,9 @@ def confirm_expected(
         ) from exc
 
 
-@router.delete(
-    "/cross-period/expected/{source}/{record_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/plans/{source}/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_expected(source: Source, record_id: int) -> None:
     _run_value_error(planning.delete_expected, source, record_id)
-
-
-@router.post("/cross-period/prepaid", response_model=WriteResult)
-def create_prepaid(body: PrepaidWrite, idempotency_key: IdempotencyKey) -> dict:
-    try:
-        return planning.create_prepaid(body.model_dump(mode="json"), idempotency_key)
-    except IdempotencyConflict as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-
-
-@router.patch("/cross-period/prepaid/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def update_prepaid(record_id: int, body: PrepaidUpdate) -> None:
-    _run_value_error(planning.update_prepaid, record_id, body.model_dump(mode="json"))
-
-
-@router.delete("/cross-period/prepaid/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_prepaid(record_id: int) -> None:
-    _run_value_error(planning.delete_prepaid, record_id)
 
 
 def _run_value_error(function, *args) -> None:

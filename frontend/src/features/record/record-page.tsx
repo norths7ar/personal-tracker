@@ -108,8 +108,8 @@ function HomeSummary() {
           </ul>
           <div className="reminder-links">
             {reminders.length > 0 && (
-              <Link className="reminder-link" to="/cross-period">
-                处理跨期费用
+              <Link className="reminder-link" to="/ledger?tab=plans">
+                查看周期计划
                 <ArrowRight size={14} />
               </Link>
             )}

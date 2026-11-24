@@ -1,15 +1,14 @@
-import { settingsApi } from "@/api/client";
-import { TextArea } from "@radix-ui/themes";
+import { Checkbox, TextArea } from "@radix-ui/themes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
-import { api, type ConfirmExpected, type ExpectedWrite } from "@/api/client";
+import { api, settingsApi, type ConfirmExpected, type ExpectedWrite } from "@/api/client";
 import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@radix-ui/themes";
 import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Feedback, Field, selectClass, textareaClass, today } from "@/features/record/entry-shared";
-import { categoryValues, type ExpectedAction } from "./utils";
+import { CoverageDurationFields } from "../coverage-duration-fields";
+import { categoryValues, coverageDurationLabel, type ExpectedAction } from "./utils";
 import { CategoryFields } from "./fields";
 
 export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDone: () => void }) {
@@ -32,6 +31,8 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
     notes: record?.notes ?? "",
     renewalMode: record?.renewal_mode ?? "same_day",
     renewalInterval: record?.renewal_interval?.toString() ?? "1",
+    coverageUnit: record?.coverage_unit ?? ("" as const),
+    coverageInterval: record?.coverage_interval?.toString() ?? "1",
   });
   const mutation = useMutation({
     mutationFn: async () => {
@@ -60,8 +61,11 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
         category,
         subcategory,
         notes: form.notes.trim() || null,
-        renewal_mode: form.renewalMode as "same_day" | "fixed_days",
+        renewal_mode: form.renewalMode,
         renewal_interval: Number(form.renewalInterval),
+        coverage_unit: form.recurring ? form.coverageUnit || null : null,
+        coverage_interval:
+          form.recurring && form.coverageUnit ? Number(form.coverageInterval) : null,
       };
       return action.mode === "create"
         ? api.createExpected(payload, idempotencyKey)
@@ -77,11 +81,12 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
     mutation.mutate();
   };
   const isConfirm = action.mode === "confirm";
+  const coverageLabel = record ? coverageDurationLabel(record) : "";
   return (
     <form className="form-stack" onSubmit={submit}>
       <DialogHeader>
         <DialogTitle>
-          {isConfirm ? "确认入账" : action.mode === "create" ? "新增预计支出" : "编辑预计支出"}
+          {isConfirm ? "确认入账" : action.mode === "create" ? "新增付款计划" : "编辑付款计划"}
         </DialogTitle>
         <DialogDescription>
           {isConfirm ? "本次付款只会在确认后写入账目。" : "一次性计划和周期付款共用一张清单。"}
@@ -105,7 +110,7 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
         />
       </Field>
       {!isConfirm && action.mode === "create" && (
-        <label className="checkbox-field">
+        <label className="plan-checkbox">
           <Checkbox
             checked={form.recurring}
             onCheckedChange={(checked) =>
@@ -120,7 +125,7 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
         </label>
       )}
       {!isConfirm && !form.recurring && (
-        <label className="checkbox-field">
+        <label className="plan-checkbox">
           <Checkbox
             checked={form.hasDate}
             onCheckedChange={(checked) => setForm({ ...form, hasDate: Boolean(checked) })}
@@ -129,7 +134,7 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
         </label>
       )}
       {(isConfirm || form.recurring || form.hasDate) && (
-        <Field label={isConfirm ? "付款日期" : form.recurring ? "付款日" : "预计日期"}>
+        <Field label={isConfirm ? "实际付款日期" : "计划付款日"}>
           <Input
             type="date"
             value={form.dueDate}
@@ -137,6 +142,12 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
             onChange={(event) => setForm({ ...form, dueDate: event.target.value })}
           />
         </Field>
+      )}
+      {isConfirm && record?.next_date && coverageLabel && (
+        <p className="muted-text">
+          这笔支出的生效期从计划付款日 {record.next_date} 起算，共 {coverageLabel}
+          。实际付款日期用于流水和计算下次续费日期。
+        </p>
       )}
       {!isConfirm && form.recurring && (
         <div className="paired-fields">
@@ -159,12 +170,22 @@ export function ExpectedForm({ action, onDone }: { action: ExpectedAction; onDon
             <Input
               type="number"
               min="1"
+              required
               max={form.renewalMode === "same_day" ? "120" : "730"}
               value={form.renewalInterval}
               onChange={(event) => setForm({ ...form, renewalInterval: event.target.value })}
             />
           </Field>
         </div>
+      )}
+      {!isConfirm && form.recurring && (
+        <CoverageDurationFields
+          unit={form.coverageUnit}
+          interval={form.coverageInterval}
+          onChange={(coverageUnit, coverageInterval) =>
+            setForm({ ...form, coverageUnit, coverageInterval })
+          }
+        />
       )}
       <CategoryFields
         categories={categories.data?.支出 ?? {}}

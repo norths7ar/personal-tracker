@@ -1,4 +1,5 @@
 from contextlib import closing
+from datetime import date
 
 from backend.constants import (
     DEFAULT_CONFIDENCE_THRESHOLD,
@@ -27,17 +28,18 @@ def insert_transaction(
     notes: str | None = None,
     confidence: float | None = None,
     refund_for_id: int | None = None,
-    amortization_months: int | None = None,
-    amortization_start: str | None = None,
+    coverage_start: str | None = None,
+    coverage_end: str | None = None,
     subscription_id: int | None = None,
     reviewed: bool = False,
 ) -> int:
+    validate_coverage(type_, coverage_start, coverage_end)
     amount_cents = to_cents(amount)
     cur = conn.execute(
         """INSERT INTO transactions
            (type, description, amount, amount_cents, date, category,
             subcategory, notes, confidence, refund_for_id,
-            amortization_months, amortization_start, subscription_id, reviewed)
+            coverage_start, coverage_end, subscription_id, reviewed)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             type_,
@@ -50,8 +52,8 @@ def insert_transaction(
             notes,
             confidence,
             refund_for_id,
-            amortization_months,
-            amortization_start,
+            coverage_start,
+            coverage_end,
             subscription_id,
             1 if reviewed else 0,
         ),
@@ -86,8 +88,7 @@ def get_transaction(id_: int) -> dict | None:
     return normalize_transaction(row) if row is not None else None
 
 
-def update_transaction(conn, id_: int, fields: dict) -> dict | None:
-
+def update_transaction(conn, id_: int, fields: dict) -> None:
     allowed = {
         "type",
         "description",
@@ -96,8 +97,8 @@ def update_transaction(conn, id_: int, fields: dict) -> dict | None:
         "category",
         "subcategory",
         "notes",
-        "amortization_months",
-        "amortization_start",
+        "coverage_start",
+        "coverage_end",
         "reviewed",
     }
     updates = {key: value for key, value in fields.items() if key in allowed}
@@ -115,24 +116,9 @@ def update_transaction(conn, id_: int, fields: dict) -> dict | None:
         updates["reviewed"] = int(updates["reviewed"])
     current = {**dict(original), **updates}
     _validate_financial_links(conn, current)
-    months = current["amortization_months"]
-    if months is not None:
-        if current["type"] != TYPE_EXPENSE:
-            raise ValueError("只有支出可以设置摊销")
-        if not 1 <= months <= 120:
-            raise ValueError("摊销月数必须在 1 到 120 之间")
-        if not current["amortization_start"]:
-            current["amortization_start"] = current["date"][:7] + "-01"
-            updates["amortization_start"] = current["amortization_start"]
-    else:
-        if current["amortization_start"] and "amortization_months" not in updates:
-            raise ValueError("设置摊销开始日期时必须提供摊销月数")
-        current["amortization_start"] = None
-        if "amortization_months" in updates:
-            updates["amortization_start"] = None
+    validate_coverage(current["type"], current["coverage_start"], current["coverage_end"])
     set_clause = ", ".join(f"{key} = ?" for key in updates)
     conn.execute(f"UPDATE transactions SET {set_clause} WHERE id = ?", [*updates.values(), id_])
-    return current
 
 
 def _validate_financial_links(conn, current: dict) -> None:
@@ -169,6 +155,7 @@ def delete_transactions(ids: list[int]) -> int:
 
     with closing(connect()) as conn:
         try:
+            conn.execute("BEGIN IMMEDIATE")
             for transaction_id in transaction_ids:
                 _validate_transaction_deletion(conn, transaction_id)
 
@@ -195,11 +182,8 @@ def _validate_transaction_deletion(conn, id_: int) -> None:
     ).fetchone()
     if refund is not None:
         raise TransactionConflict(f"记录 #{id_} 存在关联退款，请先删除退款")
-    prepaid = conn.execute(
-        "SELECT 1 FROM subscriptions WHERE transaction_id = ? LIMIT 1", (id_,)
-    ).fetchone()
-    if transaction["subscription_id"] is not None or prepaid is not None:
-        raise TransactionConflict(f"记录 #{id_} 已关联跨期费用，请先删除或解除关联")
+    if transaction["subscription_id"] is not None:
+        raise TransactionConflict(f"记录 #{id_} 已关联周期计划，请先删除或解除关联")
     planned = conn.execute(
         "SELECT 1 FROM planned_expenses WHERE transaction_id = ? LIMIT 1", (id_,)
     ).fetchone()
@@ -311,3 +295,15 @@ class TransactionConflict(ValueError):
 
 class TransactionNotFound(LookupError):
     pass
+
+
+def validate_coverage(type_: str, start: str | None, end: str | None) -> None:
+    if start is None and end is None:
+        return
+    if start is None or end is None:
+        raise ValueError("生效期起止日期必须同时填写或同时清空")
+    if type_ != TYPE_EXPENSE:
+        raise ValueError("只有支出可以设置生效期")
+    first, last = date.fromisoformat(start), date.fromisoformat(end)
+    if first.isoformat() != start or last.isoformat() != end or first > last:
+        raise ValueError("生效期必须为 YYYY-MM-DD，且开始日期不能晚于结束日期")

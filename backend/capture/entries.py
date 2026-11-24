@@ -57,6 +57,8 @@ def create_transaction(payload: dict, idempotency_key: str) -> dict:
             subcategory=payload.get("subcategory"),
             notes=payload.get("notes"),
             confidence=payload.get("confidence"),
+            coverage_start=payload.get("coverage_start"),
+            coverage_end=payload.get("coverage_end"),
             reviewed=bool(payload.get("reviewed")),
         )
         return {"id": record_id}

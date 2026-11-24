@@ -398,41 +398,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ledger/cross-period": {
+    "/api/ledger/plans": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** List Cross Period */
-        get: operations["list_cross_period_api_ledger_cross_period_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ledger/cross-period/expected": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
+        /** List Plans */
+        get: operations["list_plans_api_ledger_plans_get"];
         put?: never;
         /** Create Expected */
-        post: operations["create_expected_api_ledger_cross_period_expected_post"];
+        post: operations["create_expected_api_ledger_plans_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/ledger/cross-period/expected/{source}/{record_id}": {
+    "/api/ledger/plans/{source}/{record_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -443,14 +427,14 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete Expected */
-        delete: operations["delete_expected_api_ledger_cross_period_expected__source___record_id__delete"];
+        delete: operations["delete_expected_api_ledger_plans__source___record_id__delete"];
         options?: never;
         head?: never;
         /** Update Expected */
-        patch: operations["update_expected_api_ledger_cross_period_expected__source___record_id__patch"];
+        patch: operations["update_expected_api_ledger_plans__source___record_id__patch"];
         trace?: never;
     };
-    "/api/ledger/cross-period/expected/{source}/{record_id}/confirm": {
+    "/api/ledger/plans/{source}/{record_id}/confirm": {
         parameters: {
             query?: never;
             header?: never;
@@ -460,46 +444,11 @@ export interface paths {
         get?: never;
         put?: never;
         /** Confirm Expected */
-        post: operations["confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post"];
+        post: operations["confirm_expected_api_ledger_plans__source___record_id__confirm_post"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/api/ledger/cross-period/prepaid": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create Prepaid */
-        post: operations["create_prepaid_api_ledger_cross_period_prepaid_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ledger/cross-period/prepaid/{record_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Prepaid */
-        delete: operations["delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete"];
-        options?: never;
-        head?: never;
-        /** Update Prepaid */
-        patch: operations["update_prepaid_api_ledger_cross_period_prepaid__record_id__patch"];
         trace?: never;
     };
     "/api/ledger/analysis": {
@@ -1152,13 +1101,6 @@ export interface components {
             /** Duplicate */
             duplicate: boolean;
         };
-        /** CrossPeriodResponse */
-        CrossPeriodResponse: {
-            /** Expected */
-            expected: components["schemas"]["ExpectedRecord"][];
-            /** Prepaid */
-            prepaid: components["schemas"]["PrepaidRecord"][];
-        };
         /** DailyPoint */
         DailyPoint: {
             /** Date */
@@ -1208,6 +1150,10 @@ export interface components {
             renewal_mode: ("same_day" | "fixed_days") | null;
             /** Renewal Interval */
             renewal_interval: number | null;
+            /** Coverage Unit */
+            coverage_unit: ("months" | "days") | null;
+            /** Coverage Interval */
+            coverage_interval: number | null;
             /** State */
             state: string;
         };
@@ -1241,6 +1187,10 @@ export interface components {
              * @default 1
              */
             renewal_interval: number;
+            /** Coverage Unit */
+            coverage_unit?: ("months" | "days") | null;
+            /** Coverage Interval */
+            coverage_interval?: number | null;
         };
         /** ExpenseAnalysisResponse */
         ExpenseAnalysisResponse: {
@@ -1485,67 +1435,10 @@ export interface components {
             /** Text */
             text: string;
         };
-        /** PrepaidRecord */
-        PrepaidRecord: {
-            /** Id */
-            id: number;
-            /** Transaction Id */
-            transaction_id: number;
-            /** Description */
-            description: string;
-            /** Amount */
-            amount: number;
-            /** Monthly Equivalent */
-            monthly_equivalent: number;
-            /** Months */
-            months: number;
-            /** Remaining Months */
-            remaining_months: number;
-            /** Start Month */
-            start_month: string;
-            /** Category */
-            category: string | null;
-            /** Subcategory */
-            subcategory: string | null;
-            /** Notes */
-            notes: string | null;
-        };
-        /** PrepaidUpdate */
-        PrepaidUpdate: {
-            /** Description */
-            description: string;
-            /** Months */
-            months: number;
-            /** Start Month */
-            start_month: string;
-            /** Category */
-            category?: string | null;
-            /** Subcategory */
-            subcategory?: string | null;
-            /** Notes */
-            notes?: string | null;
-        };
-        /** PrepaidWrite */
-        PrepaidWrite: {
-            /** Description */
-            description: string;
-            /** Amount */
-            amount: number;
-            /**
-             * Payment Date
-             * Format: date
-             */
-            payment_date: string;
-            /** Months */
-            months: number;
-            /** Start Month */
-            start_month: string;
-            /** Category */
-            category?: string | null;
-            /** Subcategory */
-            subcategory?: string | null;
-            /** Notes */
-            notes?: string | null;
+        /** PlansResponse */
+        PlansResponse: {
+            /** Expected */
+            expected: components["schemas"]["ExpectedRecord"][];
         };
         /** PromptOverrides */
         PromptOverrides: {
@@ -1657,6 +1550,10 @@ export interface components {
             renewal_interval: number;
             /** Renewal Anchor Day */
             renewal_anchor_day?: number | null;
+            /** Coverage Unit */
+            coverage_unit?: ("months" | "days") | null;
+            /** Coverage Interval */
+            coverage_interval?: number | null;
         };
         /** TodayMeal */
         TodayMeal: {
@@ -1743,6 +1640,10 @@ export interface components {
             notes?: string | null;
             /** Confidence */
             confidence?: number | null;
+            /** Coverage Start */
+            coverage_start?: string | null;
+            /** Coverage End */
+            coverage_end?: string | null;
             /**
              * Reviewed
              * @default false
@@ -1812,10 +1713,10 @@ export interface components {
             reviewed: boolean;
             /** Refund For Id */
             refund_for_id?: number | null;
-            /** Amortization Months */
-            amortization_months?: number | null;
-            /** Amortization Start */
-            amortization_start?: string | null;
+            /** Coverage Start */
+            coverage_start?: string | null;
+            /** Coverage End */
+            coverage_end?: string | null;
             /** Subscription Id */
             subscription_id?: number | null;
             /** Created At */
@@ -1839,10 +1740,10 @@ export interface components {
             notes?: string | null;
             /** Reviewed */
             reviewed?: boolean | null;
-            /** Amortization Months */
-            amortization_months?: number | null;
-            /** Amortization Start */
-            amortization_start?: string | null;
+            /** Coverage Start */
+            coverage_start?: string | null;
+            /** Coverage End */
+            coverage_end?: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -1865,8 +1766,6 @@ export interface components {
             source?: string | null;
             /** Transaction Id */
             transaction_id?: number | null;
-            /** Subscription Id */
-            subscription_id?: number | null;
             /** Duplicate */
             duplicate: boolean;
         };
@@ -2759,7 +2658,7 @@ export interface operations {
             };
         };
     };
-    list_cross_period_api_ledger_cross_period_get: {
+    list_plans_api_ledger_plans_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -2776,7 +2675,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CrossPeriodResponse"];
+                    "application/json": components["schemas"]["PlansResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2790,7 +2689,7 @@ export interface operations {
             };
         };
     };
-    create_expected_api_ledger_cross_period_expected_post: {
+    create_expected_api_ledger_plans_post: {
         parameters: {
             query?: never;
             header: {
@@ -2827,7 +2726,7 @@ export interface operations {
             };
         };
     };
-    delete_expected_api_ledger_cross_period_expected__source___record_id__delete: {
+    delete_expected_api_ledger_plans__source___record_id__delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -2859,7 +2758,7 @@ export interface operations {
             };
         };
     };
-    update_expected_api_ledger_cross_period_expected__source___record_id__patch: {
+    update_expected_api_ledger_plans__source___record_id__patch: {
         parameters: {
             query?: never;
             header?: never;
@@ -2895,7 +2794,7 @@ export interface operations {
             };
         };
     };
-    confirm_expected_api_ledger_cross_period_expected__source___record_id__confirm_post: {
+    confirm_expected_api_ledger_plans__source___record_id__confirm_post: {
         parameters: {
             query?: never;
             header: {
@@ -2923,109 +2822,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WriteResult"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    create_prepaid_api_ledger_cross_period_prepaid_post: {
-        parameters: {
-            query?: never;
-            header: {
-                "Idempotency-Key": string;
-            };
-            path?: never;
-            cookie?: {
-                tracker_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrepaidWrite"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WriteResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_prepaid_api_ledger_cross_period_prepaid__record_id__delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                record_id: number;
-            };
-            cookie?: {
-                tracker_session?: string | null;
-            };
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    update_prepaid_api_ledger_cross_period_prepaid__record_id__patch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                record_id: number;
-            };
-            cookie?: {
-                tracker_session?: string | null;
-            };
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PrepaidUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {

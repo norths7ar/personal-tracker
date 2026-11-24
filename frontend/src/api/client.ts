@@ -17,13 +17,10 @@ export type DietStats = components["schemas"]["DietStatsResponse"];
 export type ExpenseAnalysis = components["schemas"]["ExpenseAnalysisResponse"];
 export type MonthBudget = components["schemas"]["MonthBudget"];
 export type MonthBudgetUpdate = components["schemas"]["MonthBudgetUpdate"];
-export type CrossPeriod = components["schemas"]["CrossPeriodResponse"];
+export type Plans = components["schemas"]["PlansResponse"];
 export type ExpectedRecord = components["schemas"]["ExpectedRecord"];
 export type ExpectedWrite = components["schemas"]["ExpectedWrite"];
 export type ConfirmExpected = components["schemas"]["ConfirmExpected"];
-export type PrepaidRecord = components["schemas"]["PrepaidRecord"];
-export type PrepaidWrite = components["schemas"]["PrepaidWrite"];
-export type PrepaidUpdate = components["schemas"]["PrepaidUpdate"];
 export type HomeSummary = components["schemas"]["HomeSummary"];
 export type RefundCreate = components["schemas"]["RefundCreate"];
 export type SubscriptionCreate = components["schemas"]["SubscriptionCreate"];
@@ -214,41 +211,28 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(budget),
     }),
-  crossPeriod: () => request<CrossPeriod>("/api/ledger/cross-period"),
+  plans: () => request<Plans>("/api/ledger/plans"),
   createExpected: (entry: ExpectedWrite, idempotencyKey: string) =>
-    request("/api/ledger/cross-period/expected", {
+    request("/api/ledger/plans", {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   updateExpected: (record: ExpectedRecord, entry: ExpectedWrite) =>
-    request<void>(`/api/ledger/cross-period/expected/${record.source}/${record.id}`, {
+    request<void>(`/api/ledger/plans/${record.source}/${record.id}`, {
       method: "PATCH",
       body: JSON.stringify(entry),
     }),
   confirmExpected: (record: ExpectedRecord, entry: ConfirmExpected, idempotencyKey: string) =>
-    request(`/api/ledger/cross-period/expected/${record.source}/${record.id}/confirm`, {
+    request(`/api/ledger/plans/${record.source}/${record.id}/confirm`, {
       method: "POST",
       headers: { "Idempotency-Key": idempotencyKey },
       body: JSON.stringify(entry),
     }),
   deleteExpected: (record: ExpectedRecord) =>
-    request<void>(`/api/ledger/cross-period/expected/${record.source}/${record.id}`, {
+    request<void>(`/api/ledger/plans/${record.source}/${record.id}`, {
       method: "DELETE",
     }),
-  createPrepaid: (entry: PrepaidWrite, idempotencyKey: string) =>
-    request("/api/ledger/cross-period/prepaid", {
-      method: "POST",
-      headers: { "Idempotency-Key": idempotencyKey },
-      body: JSON.stringify(entry),
-    }),
-  updatePrepaid: (id: number, entry: PrepaidUpdate) =>
-    request<void>(`/api/ledger/cross-period/prepaid/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(entry),
-    }),
-  deletePrepaid: (id: number) =>
-    request<void>(`/api/ledger/cross-period/prepaid/${id}`, { method: "DELETE" }),
   homeSummary: () => request<HomeSummary>("/api/capture/home"),
 };
 

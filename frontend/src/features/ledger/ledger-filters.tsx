@@ -1,3 +1,4 @@
+import { Checkbox } from "@radix-ui/themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FilterSelect } from "./fields";
@@ -10,6 +11,7 @@ export function LedgerFilters({ filters }: { filters: ReturnType<typeof useLedge
     typeFilter,
     startDate,
     endDate,
+    coveredOnly,
     categoryOptions,
     subcategoryOptions,
     searchInput,
@@ -98,6 +100,13 @@ export function LedgerFilters({ filters }: { filters: ReturnType<typeof useLedge
           <Button variant="outline" onClick={() => updateFilters({ from: "", to: "" })}>
             全部日期
           </Button>
+          <label className="ledger-coverage-filter">
+            <Checkbox
+              checked={coveredOnly}
+              onCheckedChange={(checked) => updateFilters({ covered: checked === true ? "1" : "" })}
+            />
+            只看有生效期
+          </label>
           <Button
             className="filter-reset"
             variant="ghost"
@@ -109,6 +118,7 @@ export function LedgerFilters({ filters }: { filters: ReturnType<typeof useLedge
                 q: "",
                 from: "",
                 to: "",
+                covered: "",
               })
             }
           >

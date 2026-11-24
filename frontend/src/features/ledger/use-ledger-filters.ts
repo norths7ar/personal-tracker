@@ -10,6 +10,7 @@ export function useLedgerFilters(allRows: Transaction[]) {
   const search = params.get("q") || "";
   const startDate = params.get("from") || "";
   const endDate = params.get("to") || "";
+  const coveredOnly = params.get("covered") === "1";
   const [dateResetKey, setDateResetKey] = useState(0);
   const invalidRange = Boolean(startDate && endDate && startDate > endDate);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -70,6 +71,7 @@ export function useLedgerFilters(allRows: Transaction[]) {
       if (typeFilter !== "全部" && row.type !== typeFilter) return false;
       if (categoryFilter !== "全部" && row.category !== categoryFilter) return false;
       if (subcategoryFilter !== "全部" && row.subcategory !== subcategoryFilter) return false;
+      if (coveredOnly && (!row.coverage_start || !row.coverage_end)) return false;
       if (!needle) return true;
       return [row.description, row.category, row.subcategory, row.notes]
         .filter(Boolean)
@@ -84,6 +86,7 @@ export function useLedgerFilters(allRows: Transaction[]) {
     startDate,
     endDate,
     invalidRange,
+    coveredOnly,
   ]);
 
   const categoryOptions = useMemo(() => {
@@ -108,6 +111,7 @@ export function useLedgerFilters(allRows: Transaction[]) {
     typeFilter,
     startDate,
     endDate,
+    coveredOnly,
     categoryOptions,
     subcategoryOptions,
     searchInput,

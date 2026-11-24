@@ -2,7 +2,6 @@ import "@/components/app-shell.css";
 import {
   BarChart3,
   BookOpen,
-  CalendarClock,
   CheckSquare2,
   ListTodo,
   LogOut,
@@ -62,7 +61,6 @@ export function AppShell({ children, onLogout }: AppShellProps) {
           <div className="navigation-section">回看</div>
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
           <NavItem to="/analysis" icon={<BarChart3 size={17} />} label="开销分析" />
-          <NavItem to="/cross-period" icon={<CalendarClock size={17} />} label="跨期费用" />
           <NavItem to="/diet" icon={<Utensils size={17} />} label="饮食" />
           <div className="navigation-section">偏好</div>
           <NavItem to="/settings" icon={<Settings size={17} />} label="设置" />
@@ -87,7 +85,6 @@ export function AppShell({ children, onLogout }: AppShellProps) {
               ["/pending", "待处理"],
               ["/ledger", "账目"],
               ["/analysis", "开销分析"],
-              ["/cross-period", "跨期费用"],
               ["/diet", "饮食"],
               ["/settings", "设置"],
             ] as const

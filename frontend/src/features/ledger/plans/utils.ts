@@ -1,12 +1,15 @@
-import { type ExpectedRecord, type PrepaidRecord } from "@/api/client";
+import { type ExpectedRecord } from "@/api/client";
 
 export type ExpectedAction =
   { mode: "create" } | { mode: "edit" | "confirm"; record: ExpectedRecord };
 
-export type PrepaidAction = { mode: "create" } | { mode: "edit"; record: PrepaidRecord };
-
 export function categoryLabel(record: { category?: string | null; subcategory?: string | null }) {
   return [record.category, record.subcategory].filter(Boolean).join(" / ") || "—";
+}
+
+export function coverageDurationLabel(record: ExpectedRecord) {
+  if (record.coverage_unit == null || record.coverage_interval == null) return "";
+  return `${record.coverage_interval} ${record.coverage_unit === "months" ? "个月" : "天"}`;
 }
 
 export function categoryValues(
@@ -23,11 +26,4 @@ export function categoryValues(
     selectedCategory,
     subcategory && children.includes(subcategory) ? subcategory : (children[0] ?? null),
   ];
-}
-
-export function money(value: number): string {
-  return new Intl.NumberFormat("zh-CN", {
-    style: "currency",
-    currency: "CNY",
-  }).format(value);
 }

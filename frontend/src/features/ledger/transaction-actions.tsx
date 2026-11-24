@@ -3,61 +3,9 @@ import { useState } from "react";
 import { api, type RefundCreate, type SubscriptionCreate, type Transaction } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CoverageDurationFields, type CoverageUnit } from "./coverage-duration-fields";
 import { FormField, Info } from "./fields";
 import { formatDate, formatMoney, selectClass } from "./utils";
-
-export function AmortizationForm({
-  transaction,
-  onSaved,
-}: {
-  transaction: Transaction;
-  onSaved: (record: Transaction) => void;
-}) {
-  const [months, setMonths] = useState(String(transaction.amortization_months ?? 12));
-  const [startMonth, setStartMonth] = useState(
-    (transaction.amortization_start ?? transaction.date).slice(0, 7),
-  );
-  const update = useMutation({
-    mutationFn: () =>
-      api.updateTransaction(transaction.id, {
-        amortization_months: Number(months),
-        amortization_start: `${startMonth}-01`,
-      }),
-    onSuccess: onSaved,
-  });
-  if (transaction.type !== "支出") return <Info>只有支出记录可以设置摊销。</Info>;
-  return (
-    <form
-      className="form-stack"
-      onSubmit={(event) => {
-        event.preventDefault();
-        update.mutate();
-      }}
-    >
-      <p className="muted-text">把这笔已发生的支出分摊到多个自然月。</p>
-      <FormField label="摊销月数">
-        <Input
-          type="number"
-          min="2"
-          max="120"
-          value={months}
-          onChange={(event) => setMonths(event.target.value)}
-        />
-      </FormField>
-      <FormField label="摊销开始月份">
-        <Input
-          type="month"
-          value={startMonth}
-          onChange={(event) => setStartMonth(event.target.value)}
-        />
-      </FormField>
-      {update.isError && <p className="error-text">{update.error.message}</p>}
-      <Button className="form-submit" disabled={update.isPending || Number(months) < 2}>
-        {update.isPending ? "保存中…" : "保存摊销"}
-      </Button>
-    </form>
-  );
-}
 
 export function RefundForm({
   transaction,
@@ -120,17 +68,18 @@ export function RefundForm({
         </FormField>
       </div>
       {create.isError && <p className="error-text">{create.error.message}</p>}
-      <Button
-        className="form-submit"
-        disabled={
-          create.isPending ||
-          entry.amount <= 0 ||
-          entry.amount > remaining ||
-          !entry.description.trim()
-        }
-      >
-        {create.isPending ? "保存中…" : "保存退款"}
-      </Button>
+      <div className="transaction-action-footer">
+        <Button
+          disabled={
+            create.isPending ||
+            entry.amount <= 0 ||
+            entry.amount > remaining ||
+            !entry.description.trim()
+          }
+        >
+          {create.isPending ? "保存中…" : "保存退款"}
+        </Button>
+      </div>
     </form>
   );
 }
@@ -146,16 +95,19 @@ export function RecurringForm({
   const [nextDate, setNextDate] = useState(() => formatDate(new Date()));
   const [mode, setMode] = useState<"same_day" | "fixed_days">("same_day");
   const [interval, setInterval] = useState("1");
+  const [coverageUnit, setCoverageUnit] = useState<CoverageUnit | "">("");
+  const [coverageInterval, setCoverageInterval] = useState("1");
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const create = useMutation({
     mutationFn: () => {
-      const months = Number(interval);
       const entry: SubscriptionCreate = {
         name: name.trim(),
         next_renewal_date: nextDate,
         renewal_mode: mode,
-        renewal_interval: months,
+        renewal_interval: Number(interval),
         renewal_anchor_day: mode === "same_day" ? Number(nextDate.slice(8, 10)) : null,
+        coverage_unit: coverageUnit || null,
+        coverage_interval: coverageUnit ? Number(coverageInterval) : null,
       };
       return api.createSubscription(transaction.id, entry, idempotencyKey);
     },
@@ -171,12 +123,16 @@ export function RecurringForm({
         create.mutate();
       }}
     >
-      <p className="muted-text">用这笔支出作为首次付款，后续到期时再确认入账。</p>
       <FormField label="描述">
         <Input value={name} onChange={(event) => setName(event.target.value)} />
       </FormField>
       <FormField label="下次付款日">
-        <Input type="date" value={nextDate} onChange={(event) => setNextDate(event.target.value)} />
+        <Input
+          type="date"
+          required
+          value={nextDate}
+          onChange={(event) => setNextDate(event.target.value)}
+        />
       </FormField>
       <div className="paired-fields">
         <FormField label="续费方式">
@@ -203,13 +159,20 @@ export function RecurringForm({
           />
         </FormField>
       </div>
+      <CoverageDurationFields
+        unit={coverageUnit}
+        interval={coverageInterval}
+        onChange={(unit, duration) => {
+          setCoverageUnit(unit);
+          setCoverageInterval(duration);
+        }}
+      />
       {create.isError && <p className="error-text">{create.error.message}</p>}
-      <Button
-        className="form-submit"
-        disabled={create.isPending || !name.trim() || Number(interval) < 1}
-      >
-        {create.isPending ? "创建中…" : "创建周期性付款"}
-      </Button>
+      <div className="transaction-action-footer">
+        <Button disabled={create.isPending || !name.trim() || Number(interval) < 1}>
+          {create.isPending ? "创建中…" : "创建周期性付款"}
+        </Button>
+      </div>
     </form>
   );
 }

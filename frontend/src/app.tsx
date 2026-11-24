@@ -33,11 +33,6 @@ const AnalysisPage = lazy(() =>
     default: module.AnalysisPage,
   })),
 );
-const CrossPeriodPage = lazy(() =>
-  import("@/features/cross-period/cross-period-page").then((module) => ({
-    default: module.CrossPeriodPage,
-  })),
-);
 const SettingsPage = lazy(() =>
   import("@/features/settings/settings-page").then((module) => ({ default: module.SettingsPage })),
 );
@@ -78,7 +73,6 @@ export function App() {
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
           <Route path="/analysis" element={<AnalysisPage />} />
-          <Route path="/cross-period" element={<CrossPeriodPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/record" replace />} />
         </Routes>

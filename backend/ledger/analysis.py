@@ -1,12 +1,9 @@
+from calendar import monthrange
+from collections.abc import Iterator
 from contextlib import closing
 from datetime import date, timedelta
 
-from backend.constants import (
-    RECURRING_PAYMENT_SUBSCRIPTION,
-    REFUND_CATEGORY,
-    TYPE_EXPENSE,
-    TYPE_INCOME,
-)
+from backend.constants import REFUND_CATEGORY, TYPE_EXPENSE, TYPE_INCOME
 from backend.db import connect, to_cents
 from backend.diet.store import get_meals
 from backend.ledger.planning import fixed_cost_for_month, get_planned_expenses, get_subscriptions
@@ -17,41 +14,38 @@ from backend.ledger.transactions import (
 )
 
 
-def _next_month(month_start: date) -> date:
-    if month_start.month == 12:
-        return date(month_start.year + 1, 1, 1)
-    return date(month_start.year, month_start.month + 1, 1)
-
-
-def _month_starts(start: str, months: int) -> list[str]:
-    first = date.fromisoformat(start[:7] + "-01")
-    values = []
-    cur = first
-    for _ in range(max(1, int(months or 1))):
-        values.append(cur.isoformat())
-        cur = _next_month(cur)
-    return values
-
-
-def _amortization_allocation_dates() -> list[str]:
+def _coverage_months() -> Iterator[str]:
     with closing(connect()) as conn:
         rows = conn.execute(
-            f"""SELECT date, amortization_start, amortization_months
-               FROM transactions
-               WHERE type = '{TYPE_EXPENSE}'
-                 AND COALESCE(amortization_months, 1) > 1"""
+            "SELECT coverage_start, coverage_end FROM transactions WHERE coverage_start IS NOT NULL"
         ).fetchall()
+    for row in rows:
+        start = date.fromisoformat(row["coverage_start"])
+        end = date.fromisoformat(row["coverage_end"])
+        first = start.year * 12 + start.month - 1
+        last = end.year * 12 + end.month - 1
+        for index in range(first, last + 1):
+            year, month = divmod(index, 12)
+            yield f"{year:04d}-{month + 1:02d}"
 
-    dates = []
-    for raw in rows:
-        row = dict(raw)
-        dates.extend(
-            _month_starts(
-                row.get("amortization_start") or row.get("date"),
-                row.get("amortization_months") or 1,
-            )
-        )
-    return dates
+
+def _allocations_in_period(
+    row: dict, start: date, end: date, basis: str
+) -> Iterator[tuple[str, int]]:
+    amount = row["amount_cents"]
+    if basis != "amortized" or row["type"] != TYPE_EXPENSE or row["coverage_start"] is None:
+        if start.isoformat() <= row["date"] <= end.isoformat():
+            yield row["date"], amount
+        return
+
+    first_day = date.fromisoformat(row["coverage_start"])
+    last_day = date.fromisoformat(row["coverage_end"])
+    cents_per_day, remainder = divmod(amount, (last_day - first_day).days + 1)
+    first_offset = (max(first_day, start) - first_day).days
+    last_offset = (min(last_day, end) - first_day).days
+    for offset in range(first_offset, last_offset + 1):
+        day = first_day + timedelta(days=offset)
+        yield day.isoformat(), cents_per_day + (offset < remainder)
 
 
 def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict:
@@ -63,10 +57,10 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
         ).fetchall()
     transactions = [normalize_transaction(row) for row in rows]
     by_id = {row["id"]: row for row in transactions}
+    start = date.fromisoformat(start_date)
+    end = date.fromisoformat(end_date)
     entries = []
     for row in transactions:
-        if row["date"] > end_date:
-            continue
         original = by_id.get(row.get("refund_for_id"))
         linked_refund = (
             row["type"] == TYPE_INCOME
@@ -76,25 +70,8 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
         )
         bucket = "expense" if row["type"] == TYPE_EXPENSE or linked_refund else "income"
         category_source = original if linked_refund else row
-        amount = float(row.get("amount") or 0)
-        allocations = [(row["date"], amount)]
-        if (
-            basis == "amortized"
-            and row["type"] == TYPE_EXPENSE
-            and int(row.get("amortization_months") or 1) > 1
-        ):
-            months = int(row["amortization_months"])
-            # Integer cents keep daily, category and detail totals consistent.
-            cents, remainder = divmod(to_cents(amount), months)
-            allocations = [
-                (month, (cents + (index < remainder)) / 100)
-                for index, month in enumerate(
-                    _month_starts(row.get("amortization_start") or row["date"], months)
-                )
-            ]
-        for allocation_date, allocation in allocations:
-            if not start_date <= allocation_date <= end_date:
-                continue
+        for allocation_date, allocation_cents in _allocations_in_period(row, start, end, basis):
+            cents = -allocation_cents if linked_refund else allocation_cents
             entries.append(
                 {
                     "id": row["id"],
@@ -103,8 +80,8 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
                     "description": row["description"],
                     "category": category_source.get("category") or "",
                     "subcategory": category_source.get("subcategory") or "",
-                    "amount": amount,
-                    "contribution": -allocation if linked_refund else allocation,
+                    "amount": row["amount"],
+                    "contribution_cents": cents,
                     "type": row["type"],
                     "bucket": bucket,
                 }
@@ -115,7 +92,8 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
     counted_ids = {"income": {}, "expense": {}}
     for entry in entries:
         bucket = entry["bucket"]
-        cents = to_cents(entry["contribution"])
+        cents = entry.pop("contribution_cents")
+        entry["contribution"] = cents / 100
         totals[bucket] += cents
         day = daily.setdefault(
             entry["allocation_date"],
@@ -138,7 +116,7 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
         )
         group["total"] += cents
         ids = counted_ids[bucket].setdefault(key, set())
-        if entry["contribution"] >= 0:
+        if cents >= 0:
             ids.add(entry["id"])
         group["count"] = len(ids)
     return {
@@ -166,25 +144,14 @@ def get_period_data(start_date: str, end_date: str, basis: str = "cash") -> dict
     }
 
 
-def get_active_years() -> list:
-    sql = """SELECT DISTINCT strftime('%Y', date) as year
-             FROM transactions
-             ORDER BY year DESC"""
-    with closing(connect()) as conn:
-        rows = conn.execute(sql).fetchall()
-    years = {r["year"] for r in rows}
-    years.update(d[:4] for d in _amortization_allocation_dates())
-    return sorted(years, reverse=True)
-
-
-def get_active_months() -> list:
+def get_active_months() -> list[str]:
     sql = """SELECT DISTINCT strftime('%Y-%m', date) as month
              FROM transactions
              ORDER BY month DESC"""
     with closing(connect()) as conn:
         rows = conn.execute(sql).fetchall()
     months = {r["month"] for r in rows}
-    months.update(d[:7] for d in _amortization_allocation_dates())
+    months.update(_coverage_months())
     return sorted(months, reverse=True)
 
 
@@ -236,13 +203,8 @@ def save_month_budget(
 
 def _month_range(month: str) -> tuple[str, str, int]:
     year, month_number = map(int, month.split("-"))
-    first = date(year, month_number, 1)
-    next_first = date(year + 1, 1, 1) if month_number == 12 else date(year, month_number + 1, 1)
-    return (
-        first.isoformat(),
-        (next_first - timedelta(days=1)).isoformat(),
-        (next_first - first).days,
-    )
+    days = monthrange(year, month_number)[1]
+    return f"{month}-01", f"{month}-{days:02d}", days
 
 
 def _period_data(start: str, end: str, basis: str) -> dict:
@@ -278,13 +240,33 @@ def _elapsed_range(start: str, end: str) -> tuple[str, int]:
     return cutoff.isoformat(), max(0, (cutoff - date.fromisoformat(start)).days + 1)
 
 
+def _monthly_timeline(year: str, end: str, daily: list[dict]) -> list[dict]:
+    totals = {
+        f"{year}-{month:02d}": {"income": 0, "expense": 0}
+        for month in range(1, 13)
+        if f"{year}-{month:02d}" <= end[:7]
+    }
+    for day in daily:
+        month = totals[day["date"][:7]]
+        month["income"] += to_cents(day["income"])
+        month["expense"] += to_cents(day["expense"])
+    return [
+        {
+            "label": f"{int(month[-2:])}月",
+            "income": amounts["income"] / 100,
+            "expense": amounts["expense"] / 100,
+        }
+        for month, amounts in totals.items()
+    ]
+
+
 def get_expense_analysis(
     granularity: str,
     period: str | None,
     basis: str,
 ) -> dict:
     months = get_active_months()
-    years = get_active_years()
+    years = sorted({month[:4] for month in months}, reverse=True)
     choices = months if granularity == "month" else years
     default = _default_month(months) if granularity == "month" else _default_year(years)
     selected = period if period in choices else default
@@ -292,29 +274,12 @@ def get_expense_analysis(
         return {"months": months, "years": years, "selected_period": None}
     if granularity == "month":
         start, end, _ = _month_range(selected)
-        timeline_months = []
     else:
         start, end = f"{selected}-01-01", f"{selected}-12-31"
-        timeline_months = [
-            f"{selected}-{number:02d}"
-            for number in range(1, 13)
-            if f"{selected}-{number:02d}" <= date.today().strftime("%Y-%m")
-        ]
     end, days = _elapsed_range(start, end)
-    timeline = []
-    for item in timeline_months:
-        item_start, item_end, _ = _month_range(item)
-        item_end, _ = _elapsed_range(item_start, item_end)
-        data = _period_data(item_start, item_end, basis)
-        timeline.append(
-            {
-                "label": item if granularity == "month" else f"{int(item[-2:])}月",
-                "income": data["income"],
-                "expense": data["expense"],
-            }
-        )
     cash = _period_data(start, end, "cash")
     amortized = _period_data(start, end, "amortized")
+    current = cash if basis == "cash" else amortized
     return {
         "months": months,
         "years": years,
@@ -322,9 +287,11 @@ def get_expense_analysis(
         "start_date": start,
         "end_date": end,
         "days": days,
-        "current": cash if basis == "cash" else amortized,
+        "current": current,
         "cash_current": cash,
-        "timeline": timeline,
+        "timeline": _monthly_timeline(selected, end, current["daily"])
+        if granularity == "year"
+        else [],
         "fixed_monthly_cost": fixed_cost_for_month(selected) if granularity == "month" else None,
         "budget": get_month_budget(selected) if granularity == "month" else None,
         "cash_expense": cash["expense"] if granularity == "month" else None,
@@ -360,7 +327,7 @@ def get_home_reminders(
     through = today + timedelta(days=max(0, lookahead_days))
     items = []
 
-    for subscription in get_subscriptions(payment_type=RECURRING_PAYMENT_SUBSCRIPTION):
+    for subscription in get_subscriptions():
         due_date = _parse_date(subscription.get("next_renewal_date"))
         if due_date is not None and due_date <= through:
             items.append(

@@ -1,24 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { TextArea } from "@radix-ui/themes";
 import { useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { api, type Transaction } from "@/api/client";
 import { EditorFooter } from "@/components/record-actions";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { CoverageFields } from "./coverage-fields";
 import { selectClass, transactionTypes, unique } from "./utils";
 import { FormField } from "./fields";
-import { AmortizationForm, RecurringForm, RefundForm } from "./transaction-actions";
+import { RecurringForm, RefundForm } from "./transaction-actions";
 
 const editSchema = z.object({
   type: z.enum(transactionTypes),
@@ -28,6 +22,8 @@ const editSchema = z.object({
   category: z.string(),
   subcategory: z.string(),
   notes: z.string(),
+  coverage_start: z.string(),
+  coverage_end: z.string(),
 });
 
 type EditValues = z.infer<typeof editSchema>;
@@ -47,7 +43,6 @@ export function TransactionEditor({
   onSaved: (transaction: Transaction) => void;
   onRefresh: () => void;
 }) {
-  const [tab, setTab] = useState<"edit" | "amortization" | "recurring" | "refund">("edit");
   const form = useForm<EditValues>({ resolver: zodResolver(editSchema) });
   const entryType = form.watch("type");
   const category = form.watch("category");
@@ -65,13 +60,15 @@ export function TransactionEditor({
         category: values.category || null,
         subcategory: values.subcategory || null,
         notes: values.notes || null,
+        coverage_start: values.type === "支出" ? values.coverage_start || null : null,
+        coverage_end: values.type === "支出" ? values.coverage_end || null : null,
       }),
     onSuccess: onSaved,
   });
 
   useEffect(() => {
     if (!transaction) return;
-    setTab("edit");
+
     form.reset({
       type: transaction.type,
       description: transaction.description,
@@ -80,124 +77,116 @@ export function TransactionEditor({
       category: transaction.category ?? "",
       subcategory: transaction.subcategory ?? "",
       notes: transaction.notes ?? "",
+      coverage_start: transaction.coverage_start ?? "",
+      coverage_end: transaction.coverage_end ?? "",
     });
   }, [form, transaction]);
 
   return (
     <Dialog open={Boolean(transaction)} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent layout="center">
+      <DialogContent layout="center" aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>编辑账目</DialogTitle>
-          <DialogDescription>修改收支信息，保存后生效。</DialogDescription>
         </DialogHeader>
         {transaction && (
           <>
-            <div className="editor-tabs">
-              {(
-                [
-                  ["edit", "编辑"],
-                  ["amortization", "摊销"],
-                  ["recurring", "周期"],
-                  ["refund", "退款"],
-                ] as const
-              ).map(([value, label]) => (
-                <button
-                  type="button"
-                  key={value}
-                  className={cn("editor-tab", tab === value && "segmented-selected")}
-                  onClick={() => setTab(value)}
+            <form
+              className="form-stack"
+              onSubmit={form.handleSubmit((values) => update.mutate(values))}
+            >
+              <FormField label="类型">
+                <select
+                  className={selectClass}
+                  {...typeRegistration}
+                  onChange={(event) => {
+                    typeRegistration.onChange(event);
+                    form.setValue("category", "");
+                    form.setValue("subcategory", "");
+                  }}
                 >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {tab === "edit" && (
-              <form
-                className="form-stack"
-                onSubmit={form.handleSubmit((values) => update.mutate(values))}
-              >
-                <FormField label="类型">
-                  <select
-                    className={selectClass}
-                    {...typeRegistration}
-                    onChange={(event) => {
-                      typeRegistration.onChange(event);
-                      form.setValue("category", "");
-                      form.setValue("subcategory", "");
-                    }}
-                  >
-                    {transactionTypes.map((type) => (
-                      <option key={type}>{type}</option>
-                    ))}
-                  </select>
+                  {transactionTypes.map((type) => (
+                    <option key={type}>{type}</option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="描述" error={form.formState.errors.description?.message}>
+                <Input {...form.register("description")} />
+              </FormField>
+              <div className="paired-fields">
+                <FormField label="金额" error={form.formState.errors.amount?.message}>
+                  <Input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    {...form.register("amount", { valueAsNumber: true })}
+                  />
                 </FormField>
-                <FormField label="描述" error={form.formState.errors.description?.message}>
-                  <Input {...form.register("description")} />
+                <FormField label="日期" error={form.formState.errors.date?.message}>
+                  <Input type="date" {...form.register("date")} value={form.watch("date") ?? ""} />
                 </FormField>
-                <div className="paired-fields">
-                  <FormField label="金额" error={form.formState.errors.amount?.message}>
-                    <Input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      {...form.register("amount", { valueAsNumber: true })}
-                    />
-                  </FormField>
-                  <FormField label="日期" error={form.formState.errors.date?.message}>
-                    <Input
-                      type="date"
-                      {...form.register("date")}
-                      value={form.watch("date") ?? ""}
-                    />
-                  </FormField>
-                </div>
-                <FormField label="主类别">
-                  <select
-                    className={selectClass}
-                    {...categoryRegistration}
-                    onChange={(event) => {
-                      categoryRegistration.onChange(event);
-                      form.setValue("subcategory", "");
-                    }}
-                  >
-                    <option value="">无</option>
-                    {categoryOptions.map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </FormField>
-                <FormField label="子类别">
-                  <select className={selectClass} {...form.register("subcategory")}>
-                    <option value="">无</option>
-                    {subcategoryOptions.map((item) => (
-                      <option key={item}>{item}</option>
-                    ))}
-                  </select>
-                </FormField>
-                <FormField label="备注">
-                  <TextArea className="form-textarea" {...form.register("notes")} />
-                </FormField>
-                {update.isError && <p className="error-text">{update.error.message}</p>}
-                <EditorFooter>
-                  <Button type="button" variant="outline" onClick={onClose}>
-                    取消
-                  </Button>
-                  <Button type="submit" disabled={update.isPending}>
-                    {update.isPending ? "保存中…" : "保存修改"}
-                  </Button>
-                </EditorFooter>
-              </form>
-            )}
-            {tab === "amortization" && (
-              <AmortizationForm transaction={transaction} onSaved={onSaved} />
-            )}
-            {tab === "recurring" && <RecurringForm transaction={transaction} onSaved={onRefresh} />}
-            {tab === "refund" && (
-              <RefundForm
-                transaction={transaction}
-                transactions={transactions}
-                onSaved={onRefresh}
-              />
+              </div>
+              <FormField label="主类别">
+                <select
+                  className={selectClass}
+                  {...categoryRegistration}
+                  onChange={(event) => {
+                    categoryRegistration.onChange(event);
+                    form.setValue("subcategory", "");
+                  }}
+                >
+                  <option value="">无</option>
+                  {categoryOptions.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="子类别">
+                <select className={selectClass} {...form.register("subcategory")}>
+                  <option value="">无</option>
+                  {subcategoryOptions.map((item) => (
+                    <option key={item}>{item}</option>
+                  ))}
+                </select>
+              </FormField>
+              <FormField label="备注">
+                <TextArea className="form-textarea" {...form.register("notes")} />
+              </FormField>
+              {entryType === "支出" && (
+                <CoverageFields
+                  start={form.watch("coverage_start") ?? ""}
+                  end={form.watch("coverage_end") ?? ""}
+                  paymentDate={form.watch("date") ?? ""}
+                  onChange={(start, end) => {
+                    form.setValue("coverage_start", start);
+                    form.setValue("coverage_end", end);
+                  }}
+                />
+              )}
+              {update.isError && <p className="error-text">{update.error.message}</p>}
+              <EditorFooter>
+                <Button type="button" variant="outline" onClick={onClose}>
+                  取消
+                </Button>
+                <Button type="submit" disabled={update.isPending}>
+                  {update.isPending ? "保存中…" : "保存修改"}
+                </Button>
+              </EditorFooter>
+            </form>
+            {transaction.type === "支出" && (
+              <div className="form-stack transaction-extra-actions">
+                <details className="manual-options">
+                  <summary>登记退款</summary>
+                  <RefundForm
+                    transaction={transaction}
+                    transactions={transactions}
+                    onSaved={onRefresh}
+                  />
+                </details>
+                <details className="manual-options">
+                  <summary>设为周期计划</summary>
+                  <RecurringForm transaction={transaction} onSaved={onRefresh} />
+                </details>
+              </div>
             )}
           </>
         )}

@@ -51,23 +51,8 @@ export function CategoryFields({
   );
 }
 
-export function Empty({ text }: { text: string }) {
-  return <div className="empty-panel">{text}</div>;
-}
-
 export function StateBadge({ state }: { state: string }) {
   return (
-    <span
-      className={cn(
-        "status-badge",
-        state === "已过期"
-          ? "status-overdue"
-          : state === "今日待确认"
-            ? "status-due"
-            : "status-neutral",
-      )}
-    >
-      {state}
-    </span>
+    <span className={cn("status-badge", state === "已过期" && "status-overdue")}>{state}</span>
   );
 }

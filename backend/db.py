@@ -6,7 +6,7 @@ from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 
-from backend.constants import TRANSACTION_TYPE_SQL_LIST
+from backend.constants import TRANSACTION_TYPE_SQL_LIST, TYPE_EXPENSE
 from backend.paths import database_path
 
 
@@ -35,12 +35,12 @@ def placeholders(count: int) -> str:
 
 def init_db() -> None:
     with closing(connect()) as connection:
-        _create_tables(connection)
-        _create_indexes(connection)
+        create_tables(connection)
+        create_indexes(connection)
         connection.commit()
 
 
-def _create_tables(connection: sqlite3.Connection) -> None:
+def create_tables(connection: sqlite3.Connection) -> None:
     connection.execute("""
         CREATE TABLE IF NOT EXISTS capture_submissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -102,11 +102,19 @@ def _create_tables(connection: sqlite3.Connection) -> None:
             notes               TEXT,
             confidence          REAL,
             refund_for_id       INTEGER,
-            amortization_months INTEGER,
-            amortization_start  TEXT,
+            coverage_start      TEXT,
+            coverage_end        TEXT,
             reviewed            INTEGER DEFAULT 0,
             subscription_id     INTEGER,
-            created_at          TEXT DEFAULT (datetime('now', 'localtime'))
+            created_at          TEXT DEFAULT (datetime('now', 'localtime')),
+            CHECK ((coverage_start IS NULL AND coverage_end IS NULL) OR
+                (type = '{TYPE_EXPENSE}' AND coverage_start IS NOT NULL AND coverage_end IS NOT NULL
+                 AND coverage_start GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+                 AND coverage_end GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]'
+                 AND coverage_start >= '0001-01-01'
+                 AND date(coverage_start, '+0 days') IS coverage_start
+                 AND date(coverage_end, '+0 days') IS coverage_end
+                 AND coverage_start <= coverage_end))
         )
     """)
     connection.execute("""
@@ -144,8 +152,6 @@ def _create_tables(connection: sqlite3.Connection) -> None:
             vendor                  TEXT,
             amount                  REAL NOT NULL,
             amount_cents            INTEGER,
-            billing_cycle           TEXT NOT NULL,
-            billing_interval_months INTEGER,
             start_date              TEXT,
             next_renewal_date       TEXT,
             end_date                TEXT,
@@ -155,13 +161,16 @@ def _create_tables(connection: sqlite3.Connection) -> None:
             auto_renew              INTEGER DEFAULT 1,
             status                  TEXT DEFAULT 'active',
             notes                   TEXT,
-            payment_type            TEXT DEFAULT 'subscription',
-            transaction_id          INTEGER,
             renewal_mode            TEXT DEFAULT 'same_day',
             renewal_interval        INTEGER,
             renewal_anchor_day      INTEGER,
             last_payment_date       TEXT,
-            created_at              TEXT DEFAULT (datetime('now', 'localtime'))
+            coverage_unit           TEXT,
+            coverage_interval       INTEGER,
+            created_at              TEXT DEFAULT (datetime('now', 'localtime')),
+            CHECK ((coverage_unit IS NULL AND coverage_interval IS NULL) OR
+                (coverage_unit IS NOT NULL AND coverage_unit IN ('months', 'days')
+                 AND typeof(coverage_interval) = 'integer' AND coverage_interval > 0))
         )
     """)
     connection.execute("""
@@ -206,7 +215,7 @@ def _create_tables(connection: sqlite3.Connection) -> None:
     """)
 
 
-def _create_indexes(connection: sqlite3.Connection) -> None:
+def create_indexes(connection: sqlite3.Connection) -> None:
     for statement in (
         "CREATE INDEX IF NOT EXISTS idx_capture_items_status ON capture_items(status, id)",
         "CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date)",
@@ -216,8 +225,6 @@ def _create_indexes(connection: sqlite3.Connection) -> None:
            ON transactions(refund_for_id)""",
         """CREATE INDEX IF NOT EXISTS idx_transactions_subscription
            ON transactions(subscription_id)""",
-        """CREATE INDEX IF NOT EXISTS idx_subscriptions_transaction
-           ON subscriptions(transaction_id)""",
         """CREATE INDEX IF NOT EXISTS idx_planned_expenses_transaction
            ON planned_expenses(transaction_id)""",
     ):

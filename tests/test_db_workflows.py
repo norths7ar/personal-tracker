@@ -44,32 +44,6 @@ class DatabaseProtectionTest(unittest.TestCase):
             str(uuid4()),
         )["id"]
 
-    def _prepaid(
-        self,
-        description,
-        amount,
-        payment_date,
-        months,
-        start,
-        category,
-        subcategory,
-        notes,
-    ):
-        result = planning.create_prepaid(
-            {
-                "description": description,
-                "amount": amount,
-                "payment_date": payment_date,
-                "months": months,
-                "start_month": start[:7],
-                "category": category,
-                "subcategory": subcategory,
-                "notes": notes,
-            },
-            str(uuid4()),
-        )
-        return result["transaction_id"], result["subscription_id"]
-
     def test_batch_save_is_atomic_and_idempotent(self):
         """同一批次重试不会重复产生账目、饮食及食材。"""
         records = [
@@ -187,6 +161,8 @@ class DatabaseProtectionTest(unittest.TestCase):
             "2026-08-30",
             category="旅行",
             subcategory="酒店住宿",
+            coverage_start="2026-08-30",
+            coverage_end="2026-09-01",
         )
         self._refund(transaction_id, "partial refund", 60, "2026-08-31")
 
@@ -202,62 +178,46 @@ class DatabaseProtectionTest(unittest.TestCase):
             ),
             100,
         )
+        with self.assertRaises(ValueError):
+            planning.update_transaction(transaction_id, {"amount": 99})
+        for basis in ("cash", "amortized"):
+            period = analysis.get_period_data("2026-08-30", "2026-09-01", basis)
+            self.assertEqual((period["expense"], period["income"]), (0, 0))
 
-    def test_prepaid_creation_is_atomic_and_ledger_edits_stay_in_sync(self):
-        """预付记录与流水一起成功或失败，后续编辑保持一致。"""
-        transaction_id, subscription_id = self._prepaid(
-            "annual software",
-            120,
-            "2026-07-01",
-            12,
-            "2026-07-01",
-            "通讯",
-            "订阅服务",
-            "work tool",
-        )
-
-        transaction = self.raw.execute(
-            "SELECT * FROM transactions WHERE id = ?", (transaction_id,)
-        ).fetchone()
-        subscription = self.raw.execute(
-            "SELECT * FROM subscriptions WHERE id = ?", (subscription_id,)
-        ).fetchone()
-        self.assertEqual(transaction["amortization_months"], 12)
-        self.assertEqual(subscription["transaction_id"], transaction_id)
-
-        planning.update_transaction(
-            transaction_id,
-            {"description": "renamed software", "amount": 150, "category": "工作"},
-        )
-        subscription = self.raw.execute(
-            "SELECT name, amount_cents, category FROM subscriptions WHERE id = ?",
-            (subscription_id,),
-        ).fetchone()
-        self.assertEqual(subscription["name"], "renamed software")
-        self.assertEqual(subscription["amount_cents"], 15000)
-        self.assertEqual(subscription["category"], "工作")
-
-        before = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
-        with (
-            patch.object(
-                planning,
-                "insert_subscription",
-                side_effect=RuntimeError("insert failed"),
-            ),
-            self.assertRaisesRegex(RuntimeError, "insert failed"),
+    def test_coverage_write_is_atomic_and_has_one_source_of_truth(self):
+        """生效期随交易原子保存，非法更新不留半笔数据，不生成独立预付对象。"""
+        payload = {
+            "type": TYPE_EXPENSE,
+            "description": "annual software",
+            "amount": 120,
+            "date": "2026-07-01",
+            "coverage_start": "2026-07-01",
+            "coverage_end": "2027-06-30",
+        }
+        key = str(uuid4())
+        transaction_id = entries.create_transaction(payload, key)["id"]
+        self.assertTrue(entries.create_transaction(payload, key)["duplicate"])
+        self.assertEqual(self.raw.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0], 0)
+        planning.update_transaction(transaction_id, {"amount": 150, "category": "工作"})
+        current = transactions.get_transaction(transaction_id)
+        self.assertEqual(current["amount_cents"], 15000)
+        self.assertEqual(current["coverage_end"], "2027-06-30")
+        for invalid in (
+            {"coverage_end": None},
+            {"coverage_start": "2028-01-01"},
+            {"type": TYPE_INCOME},
         ):
-            self._prepaid(
-                "broken prepaid",
-                50,
-                "2026-08-01",
-                2,
-                "2026-08-01",
-                "其他",
-                None,
-                None,
-            )
-        after = self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0]
-        self.assertEqual(after, before)
+            with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                planning.update_transaction(transaction_id, {"amount": 999, **invalid})
+            self.assertEqual(transactions.get_transaction(transaction_id), current)
+        retry_key = str(uuid4())
+        with self.assertRaises(ValueError):
+            entries.create_transaction({**payload, "coverage_end": None}, retry_key)
+        self.assertEqual(self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0], 1)
+        self.assertFalse(entries.create_transaction(payload, retry_key)["duplicate"])
+        planning.update_transaction(transaction_id, {"coverage_start": None, "coverage_end": None})
+        self.assertIsNone(transactions.get_transaction(transaction_id)["coverage_start"])
+        self.assertEqual(transactions.delete_transactions([transaction_id]), 1)
 
     def _meals(self):
         return [
@@ -302,11 +262,20 @@ class DatabaseProtectionTest(unittest.TestCase):
                 table,
             )
 
-    def test_analysis_reconciles_prepaid_refund_and_income_without_new_transactions(
+    def test_analysis_reconciles_daily_coverage_refund_and_income_without_new_transactions(
         self,
     ):
-        """摊销只改变分析口径，退款抵扣支出，各视图与真实流水一致。"""
-        self._prepaid("quarterly rent", 9000, "2025-01-15", 3, "2025-01-01", "居住", "房租", None)
+        """按天分摊守恒，先用后付仍归属生效期，退款抵扣支出而不新增流水。"""
+        self._transaction(
+            TYPE_EXPENSE,
+            "quarterly rent",
+            9000,
+            "2025-04-15",
+            coverage_start="2025-01-01",
+            coverage_end="2025-03-31",
+            category="居住",
+            subcategory="房租",
+        )
         spending_id = self._transaction(
             TYPE_EXPENSE, "groceries", 300, "2025-01-20", category="生活"
         )
@@ -318,25 +287,25 @@ class DatabaseProtectionTest(unittest.TestCase):
         for basis in ("cash", "amortized"):
             january = analysis.get_expense_analysis("month", "2025-01", basis)
             current = january["current"]
-            expected_expense = 9240 if basis == "cash" else 3240
-            self.assertEqual(january["cash_expense"], 9240)
-            self.assertEqual(january["amortized_expense"], 3240)
+            expected_expense = 240 if basis == "cash" else 3340
+            self.assertEqual(january["cash_expense"], 240)
+            self.assertEqual(january["amortized_expense"], 3340)
             self.assertEqual(current["expense"], expected_expense)
             self.assertEqual(current["income"], 2000)
             self.assertEqual(current["balance"], 2000 - expected_expense)
             self.assertEqual(
                 {row["category"]: row["total"] for row in current["expense_breakdown"]},
-                {"居住": 9000 if basis == "cash" else 3000, "生活": 240},
+                {"生活": 240} if basis == "cash" else {"居住": 3100, "生活": 240},
             )
             refunds = [row for row in current["entries"] if row["id"] == refund_id]
             self.assertEqual(len(refunds), 1)
             self.assertEqual((refunds[0]["bucket"], refunds[0]["contribution"]), ("expense", -60))
 
-            for month in ("2025-02", "2025-03"):
+            for month, cost in (("2025-02", 2800), ("2025-03", 3100)):
                 later = analysis.get_expense_analysis("month", month, basis)
                 self.assertEqual(later["cash_expense"], 0)
-                self.assertEqual(later["amortized_expense"], 3000)
-                self.assertEqual(later["current"]["expense"], 0 if basis == "cash" else 3000)
+                self.assertEqual(later["amortized_expense"], cost)
+                self.assertEqual(later["current"]["expense"], 0 if basis == "cash" else cost)
                 self.assertEqual(later["current"]["income"], 0)
 
             yearly = analysis.get_expense_analysis("year", "2025", basis)
@@ -368,3 +337,25 @@ class DatabaseProtectionTest(unittest.TestCase):
                 self.raw.execute("SELECT COUNT(*) FROM transactions").fetchone()[0],
                 before,
             )
+
+        for start, end, amount, daily_cents in (
+            ("2024-01-31", "2024-02-01", 10.01, [501, 500]),
+            ("2024-02-28", "2024-03-01", 0.01, [1, 0, 0]),
+            ("2024-02-01", "2024-02-01", 10.01, [1001]),
+        ):
+            with self.subTest(start=start, end=end):
+                record_id = self._transaction(
+                    TYPE_EXPENSE,
+                    "shifted cost",
+                    amount,
+                    "2024-01-01",
+                    coverage_start=start,
+                    coverage_end=end,
+                )
+                data = analysis.get_period_data(start, end, "amortized")
+                self.assertEqual(
+                    [db.to_cents(row[TYPE_EXPENSE]) for row in data["daily"]], daily_cents
+                )
+                self.assertEqual(db.to_cents(data["expense"]), sum(daily_cents))
+                self.assertEqual(analysis.get_period_data(start, end, "cash")["expense"], 0)
+                self.assertEqual(transactions.delete_transactions([record_id]), 1)

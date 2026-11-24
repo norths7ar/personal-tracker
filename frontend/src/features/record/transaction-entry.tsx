@@ -5,6 +5,7 @@ import { api, settingsApi, type TransactionCreate } from "@/api/client";
 import { invalidateFinance } from "@/api/invalidate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CoverageFields } from "@/features/ledger/coverage-fields";
 import { Feedback, Field, selectClass, textareaClass, today } from "./entry-shared";
 
 const initialEntry = () => ({
@@ -15,6 +16,8 @@ const initialEntry = () => ({
   category: "",
   subcategory: "",
   notes: "",
+  coverageStart: "",
+  coverageEnd: "",
 });
 type SaveRequest = {
   signature: string;
@@ -106,6 +109,8 @@ export function TransactionEntry() {
       subcategory: entry.subcategory || null,
       notes: entry.notes.trim() || null,
       reviewed: Boolean(entry.category),
+      coverage_start: entry.type === "支出" ? entry.coverageStart || null : null,
+      coverage_end: entry.type === "支出" ? entry.coverageEnd || null : null,
     };
     const signature = JSON.stringify(payload);
     const request: SaveRequest =
@@ -147,7 +152,7 @@ export function TransactionEntry() {
           </Field>
         </div>
         <details className="manual-options">
-          <summary>类型、日期、分类与备注</summary>
+          <summary>类型、日期、分类、备注与生效期</summary>
           <div className="form-stack">
             <div className="paired-fields">
               <Field label="类型">
@@ -213,6 +218,16 @@ export function TransactionEntry() {
                 onChange={(event) => setEntry({ ...entry, notes: event.target.value })}
               />
             </Field>
+            {entry.type === "支出" && (
+              <CoverageFields
+                start={entry.coverageStart}
+                end={entry.coverageEnd}
+                paymentDate={entry.date || today()}
+                onChange={(coverageStart, coverageEnd) =>
+                  setEntry({ ...entry, coverageStart, coverageEnd })
+                }
+              />
+            )}
           </div>
         </details>
         <div className="composer-footer">

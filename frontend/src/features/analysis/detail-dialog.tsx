@@ -24,15 +24,7 @@ export function DetailDialog({
   selection: DetailSelection | null;
   onClose: () => void;
 }) {
-  const entries = selection
-    ? (data.entries ?? []).filter(
-        (entry) =>
-          entry.bucket === selection.bucket &&
-          (entry.category || "") === (selection.row.category || "") &&
-          (selection.level === "category" ||
-            (entry.subcategory || "") === (selection.row.subcategory || "")),
-      )
-    : [];
+  const entries = selection ? detailEntries(data, selection) : [];
   return (
     <Dialog
       open={Boolean(selection)}
@@ -47,7 +39,7 @@ export function DetailDialog({
               {categoryLabel(selection.row)} · {money(selection.row.total)}
             </DialogTitle>
             <DialogDescription>
-              本期计入金额合计来自以下记录；退款显示负数，摊销显示本期份额。
+              每笔交易只列一行；退款显示负数，有生效期的支出显示本期分摊金额。
             </DialogDescription>
           </DialogHeader>
           <div className="table-scroll">
@@ -56,22 +48,26 @@ export function DetailDialog({
                 <tr>
                   <th className="summary-heading-cell">交易日期</th>
                   <th className="summary-heading-cell">描述</th>
-                  <th className="summary-heading-cell">归属日期</th>
+                  <th className="summary-heading-cell">本期归属日期</th>
                   <th className="summary-heading-amount">原金额</th>
                   <th className="summary-heading-amount">本期计入</th>
                 </tr>
               </thead>
               <tbody>
-                {entries.map((entry, index) => (
-                  <tr key={`${entry.id}-${entry.allocation_date}-${index}`} className="data-row">
+                {entries.map((entry) => (
+                  <tr key={entry.id} className="data-row">
                     <td className="summary-date-cell">{entry.date}</td>
                     <td className="summary-description-cell">
                       {entry.description}
                       <span className="summary-entry-note">#{entry.id}</span>
                     </td>
-                    <td className="summary-date-cell">{entry.allocation_date}</td>
+                    <td className="summary-date-cell">
+                      {entry.firstDate === entry.lastDate
+                        ? entry.firstDate
+                        : `${entry.firstDate} 至 ${entry.lastDate}`}
+                    </td>
                     <td className="summary-amount-cell">{money(entry.amount)}</td>
-                    <td className="summary-total-cell">{money(entry.contribution)}</td>
+                    <td className="summary-total-cell">{money(entry.contributionCents / 100)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -86,6 +82,48 @@ export function DetailDialog({
       )}
     </Dialog>
   );
+}
+
+type DetailEntry = {
+  id: number;
+  date: string;
+  description: string;
+  amount: number;
+  firstDate: string;
+  lastDate: string;
+  contributionCents: number;
+};
+
+function detailEntries(data: PeriodData, selection: DetailSelection) {
+  const grouped = new Map<number, DetailEntry>();
+  for (const entry of data.entries ?? []) {
+    if (entry.bucket !== selection.bucket) continue;
+    if ((entry.category || "") !== (selection.row.category || "")) continue;
+    if (
+      selection.level === "subcategory" &&
+      (entry.subcategory || "") !== (selection.row.subcategory || "")
+    )
+      continue;
+
+    const cents = Math.round(entry.contribution * 100);
+    const group = grouped.get(entry.id);
+    if (group) {
+      group.contributionCents += cents;
+      if (entry.allocation_date < group.firstDate) group.firstDate = entry.allocation_date;
+      if (entry.allocation_date > group.lastDate) group.lastDate = entry.allocation_date;
+    } else {
+      grouped.set(entry.id, {
+        id: entry.id,
+        date: entry.date,
+        description: entry.description,
+        amount: entry.amount,
+        firstDate: entry.allocation_date,
+        lastDate: entry.allocation_date,
+        contributionCents: cents,
+      });
+    }
+  }
+  return [...grouped.values()];
 }
 
 export function Breakdown({

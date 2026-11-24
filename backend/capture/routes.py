@@ -10,7 +10,7 @@ from backend.capture import phrases, queue
 from backend.capture.batch import BatchSubmissionConflict
 from backend.db import IdempotencyConflict
 from backend.diet.models import FoodInput
-from backend.http import IdempotencyKey
+from backend.http import IdempotencyKey, IsoDate
 from backend.ledger import analysis as home_service
 from backend.llm import LLMError
 
@@ -62,6 +62,8 @@ class TransactionCreateRequest(CaptureInput):
     subcategory: str | None = None
     notes: str | None = None
     confidence: float | None = Field(default=None, ge=0, le=1)
+    coverage_start: IsoDate | None = None
+    coverage_end: IsoDate | None = None
     reviewed: bool = False
 
 
@@ -257,6 +259,10 @@ def create_transaction(body: TransactionCreateRequest, idempotency_key: Idempote
         return entry_service.create_transaction(payload, idempotency_key)
     except IdempotencyConflict as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
 
 
 @router.post("/meals/prepare", response_model=MealPreparationResponse)

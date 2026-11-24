@@ -41,7 +41,23 @@ export const transactionColumns = [
       </span>
     ),
   }),
-  columnHelper.accessor("description", { header: "描述", size: 360 }),
+  columnHelper.accessor("description", {
+    header: "描述",
+    size: 360,
+    cell: ({ getValue, row: { original } }) => (
+      <>
+        {getValue()}
+        {original.coverage_start && original.coverage_end && (
+          <span
+            className="ledger-coverage-marker"
+            title={`生效期：${original.coverage_start} 至 ${original.coverage_end}`}
+          >
+            生效期
+          </span>
+        )}
+      </>
+    ),
+  }),
   columnHelper.accessor("amount", {
     header: "金额",
     cell: ({ getValue }) => formatMoney(getValue()),

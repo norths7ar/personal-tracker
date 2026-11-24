@@ -83,6 +83,16 @@
   margin-top: var(--space-4);
 }
 
+.manual-options > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--gray-11);
+}
+
+.manual-options > .form-stack {
+  margin-top: var(--space-4);
+}
+
 .page-heading {
   display: flex;
   flex-wrap: wrap;
