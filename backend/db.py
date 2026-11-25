@@ -213,6 +213,25 @@ def create_tables(connection: sqlite3.Connection) -> None:
             cash_budget_cents      INTEGER
         )
     """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS notes (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            title         TEXT NOT NULL DEFAULT '',
+            content       TEXT NOT NULL CHECK(length(trim(content)) > 0),
+            recorded_date TEXT NOT NULL,
+            created_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+            updated_at    TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+        )
+    """)
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS note_event_dates (
+            id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            note_id    INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+            start_date TEXT NOT NULL,
+            end_date   TEXT NOT NULL,
+            CHECK(start_date <= end_date)
+        )
+    """)
 
 
 def create_indexes(connection: sqlite3.Connection) -> None:
@@ -227,6 +246,9 @@ def create_indexes(connection: sqlite3.Connection) -> None:
            ON transactions(subscription_id)""",
         """CREATE INDEX IF NOT EXISTS idx_planned_expenses_transaction
            ON planned_expenses(transaction_id)""",
+        "CREATE INDEX IF NOT EXISTS idx_notes_recorded_date ON notes(recorded_date DESC, id DESC)",
+        """CREATE INDEX IF NOT EXISTS idx_note_event_dates_note
+           ON note_event_dates(note_id, start_date, end_date)""",
     ):
         connection.execute(statement)
 

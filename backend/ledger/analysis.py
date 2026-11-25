@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from backend.constants import REFUND_CATEGORY, TYPE_EXPENSE, TYPE_INCOME
 from backend.db import connect, to_cents
 from backend.diet.store import get_meals
-from backend.ledger.planning import fixed_cost_for_month, get_planned_expenses, get_subscriptions
+from backend.ledger.planning import get_planned_expenses, get_subscriptions
 from backend.ledger.transactions import (
     get_pending_transaction_count,
     get_transactions,
@@ -273,12 +273,17 @@ def get_expense_analysis(
     if selected is None:
         return {"months": months, "years": years, "selected_period": None}
     if granularity == "month":
-        start, end, _ = _month_range(selected)
+        start, full_end, total_days = _month_range(selected)
+        elapsed_end, elapsed_days = _elapsed_range(start, full_end)
+        cash = _period_data(start, elapsed_end, "cash")
+        amortized = _period_data(start, full_end, "amortized")
+        end = full_end
     else:
-        start, end = f"{selected}-01-01", f"{selected}-12-31"
-    end, days = _elapsed_range(start, end)
-    cash = _period_data(start, end, "cash")
-    amortized = _period_data(start, end, "amortized")
+        start, full_end = f"{selected}-01-01", f"{selected}-12-31"
+        end, elapsed_days = _elapsed_range(start, full_end)
+        total_days = None
+        cash = _period_data(start, end, "cash")
+        amortized = _period_data(start, end, "amortized")
     current = cash if basis == "cash" else amortized
     return {
         "months": months,
@@ -286,13 +291,13 @@ def get_expense_analysis(
         "selected_period": selected,
         "start_date": start,
         "end_date": end,
-        "days": days,
+        "days": elapsed_days,
+        "total_days": total_days,
         "current": current,
         "cash_current": cash,
         "timeline": _monthly_timeline(selected, end, current["daily"])
         if granularity == "year"
         else [],
-        "fixed_monthly_cost": fixed_cost_for_month(selected) if granularity == "month" else None,
         "budget": get_month_budget(selected) if granularity == "month" else None,
         "cash_expense": cash["expense"] if granularity == "month" else None,
         "amortized_expense": amortized["expense"] if granularity == "month" else None,

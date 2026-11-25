@@ -19,6 +19,7 @@ from backend.diet.routes import router as diet_router
 from backend.jobs.routes import router as jobs_router
 from backend.jobs.store import init_db as init_jobs_db
 from backend.ledger.routes import router as ledger_router
+from backend.notes.routes import router as notes_router
 from backend.settings.routes import router as settings_router
 from backend.settings.store import initialize_settings
 from backend.todos.routes import router as todos_router
@@ -102,6 +103,7 @@ def create_app() -> FastAPI:
     application.include_router(todos_router)
     application.include_router(diet_router)
     application.include_router(ledger_router)
+    application.include_router(notes_router)
     application.include_router(capture_router)
     application.include_router(jobs_router)
     application.include_router(runtime_router)

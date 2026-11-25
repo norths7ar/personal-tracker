@@ -51,13 +51,6 @@ export function AnalysisPage() {
             </select>
           </Field>
         )}
-        {analysis.data?.end_date && (
-          <p className="analysis-period-caption">
-            {analysis.data.days
-              ? `${analysis.data.start_date} 至 ${analysis.data.end_date} · ${analysis.data.days} 天`
-              : "所选期间尚未开始"}
-          </p>
-        )}
       </div>
       {analysis.isPending ? (
         <p className="muted-text">正在分析…</p>

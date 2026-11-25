@@ -28,33 +28,6 @@ def _normalize_subscription(row) -> dict:
     return item
 
 
-def monthly_equivalent(item: dict) -> float:
-    interval = item["renewal_interval"] or 1
-    if item["renewal_mode"] == RENEWAL_MODE_FIXED_DAYS:
-        return item["amount"] * (365.2425 / 12) / interval
-    return item["amount"] / interval
-
-
-def fixed_cost_for_month(month: str) -> float:
-    """Return the monthly-equivalent recurring payment reference for YYYY-MM."""
-    month_start = date.fromisoformat(f"{month}-01")
-    month_end = month_start.replace(day=monthrange(month_start.year, month_start.month)[1])
-    total = 0.0
-    for item in get_subscriptions(include_inactive=True):
-        start = date.fromisoformat(str(item["start_date"])[:10]) if item.get("start_date") else None
-        end = date.fromisoformat(str(item["end_date"])[:10]) if item.get("end_date") else None
-        if start and start > month_end:
-            continue
-        if end and end < month_start:
-            continue
-
-        if item.get("status") != SUBSCRIPTION_STATUS_ACTIVE and end is None:
-            continue
-
-        total += monthly_equivalent(item)
-    return total
-
-
 def insert_subscription(
     conn,
     name: str,

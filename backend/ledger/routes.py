@@ -340,7 +340,7 @@ class ExpenseAnalysisResponse(BaseModel):
     current: PeriodData | None = None
     cash_current: PeriodData | None = None
     timeline: list[PeriodSummary] = Field(default_factory=list)
-    fixed_monthly_cost: float | None = None
+    total_days: int | None = None
     budget: MonthBudget | None = None
     cash_expense: float | None = None
     amortized_expense: float | None = None

@@ -33,48 +33,55 @@ export function AnalysisContent({
   const [detail, setDetail] = useState<DetailSelection | null>(null);
   const daily = useMemo(() => cumulativeNetExpense(fillDaily(data)), [data]);
   const basisLabel = basis === "cash" ? "现金流" : "摊销后";
+  const elapsedDays = data.days ?? 0;
+  const budgetLimit =
+    granularity === "month"
+      ? basis === "cash"
+        ? data.budget?.cash_total
+        : data.budget?.amortized_total
+      : null;
+  const hasChartData = granularity === "month" ? daily.length > 0 : elapsedDays > 0;
+
   return (
     <div className="analysis-sections">
       <section className="summary-section">
         <h2 className="section-title">现金收支</h2>
         <div className="metrics-grid">
-          <Metric label="现金流净支出" value={money(cashNetExpense)} />
-          <Metric label="现金流收入" value={money(cash.income)} />
+          <Metric label="现金支出" value={money(cash.expense)} />
+          <Metric label="现金收入" value={money(cash.income)} />
           <Metric
-            label="日均现金流净支出"
-            value={data.days ? money(cashNetExpense / data.days) : "—"}
-            hint={data.days ? `已过 ${data.days} 天` : "期间尚未开始"}
+            label="日均现金支出"
+            value={elapsedDays ? money(cash.expense / elapsedDays) : "—"}
+            hint={elapsedDays ? `已过 ${elapsedDays} 天` : "期间尚未开始"}
           />
           <Metric label="收支结余" value={money(cash.balance)} />
         </div>
       </section>
       {granularity === "month" && (
-        <section className="content-panel analysis-budget">
-          <div className="panel-heading">
+        <section className="summary-section">
+          <div className="page-heading">
             <h2 className="section-title">月度预算</h2>
             <BudgetEditor
               month={data.selected_period!}
               budget={data.budget ?? { amortized_total: null, cash_total: null }}
             />
           </div>
-          <div className="budget-grid">
-            <div>
-              <p className="muted-text">固定费用参考</p>
-              <p className="metric-value">{money(data.fixed_monthly_cost ?? 0)}</p>
+          <div className="content-panel analysis-budget">
+            <div className="budget-grid">
+              <BudgetStatus
+                label="现金流净支出"
+                actual={cashNetExpense}
+                budget={data.budget?.cash_total}
+              />
+              <BudgetStatus
+                label="摊销后净支出"
+                actual={netExpense({
+                  expense: data.amortized_expense ?? 0,
+                  income: cash.income,
+                })}
+                budget={data.budget?.amortized_total}
+              />
             </div>
-            <BudgetStatus
-              label="现金流净支出"
-              actual={cashNetExpense}
-              budget={data.budget?.cash_total}
-            />
-            <BudgetStatus
-              label="摊销后净支出"
-              actual={netExpense({
-                expense: data.amortized_expense ?? 0,
-                income: cash.income,
-              })}
-              budget={data.budget?.amortized_total}
-            />
           </div>
         </section>
       )}
@@ -97,9 +104,13 @@ export function AnalysisContent({
             </h3>
             <span className="chart-value">{money(netExpense(current))}</span>
           </div>
-          {data.days ? (
+          {hasChartData ? (
             <EChart
-              option={granularity === "month" ? lineOption(daily) : barOption(data.timeline ?? [])}
+              option={
+                granularity === "month"
+                  ? lineOption(daily, elapsedDays, budgetLimit)
+                  : barOption(data.timeline ?? [])
+              }
             />
           ) : (
             <p className="loading-message">期间尚未开始，暂无已发生支出。</p>
@@ -136,7 +147,7 @@ export function AnalysisContent({
             <dt>净支出与结余</dt>
             <dd>
               净支出 = 支出（已扣关联退款）− 收入；收支结余 = 收入 −
-              付款口径支出（已扣关联退款）。日均净支出按期间已过天数计算。
+              付款口径支出（已扣关联退款）。日均现金支出按期间已过天数计算。
             </dd>
           </div>
           <div>
@@ -145,11 +156,9 @@ export function AnalysisContent({
           </div>
           <div>
             <dt>摊销后</dt>
-            <dd>设置生效期的支出按起止日（含）逐天分摊；未设置的支出按付款日归属。</dd>
-          </div>
-          <div>
-            <dt>固定费用参考</dt>
-            <dd>仅参考周期付款，不含一次性计划；不额外计入预算用量。</dd>
+            <dd>
+              设置生效期的支出按起止日（含）逐天分摊，月度视图展示全月已确定分摊（未到日期以虚线表示）；未设置生效期的支出按付款日归属。
+            </dd>
           </div>
         </dl>
       </details>

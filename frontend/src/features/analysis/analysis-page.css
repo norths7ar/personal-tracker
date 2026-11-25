@@ -14,28 +14,12 @@
   padding: var(--space-4) var(--space-5);
 }
 
-.analysis-period-caption {
-  margin-left: auto;
-  padding-bottom: var(--space-2);
-  font-size: var(--font-size-2, 0.875rem);
-  line-height: 1.25rem;
-  color: var(--gray-11);
-}
-
 .analysis-sections > :not([hidden]) ~ :not([hidden]) {
   margin-top: var(--space-6);
 }
 
 .summary-section > :not([hidden]) ~ :not([hidden]) {
   margin-top: var(--space-3);
-}
-
-.panel-heading {
-  margin-bottom: var(--space-4);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
 }
 
 .budget-grid {
@@ -45,7 +29,7 @@
 
 @media (min-width: 1024px) {
   .budget-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -375,12 +359,6 @@
   .chart-heading,
   .section-heading {
     flex-wrap: wrap;
-  }
-
-  .analysis-period-caption {
-    width: 100%;
-    margin-left: 0;
-    padding-bottom: 0;
   }
 }
 

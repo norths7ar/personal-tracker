@@ -8,6 +8,7 @@ import {
   LogOut,
   PencilLine,
   Settings,
+  StickyNote,
   Utensils,
 } from "lucide-react";
 import { useEffect, useRef, type ReactNode } from "react";
@@ -59,6 +60,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
             label="待处理"
             count={pendingCount}
           />
+          <NavItem to="/notes" icon={<StickyNote size={17} />} label="随手记" />
           <NavItem to="/jobs" icon={<Briefcase size={17} />} label="求职" />
           <div className="navigation-section">回看</div>
           <NavItem to="/ledger" icon={<BookOpen size={17} />} label="账目" />
@@ -85,6 +87,7 @@ export function AppShell({ children, onLogout }: AppShellProps) {
               ["/todo", "待办"],
               ["/record", "记录"],
               ["/pending", "待处理"],
+              ["/notes", "随手记"],
               ["/jobs", "求职"],
               ["/ledger", "账目"],
               ["/analysis", "开销分析"],

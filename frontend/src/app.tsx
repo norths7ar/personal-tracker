@@ -12,6 +12,11 @@ const LedgerPage = lazy(() =>
     default: module.LedgerPage,
   })),
 );
+const NotesPage = lazy(() =>
+  import("@/features/notes/notes-page").then((module) => ({
+    default: module.NotesPage,
+  })),
+);
 const TodoPage = lazy(() =>
   import("@/features/todo/todo-page").then((module) => ({ default: module.TodoPage })),
 );
@@ -73,6 +78,7 @@ export function App() {
           <Route path="/record" element={<RecordPage />} />
           <Route path="/todo" element={<TodoPage />} />
           <Route path="/pending" element={<PendingPage />} />
+          <Route path="/notes" element={<NotesPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
           <Route path="/diet" element={<DietPage />} />
           <Route path="/jobs" element={<JobsPage />} />
