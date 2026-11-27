@@ -17,7 +17,7 @@ import { EventDatesEditor } from "./event-dates-editor";
 function noteTitle(note: NoteItem) {
   if (note.title.trim()) return note.title;
   const anchor = note.event_dates[0]?.start_date ?? note.recorded_date;
-  return `${anchor} 随手记`;
+  return `${anchor} 日记`;
 }
 
 function ExportLink({ href, label, disabled }: { href: string; label: string; disabled: boolean }) {
@@ -68,11 +68,11 @@ export function NoteLibrary({
         activeNote !== null && !showListOnMobile && "notes-workspace-selected",
       )}
     >
-      <section className="notes-list" aria-label="随手记列表">
+      <section className="notes-list" aria-label="日记列表">
         <div className="notes-filters">
           <TextField.Root
             size="2"
-            aria-label="搜索随手记"
+            aria-label="搜索日记"
             placeholder="搜索标题或正文…"
             maxLength={500}
             value={filters.q ?? ""}
@@ -136,7 +136,7 @@ export function NoteLibrary({
 
         {notesQuery.isPending ? (
           <p className="loading-message" role="status">
-            正在读取随手记…
+            正在读取日记…
           </p>
         ) : notesQuery.isError ? (
           <div className="notes-list-message">
@@ -177,8 +177,8 @@ export function NoteLibrary({
         ) : (
           <p className="notes-list-message muted-text">
             {filters.year || filters.q?.trim()
-              ? "没有符合条件的随手记。"
-              : "还没有随手记，切到「记录」写第一篇。"}
+              ? "没有符合条件的日记。"
+              : "还没有日记，切到「记录」写第一篇。"}
           </p>
         )}
       </section>
@@ -187,8 +187,8 @@ export function NoteLibrary({
         {activeNote === null ? (
           <div className="empty-panel">
             {filters.year || filters.q?.trim()
-              ? "没有符合筛选条件的随手记。"
-              : "还没有已保存的随手记。"}
+              ? "没有符合筛选条件的日记。"
+              : "还没有已保存的日记。"}
           </div>
         ) : (
           <>
@@ -352,7 +352,7 @@ function NoteDetailPanel({ note, onDeleted }: { note: NoteItem; onDeleted: () =>
                 color="red"
                 loading={remove.isPending}
                 onClick={() => {
-                  if (window.confirm("确认删除这条随手记？")) {
+                  if (window.confirm("确认删除这篇日记？")) {
                     remove.mutate();
                   }
                 }}

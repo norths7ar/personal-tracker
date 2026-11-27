@@ -39,7 +39,7 @@ def export_notes(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from None
 
     clean_year = year.strip() if year else ""
-    heading = f"{clean_year} 年随手记" if clean_year else "全部随手记"
+    heading = f"{clean_year} 年日记" if clean_year else "全部日记"
     ascii_name = f"notes-{clean_year or 'all'}.{format}"
     utf8_name = quote(f"{heading}.{format}")
     headers = {

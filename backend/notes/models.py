@@ -38,7 +38,7 @@ class NoteCreate(BaseModel):
     @classmethod
     def nonblank_content(cls, value: str) -> str:
         if not value.strip():
-            raise ValueError("随手记正文不能为空")
+            raise ValueError("日记正文不能为空")
         return value
 
     @field_validator("event_dates")
@@ -64,7 +64,7 @@ class NoteUpdate(BaseModel):
     @classmethod
     def nonblank_content(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
-            raise ValueError("随手记正文不能为空")
+            raise ValueError("日记正文不能为空")
         return value
 
     @field_validator("event_dates")

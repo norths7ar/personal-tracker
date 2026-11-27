@@ -45,7 +45,7 @@ def _note_heading(item: dict) -> str:
         if event_dates
         else str(item["recorded_date"])
     )
-    return f"{anchor} 随手记"
+    return f"{anchor} 日记"
 
 
 def _note_meta(item: dict) -> str:
@@ -60,7 +60,7 @@ def render_markdown(items: list[dict], heading: str) -> str:
     ordered = sorted(items, key=_chronological_sort_key)
     blocks = [f"# {heading}"]
     if not ordered:
-        blocks.append("暂无随手记。")
+        blocks.append("暂无日记。")
         return "\n\n".join(blocks) + "\n"
     for item in ordered:
         blocks.append(f"## {_note_heading(item)}")
@@ -84,7 +84,7 @@ def render_docx(items: list[dict], heading: str) -> bytes:
     ordered = sorted(items, key=_chronological_sort_key)
     paragraphs = [_paragraph_xml(heading, bold=True, size_half_pts=32)]
     if not ordered:
-        paragraphs.append(_paragraph_xml("暂无随手记。"))
+        paragraphs.append(_paragraph_xml("暂无日记。"))
     else:
         for item in ordered:
             paragraphs.append(_paragraph_xml(""))

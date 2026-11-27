@@ -118,7 +118,7 @@ def get_note(note_id: int) -> dict:
             (note_id,),
         ).fetchone()
         if row is None:
-            raise NoteNotFound("找不到这条随手记")
+            raise NoteNotFound("找不到这篇日记")
         return _serialize_rows(conn, [row])[0]
 
 
@@ -140,7 +140,7 @@ def update_note(note_id: int, body: NoteUpdate) -> dict:
         conn.execute("BEGIN IMMEDIATE")
         existing = conn.execute("SELECT id FROM notes WHERE id = ?", (note_id,)).fetchone()
         if existing is None:
-            raise NoteNotFound("找不到这条随手记")
+            raise NoteNotFound("找不到这篇日记")
         fields = body.model_dump(exclude={"event_dates"}, exclude_unset=True)
         if "recorded_date" in fields:
             fields["recorded_date"] = fields["recorded_date"].isoformat()
@@ -159,4 +159,4 @@ def delete_note(note_id: int) -> None:
     with closing(connect()) as conn, conn:
         deleted = conn.execute("DELETE FROM notes WHERE id = ?", (note_id,))
         if deleted.rowcount == 0:
-            raise NoteNotFound("找不到这条随手记")
+            raise NoteNotFound("找不到这篇日记")

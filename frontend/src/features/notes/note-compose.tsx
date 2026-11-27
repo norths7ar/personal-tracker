@@ -125,7 +125,7 @@ export function NoteCompose({
   return (
     <section
       className="content-panel notes-compose"
-      aria-label="记录随手记"
+      aria-label="记录日记"
       onKeyDown={(event) => {
         if (
           event.defaultPrevented ||
@@ -228,7 +228,7 @@ export function NoteCompose({
             loading={create.isPending}
             disabled={create.isPending || !draft.content.trim() || !effectiveDate}
           >
-            保存随手记
+            保存日记
           </Button>
         </Flex>
       </form>

@@ -27,10 +27,10 @@ export function NotesPage() {
   return (
     <section className="page-stack notes-page">
       <header className="page-heading">
-        <h1 className="page-title">随手记</h1>
+        <h1 className="page-title">日记</h1>
       </header>
 
-      <div className="page-tabs notes-tabs" aria-label="随手记视图">
+      <div className="page-tabs notes-tabs" aria-label="日记视图">
         <button
           type="button"
           className={cn("page-tab", activeTab === "compose" && "page-tab-selected")}
