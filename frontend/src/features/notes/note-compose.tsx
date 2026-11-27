@@ -10,7 +10,7 @@ const DRAFT_KEY = "personal-tracker:notes-compose-draft:v1";
 type Draft = {
   title: string;
   content: string;
-  recordedDate: string;
+  recordedDate: string | null;
   eventDates: EventDateRange[];
 };
 
@@ -20,22 +20,24 @@ function loadDraft(): Draft {
   const fallback: Draft = {
     title: "",
     content: "",
-    recordedDate: today(),
+    recordedDate: null,
     eventDates: [],
   };
   try {
     const raw = window.localStorage.getItem(DRAFT_KEY);
     if (!raw) return fallback;
-    const parsed = JSON.parse(raw) as Partial<Draft>;
-    return {
-      title: typeof parsed.title === "string" ? parsed.title : "",
-      content: typeof parsed.content === "string" ? parsed.content : "",
-      recordedDate:
-        typeof parsed.recordedDate === "string" && parsed.recordedDate
-          ? parsed.recordedDate
-          : fallback.recordedDate,
-      eventDates: Array.isArray(parsed.eventDates) ? parsed.eventDates : [],
-    };
+    const parsed = JSON.parse(raw) as Partial<Draft> & { dateCustomized?: boolean };
+    const title = typeof parsed.title === "string" ? parsed.title : "";
+    const content = typeof parsed.content === "string" ? parsed.content : "";
+    const eventDates = Array.isArray(parsed.eventDates) ? parsed.eventDates : [];
+    const hasContent = Boolean(title || content || eventDates.length);
+    const recordedDate =
+      typeof parsed.recordedDate === "string" &&
+      parsed.recordedDate &&
+      (hasContent || parsed.dateCustomized === true)
+        ? parsed.recordedDate
+        : null;
+    return { title, content, recordedDate, eventDates };
   } catch {
     return fallback;
   }
@@ -58,11 +60,36 @@ export function NoteCompose({
 }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft>(loadDraft);
+  const [todayDate, setTodayDate] = useState(today);
   const [lastSavedId, setLastSavedId] = useState<number | null>(null);
+  const effectiveDate = draft.recordedDate ?? todayDate;
 
   useEffect(() => {
+    const refreshToday = () => setTodayDate(today());
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshToday();
+    };
+    window.addEventListener("focus", refreshToday);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", refreshToday);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    const hasDraft = Boolean(
+      draft.title || draft.content || draft.eventDates.length || draft.recordedDate !== null,
+    );
+    if (!hasDraft) {
+      clearStoredDraft();
+      return;
+    }
     try {
-      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+      window.localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ ...draft, dateCustomized: draft.recordedDate !== null }),
+      );
     } catch {
       // Ignore storage quota / privacy mode errors.
     }
@@ -72,10 +99,11 @@ export function NoteCompose({
     mutationFn: notesApi.create,
     onSuccess: (note) => {
       clearStoredDraft();
+      setTodayDate(today());
       setDraft({
         title: "",
         content: "",
-        recordedDate: today(),
+        recordedDate: null,
         eventDates: [],
       });
       setLastSavedId(note.id);
@@ -85,11 +113,11 @@ export function NoteCompose({
   });
 
   function submit() {
-    if (create.isPending || !draft.content.trim() || !draft.recordedDate) return;
+    if (create.isPending || !draft.content.trim() || !effectiveDate) return;
     create.mutate({
       title: draft.title,
       content: draft.content,
-      recorded_date: draft.recordedDate,
+      recorded_date: effectiveDate,
       event_dates: draft.eventDates,
     });
   }
@@ -141,10 +169,10 @@ export function NoteCompose({
               </Text>
               <DateInput
                 required
-                value={draft.recordedDate}
+                value={effectiveDate}
                 onChange={(event) => {
-                  const recordedDate = event.target.value;
-                  setDraft((current) => ({ ...current, recordedDate }));
+                  const value = event.target.value;
+                  setDraft((current) => ({ ...current, recordedDate: value || null }));
                 }}
               />
             </label>
@@ -198,7 +226,7 @@ export function NoteCompose({
           <Button
             type="submit"
             loading={create.isPending}
-            disabled={create.isPending || !draft.content.trim() || !draft.recordedDate}
+            disabled={create.isPending || !draft.content.trim() || !effectiveDate}
           >
             保存随手记
           </Button>
