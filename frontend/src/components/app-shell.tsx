@@ -4,7 +4,6 @@ import {
   BookOpen,
   Briefcase,
   CheckSquare2,
-  ListTodo,
   LogOut,
   PencilLine,
   Settings,
@@ -52,7 +51,6 @@ export function AppShell({ children, onLogout }: AppShellProps) {
         </div>
         <nav className="app-navigation">
           <div className="navigation-section">日常</div>
-          <NavItem to="/todo" icon={<ListTodo size={17} />} label="待办" />
           <NavItem to="/record" icon={<PencilLine size={17} />} label="记录" />
           <NavItem
             to="/pending"
@@ -84,7 +82,6 @@ export function AppShell({ children, onLogout }: AppShellProps) {
         <nav aria-label="页面导航" className="app-mobile-navigation">
           {(
             [
-              ["/todo", "待办"],
               ["/record", "记录"],
               ["/pending", "待处理"],
               ["/notes", "日记"],

@@ -22,7 +22,6 @@ from backend.ledger.routes import router as ledger_router
 from backend.notes.routes import router as notes_router
 from backend.settings.routes import router as settings_router
 from backend.settings.store import initialize_settings
-from backend.todos.routes import router as todos_router
 
 runtime_router = APIRouter(prefix="/api/internal/service", include_in_schema=False)
 
@@ -100,7 +99,6 @@ def create_app() -> FastAPI:
 
     application.include_router(auth_router)
     application.include_router(settings_router)
-    application.include_router(todos_router)
     application.include_router(diet_router)
     application.include_router(ledger_router)
     application.include_router(notes_router)

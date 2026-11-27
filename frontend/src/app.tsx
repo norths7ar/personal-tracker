@@ -17,9 +17,6 @@ const NotesPage = lazy(() =>
     default: module.NotesPage,
   })),
 );
-const TodoPage = lazy(() =>
-  import("@/features/todo/todo-page").then((module) => ({ default: module.TodoPage })),
-);
 const RecordPage = lazy(() =>
   import("@/features/record/record-page").then((module) => ({
     default: module.RecordPage,
@@ -76,7 +73,6 @@ export function App() {
       <Suspense fallback={<p className="muted-text">正在载入页面…</p>}>
         <Routes>
           <Route path="/record" element={<RecordPage />} />
-          <Route path="/todo" element={<TodoPage />} />
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/notes" element={<NotesPage />} />
           <Route path="/ledger" element={<LedgerPage />} />
